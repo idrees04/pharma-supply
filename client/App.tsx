@@ -4,10 +4,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { AuthProvider } from "@/context/AuthContext";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { queryClient } from "@/api/queryClient";
 import Dashboard from "./pages/Dashboard";
 import TenderList from "./pages/tender/TenderList";
 import PurchaseOrderList from "./pages/orders/PurchaseOrderList";
@@ -27,12 +29,14 @@ import HospitalList from "./pages/hospitals/HospitalList";
 import SupplyOrderList from "./pages/supply/SupplyOrderList";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
-
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
+  <ErrorBoundary onError={(error, errorInfo) => {
+    // Optional: Send to error tracking service (Sentry, LogRocket, etc.)
+    console.error('App error boundary caught:', error, errorInfo);
+  }}>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -177,9 +181,10 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 createRoot(document.getElementById("root")!).render(<App />);

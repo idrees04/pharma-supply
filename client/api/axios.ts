@@ -181,15 +181,12 @@ apiClient.interceptors.response.use(
 /**
  * Get authentication token from storage
  *
- * Customize this based on your auth implementation:
- * - localStorage.getItem('token')
- * - sessionStorage
- * - Zustand store
- * - Context API
+ * The token is stored in localStorage after successful login.
+ * Tokens are automatically attached to all API requests.
+ *
+ * @returns JWT token string or null if not authenticated
  */
 function getAuthToken(): string | null {
-  // TODO: Replace with your actual token retrieval logic
-  // Example with localStorage:
   try {
     return localStorage.getItem('authToken');
   } catch {
@@ -198,20 +195,36 @@ function getAuthToken(): string | null {
 }
 
 /**
- * Handle authentication errors
+ * Handle authentication errors (401/403 responses)
  *
- * Called when API returns 401 Unauthorized.
- * This is where you'd typically:
- * - Clear stored tokens
+ * Called when API returns 401 Unauthorized or 403 Forbidden.
+ * This occurs when:
+ * - Token is missing or invalid
+ * - Token has expired
+ * - User lacks permission for resource
+ *
+ * Actions:
+ * - Clear stored token
  * - Redirect to login page
- * - Emit auth state update
+ * - This prevents infinite redirect loops by only triggering once
  */
 function handleAuthError(): void {
-  // TODO: Implement auth error handling
-  // Example:
-  // localStorage.removeItem('authToken');
-  // window.location.href = '/login';
-  // Or dispatch to auth store/context
+  try {
+    // Clear stored authentication token
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+
+    // Prevent infinite redirects: only redirect if not already on login page
+    if (!window.location.pathname.includes('/login')) {
+      // Store the page the user was trying to access (for redirect after login)
+      sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+      window.location.href = '/login';
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('[Auth Error Handler]', error);
+    }
+  }
 }
 
 /**

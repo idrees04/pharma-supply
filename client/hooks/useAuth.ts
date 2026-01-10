@@ -19,11 +19,11 @@
  *   return <App />;
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useStore } from './useStore';
-import { UserDTO, LoginResponseDTO } from '@/types/api/users';
-import { UserRole } from '@/types/enums';
+import { useCallback, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useStore } from "./useStore";
+import { UserDTO, LoginResponseDTO } from "@/types/api/users";
+import { UserRole } from "@/types/enums";
 
 /**
  * Auth State returned by useAuth hook
@@ -103,8 +103,8 @@ export function useAuthInitialize(): AuthState & { isInitialized: boolean } {
     const initializeAuth = () => {
       try {
         // Check for stored token
-        const token = localStorage.getItem('authToken');
-        const storedUser = localStorage.getItem('currentUser');
+        const token = localStorage.getItem("authToken");
+        const storedUser = localStorage.getItem("currentUser");
 
         if (token && storedUser) {
           // Token and user exist in storage
@@ -136,13 +136,13 @@ export function useAuthInitialize(): AuthState & { isInitialized: boolean } {
         setIsInitialized(true);
       } catch (error) {
         // Error parsing stored data - clear and reset
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('currentUser');
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("currentUser");
         setState({
           isAuthenticated: false,
           isLoading: false,
           user: null,
-          error: 'Failed to restore session',
+          error: "Failed to restore session",
         });
         setIsInitialized(true);
       }
@@ -184,35 +184,38 @@ export function useAuthActions() {
   const { setCurrentUser } = useStore();
   const queryClient = useQueryClient();
 
-  const login = useCallback((loginResponse: LoginResponseDTO) => {
-    // Store token in localStorage (expires on browser close if using sessionStorage)
-    localStorage.setItem('authToken', loginResponse.token);
+  const login = useCallback(
+    (loginResponse: LoginResponseDTO) => {
+      // Store token in localStorage (expires on browser close if using sessionStorage)
+      localStorage.setItem("authToken", loginResponse.token);
 
-    // Create UserDTO from login response
-    const user: UserDTO = {
-      id: loginResponse.userId,
-      username: loginResponse.username,
-      fullName: loginResponse.fullName,
-      email: loginResponse.email,
-      phoneNumber: '', // Not included in login response
-      role: loginResponse.role as UserRole,
-      lastLoginDate: new Date().toISOString(),
-      isActive: true,
-      isLocked: false,
-    };
+      // Create UserDTO from login response
+      const user: UserDTO = {
+        id: loginResponse.userId,
+        username: loginResponse.username,
+        fullName: loginResponse.fullName,
+        email: loginResponse.email,
+        phoneNumber: "", // Not included in login response
+        role: loginResponse.role as UserRole,
+        lastLoginDate: new Date().toISOString(),
+        isActive: true,
+        isLocked: false,
+      };
 
-    // Store user data in localStorage
-    localStorage.setItem('currentUser', JSON.stringify(user));
+      // Store user data in localStorage
+      localStorage.setItem("currentUser", JSON.stringify(user));
 
-    // Update Zustand store
-    setCurrentUser(user);
-  }, [setCurrentUser]);
+      // Update Zustand store
+      setCurrentUser(user);
+    },
+    [setCurrentUser],
+  );
 
   const logout = useCallback(() => {
     // Clear stored credentials
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('currentUser');
-    sessionStorage.removeItem('redirectAfterLogin');
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("currentUser");
+    sessionStorage.removeItem("redirectAfterLogin");
 
     // Clear Zustand store
     setCurrentUser(null);
@@ -272,12 +275,12 @@ export function useCurrentUser(): UserDTO | null {
  * @returns true if token appears valid
  */
 function isValidToken(token: string): boolean {
-  if (!token || typeof token !== 'string') {
+  if (!token || typeof token !== "string") {
     return false;
   }
 
   // JWT tokens have format: xxxxx.yyyyy.zzzzz
-  const parts = token.split('.');
+  const parts = token.split(".");
   if (parts.length !== 3) {
     return false;
   }
@@ -316,9 +319,9 @@ function isValidToken(token: string): boolean {
  * ```
  */
 export function useRedirectAfterLogin(): string | undefined {
-  const redirect = sessionStorage.getItem('redirectAfterLogin');
+  const redirect = sessionStorage.getItem("redirectAfterLogin");
   if (redirect) {
-    sessionStorage.removeItem('redirectAfterLogin');
+    sessionStorage.removeItem("redirectAfterLogin");
   }
   return redirect || undefined;
 }

@@ -36,7 +36,7 @@ export function LoginForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     login(
       { username, password },
       {
@@ -734,8 +734,8 @@ export function UsersListWithRetry() {
 ### Example 1: Cache Invalidation After Mutation
 
 ```typescript
-import { useCreateUser, userKeys } from '@/hooks/useUsers';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCreateUser, userKeys } from "@/hooks/useUsers";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function CreateUserWithCacheUpdate() {
   const queryClient = useQueryClient();
@@ -864,11 +864,13 @@ export function ChangePasswordForm({ userId }: { userId: number }) {
 ## Summary
 
 These examples cover the most common use cases. For more details, refer to:
+
 - `client/AUTH_ARCHITECTURE.md` - System architecture and design
 - Component source code - Full implementation details
 - Hook implementations - Advanced patterns and configuration
 
 Remember:
+
 - Always use hooks, never call services directly
 - Handle errors properly in your UI
 - Show loading states to users

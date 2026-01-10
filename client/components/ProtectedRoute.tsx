@@ -25,10 +25,10 @@
  *   />
  */
 
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useCheckAuth, useCurrentUser } from '@/hooks/useAuth';
-import { UserRole } from '@/types/enums';
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useCheckAuth, useCurrentUser } from "@/hooks/useAuth";
+import { UserRole } from "@/types/enums";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -64,7 +64,10 @@ interface ProtectedRouteProps {
  * </ProtectedRoute>
  * ```
  */
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  requiredRole,
+}: ProtectedRouteProps) {
   const isAuthenticated = useCheckAuth();
   const currentUser = useCurrentUser();
   const location = useLocation();
@@ -73,7 +76,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   if (!isAuthenticated) {
     // Store the page user was trying to access
     // They'll be redirected here after successful login
-    sessionStorage.setItem('redirectAfterLogin', location.pathname);
+    sessionStorage.setItem("redirectAfterLogin", location.pathname);
     return <Navigate to="/login" replace />;
   }
 
@@ -126,5 +129,7 @@ export function PublicRoute({ children }: { children: React.ReactNode }) {
  * />
  */
 export function AdminRoute({ children }: { children: React.ReactNode }) {
-  return <ProtectedRoute requiredRole={UserRole.Admin}>{children}</ProtectedRoute>;
+  return (
+    <ProtectedRoute requiredRole={UserRole.Admin}>{children}</ProtectedRoute>
+  );
 }

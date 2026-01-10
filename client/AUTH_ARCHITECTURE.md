@@ -7,21 +7,25 @@ This document describes the enterprise-grade authentication and user management 
 ## Key Features
 
 ✅ **JWT Token-Based Authentication**
+
 - Tokens stored in localStorage
 - Automatic token injection in API requests
 - Logout clears all sensitive data
 
 ✅ **App Startup Auth Check**
+
 - Checks for valid token on app load
 - Redirects to login if token missing/invalid
 - Shows loading screen during auth verification
 
 ✅ **Protected Routes**
-- Components wrapped with `ProtectedRoute` 
+
+- Components wrapped with `ProtectedRoute`
 - Automatic redirect to login if not authenticated
 - Role-based access control support
 
 ✅ **Complete User Management API**
+
 - List users with server-side pagination
 - Create, read, update, delete operations
 - Search and filtering
@@ -29,11 +33,13 @@ This document describes the enterprise-grade authentication and user management 
 - Change password functionality
 
 ✅ **Type-Safe Implementation**
+
 - Full TypeScript coverage (no `any`)
 - DTOs for all API requests/responses
 - Enum for user roles with readable names
 
 ✅ **React Query Integration**
+
 - Automatic caching and stale-while-revalidate
 - Optimistic updates
 - Background refetching
@@ -188,22 +194,22 @@ Else
 ```typescript
 // Creating a user
 const payload: CreateUserRequestDTO = {
-  username: 'jdoe',
-  fullName: 'John Doe',
-  email: 'john@example.com',
-  phoneNumber: '555-0123',
-  password: 'Pass123!',
-  role: UserRole.Manager // Type-safe enum
+  username: "jdoe",
+  fullName: "John Doe",
+  email: "john@example.com",
+  phoneNumber: "555-0123",
+  password: "Pass123!",
+  role: UserRole.Manager, // Type-safe enum
 };
 
 // Updating a user
 const updatePayload: UpdateUserRequestDTO = {
-  fullName: 'Jane Doe',
-  email: 'jane@example.com',
-  phoneNumber: '555-9876',
+  fullName: "Jane Doe",
+  email: "jane@example.com",
+  phoneNumber: "555-9876",
   role: UserRole.Manager,
   isActive: true,
-  isLocked: false
+  isLocked: false,
 };
 ```
 
@@ -253,7 +259,7 @@ The API base URL is configured in `client/api/axios.ts`:
 
 ```typescript
 const API_CONFIG = {
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://mds.vtoxi.com',
+  baseURL: import.meta.env.VITE_API_BASE_URL || "https://mds.vtoxi.com",
   timeout: 30000,
   retryAttempts: 3,
   retryDelay: 1000,
@@ -270,6 +276,7 @@ VITE_API_BASE_URL=http://localhost:3000
 ### Token Management
 
 Tokens are automatically:
+
 - **Injected** in request headers via interceptor
 - **Stored** in localStorage after login
 - **Cleared** on logout or 401 response
@@ -314,6 +321,7 @@ if (error) {
 ### Token Storage
 
 ⚠️ **Current Implementation**: localStorage
+
 - ✅ Simple, accessible across tabs
 - ❌ Vulnerable to XSS attacks
 
@@ -326,8 +334,8 @@ if (error) {
 
 // 2. Use sessionStorage instead of localStorage
 // Cleared when browser tab closes
-localStorage.setItem('authToken', token); // Current
-sessionStorage.setItem('authToken', token); // Better
+localStorage.setItem("authToken", token); // Current
+sessionStorage.setItem("authToken", token); // Better
 
 // 3. Add CSRF protection
 // Include CSRF token in headers with state-changing requests
@@ -351,7 +359,7 @@ function UserProfile({ userId }: { userId: number }) {
 
   if (isPending) return <Skeleton />;
   if (error) return <Error error={error} />;
-  
+
   return <UserCard user={user} />;
 }
 ```
@@ -508,6 +516,7 @@ describe('ProtectedRoute', () => {
 ### Adding a New User Endpoint
 
 1. **Add DTO in `types/api/users.ts`**:
+
 ```typescript
 export interface GetUserStatsDTO {
   totalLogins: number;
@@ -516,6 +525,7 @@ export interface GetUserStatsDTO {
 ```
 
 2. **Add service method in `api/services/users.service.ts`**:
+
 ```typescript
 async getUserStats(id: number): Promise<ApiResponseWrapperDTO<GetUserStatsDTO>> {
   return get<ApiResponseWrapperDTO<GetUserStatsDTO>>(`/api/Users/${id}/stats`);
@@ -523,16 +533,18 @@ async getUserStats(id: number): Promise<ApiResponseWrapperDTO<GetUserStatsDTO>> 
 ```
 
 3. **Add hook in `hooks/useUsers.ts`**:
+
 ```typescript
 export function useGetUserStats(id: number) {
   return useQuery({
-    queryKey: ['users', 'stats', id],
+    queryKey: ["users", "stats", id],
     queryFn: () => userService.getUserStats(id),
   });
 }
 ```
 
 4. **Use in component**:
+
 ```typescript
 const { data } = useGetUserStats(userId);
 ```
@@ -577,6 +589,7 @@ pnpm start
 ### Issue: 401 errors but token in localStorage
 
 **Solution**: Token might be expired. Implement token refresh logic:
+
 ```typescript
 // In axios.ts response interceptor
 if (error.response?.status === 401) {
@@ -592,10 +605,11 @@ if (error.response?.status === 401) {
 ### Issue: React Query cache not updating after mutation
 
 **Solution**: Ensure mutations invalidate correct query keys:
+
 ```typescript
 onSuccess: () => {
   queryClient.invalidateQueries({ queryKey: userKeys.lists() });
-}
+};
 ```
 
 ---
@@ -603,6 +617,7 @@ onSuccess: () => {
 ## Summary
 
 This authentication system provides:
+
 - ✅ Enterprise-grade security (with production improvements)
 - ✅ Type-safe implementation (100% TypeScript)
 - ✅ Best practices (React Query, DTOs, error handling)

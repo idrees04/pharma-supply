@@ -18,18 +18,24 @@
  * - HTTPS required in production
  */
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useLogin } from '@/hooks/useUsers';
-import { useAuthActions } from '@/hooks/useAuth';
-import { useCheckAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Label } from '@/components/ui/label';
-import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useLogin } from "@/hooks/useUsers";
+import { useAuthActions } from "@/hooks/useAuth";
+import { useCheckAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
  * Login Form Data
@@ -62,11 +68,13 @@ export default function LoginPage() {
 
   // Form state
   const [formData, setFormData] = useState<LoginFormData>({
-    username: '',
-    password: '',
+    username: "",
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<Partial<LoginFormData>>({});
+  const [validationErrors, setValidationErrors] = useState<
+    Partial<LoginFormData>
+  >({});
 
   /**
    * Redirect to dashboard if already authenticated
@@ -74,7 +82,7 @@ export default function LoginPage() {
    */
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      navigate("/");
     }
   }, [isAuthenticated, navigate]);
 
@@ -86,10 +94,10 @@ export default function LoginPage() {
     const errors: Partial<LoginFormData> = {};
 
     if (!formData.username.trim()) {
-      errors.username = 'Username is required';
+      errors.username = "Username is required";
     }
     if (!formData.password.trim()) {
-      errors.password = 'Password is required';
+      errors.password = "Password is required";
     }
 
     setValidationErrors(errors);
@@ -120,14 +128,15 @@ export default function LoginPage() {
           storeLogin(response.data);
 
           // Get redirect path or default to dashboard
-          const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
-          sessionStorage.removeItem('redirectAfterLogin');
+          const redirectPath =
+            sessionStorage.getItem("redirectAfterLogin") || "/";
+          sessionStorage.removeItem("redirectAfterLogin");
 
           // Navigate to dashboard or previous page
           navigate(redirectPath);
         },
         // onError is handled by displaying error message below
-      }
+      },
     );
   };
 
@@ -159,8 +168,11 @@ export default function LoginPage() {
     if (!error) return null;
 
     // Check for specific error messages
-    if (error.message.includes('Unauthorized') || error.message.includes('invalid')) {
-      return 'Invalid username or password';
+    if (
+      error.message.includes("Unauthorized") ||
+      error.message.includes("invalid")
+    ) {
+      return "Invalid username or password";
     }
 
     // Return generic user-friendly message
@@ -182,7 +194,9 @@ export default function LoginPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Login</CardTitle>
-            <CardDescription>Pharmaceutical Distributor Management System</CardDescription>
+            <CardDescription>
+              Pharmaceutical Distributor Management System
+            </CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -209,14 +223,17 @@ export default function LoginPage() {
                   onChange={handleInputChange}
                   disabled={isPending}
                   className={cn(
-                    'w-full',
-                    validationErrors.username && 'border-destructive focus-visible:ring-destructive'
+                    "w-full",
+                    validationErrors.username &&
+                      "border-destructive focus-visible:ring-destructive",
                   )}
                   autoFocus
                   autoComplete="username"
                 />
                 {validationErrors.username && (
-                  <p className="text-xs text-destructive">{validationErrors.username}</p>
+                  <p className="text-xs text-destructive">
+                    {validationErrors.username}
+                  </p>
                 )}
               </div>
 
@@ -229,14 +246,15 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     name="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={formData.password}
                     onChange={handleInputChange}
                     disabled={isPending}
                     className={cn(
-                      'w-full pr-10',
-                      validationErrors.password && 'border-destructive focus-visible:ring-destructive'
+                      "w-full pr-10",
+                      validationErrors.password &&
+                        "border-destructive focus-visible:ring-destructive",
                     )}
                     autoComplete="current-password"
                   />
@@ -246,11 +264,17 @@ export default function LoginPage() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
                 {validationErrors.password && (
-                  <p className="text-xs text-destructive">{validationErrors.password}</p>
+                  <p className="text-xs text-destructive">
+                    {validationErrors.password}
+                  </p>
                 )}
               </div>
 
@@ -262,7 +286,7 @@ export default function LoginPage() {
                 size="lg"
               >
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isPending ? 'Signing in...' : 'Sign In'}
+                {isPending ? "Signing in..." : "Sign In"}
               </Button>
 
               {/* Development Info */}

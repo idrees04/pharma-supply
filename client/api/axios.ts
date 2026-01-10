@@ -18,8 +18,12 @@
  * - Timeout handling
  */
 
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { ApiError, ApiErrorType, ApiErrorResponse } from './errors';
+import axios, {
+  AxiosInstance,
+  AxiosError,
+  InternalAxiosRequestConfig,
+} from "axios";
+import { ApiError, ApiErrorType, ApiErrorResponse } from "./errors";
 
 /**
  * Configuration constants
@@ -29,7 +33,7 @@ import { ApiError, ApiErrorType, ApiErrorResponse } from './errors';
 const API_CONFIG = {
   // External API endpoint: https://mds.vtoxi.com
   // For development with local backend, use '/api' instead
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://mds.vtoxi.com',
+  baseURL: import.meta.env.VITE_API_BASE_URL || "https://mds.vtoxi.com",
   timeout: 30000, // 30 seconds
   retryAttempts: 3,
   retryDelay: 1000, // milliseconds
@@ -43,7 +47,7 @@ export const apiClient: AxiosInstance = axios.create({
   baseURL: API_CONFIG.baseURL,
   timeout: API_CONFIG.timeout,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -66,11 +70,13 @@ apiClient.interceptors.request.use(
     }
 
     // Add correlation ID for request tracing (helpful for debugging and server logs)
-    config.headers['X-Request-ID'] = generateRequestId();
+    config.headers["X-Request-ID"] = generateRequestId();
 
     // Optional: Log requests in development
     if (import.meta.env.DEV) {
-      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(
+        `[API Request] ${config.method?.toUpperCase()} ${config.url}`,
+      );
     }
 
     return config;
@@ -78,13 +84,9 @@ apiClient.interceptors.request.use(
   (error) => {
     // Request setup failed (should rarely happen)
     return Promise.reject(
-      new ApiError(
-        'Failed to prepare request',
-        ApiErrorType.UNKNOWN_ERROR,
-        0
-      )
+      new ApiError("Failed to prepare request", ApiErrorType.UNKNOWN_ERROR, 0),
     );
-  }
+  },
 );
 
 /**
@@ -104,7 +106,7 @@ apiClient.interceptors.response.use(
     // you can unwrap here for consistent shape
     if (import.meta.env.DEV) {
       console.log(
-        `[API Response] ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`
+        `[API Response] ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`,
       );
     }
 
@@ -115,18 +117,22 @@ apiClient.interceptors.response.use(
 
     // Network error (no response from server)
     if (!error.response) {
-      if (error.code === 'ECONNABORTED') {
+      if (error.code === "ECONNABORTED") {
         return Promise.reject(
-          new ApiError('Request timeout', ApiErrorType.TIMEOUT, 0)
+          new ApiError("Request timeout", ApiErrorType.TIMEOUT, 0),
         );
       }
 
       if (import.meta.env.DEV) {
-        console.error('[API Network Error]', error.message);
+        console.error("[API Network Error]", error.message);
       }
 
       return Promise.reject(
-        new ApiError('Network connection failed', ApiErrorType.NETWORK_ERROR, 0)
+        new ApiError(
+          "Network connection failed",
+          ApiErrorType.NETWORK_ERROR,
+          0,
+        ),
       );
     }
 
@@ -167,15 +173,15 @@ apiClient.interceptors.response.use(
       data?.message || error.message,
       errorType,
       status,
-      data
+      data,
     );
 
     if (import.meta.env.DEV) {
-      console.error('[API Error]', apiError);
+      console.error("[API Error]", apiError);
     }
 
     return Promise.reject(apiError);
-  }
+  },
 );
 
 /**
@@ -188,7 +194,7 @@ apiClient.interceptors.response.use(
  */
 function getAuthToken(): string | null {
   try {
-    return localStorage.getItem('authToken');
+    return localStorage.getItem("authToken");
   } catch {
     return null;
   }
@@ -211,18 +217,18 @@ function getAuthToken(): string | null {
 function handleAuthError(): void {
   try {
     // Clear stored authentication token
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("currentUser");
 
     // Prevent infinite redirects: only redirect if not already on login page
-    if (!window.location.pathname.includes('/login')) {
+    if (!window.location.pathname.includes("/login")) {
       // Store the page the user was trying to access (for redirect after login)
-      sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
-      window.location.href = '/login';
+      sessionStorage.setItem("redirectAfterLogin", window.location.pathname);
+      window.location.href = "/login";
     }
   } catch (error) {
     if (import.meta.env.DEV) {
-      console.error('[Auth Error Handler]', error);
+      console.error("[Auth Error Handler]", error);
     }
   }
 }

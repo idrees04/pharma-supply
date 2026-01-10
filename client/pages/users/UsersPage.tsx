@@ -13,15 +13,31 @@
  * useGetUsers (hook) → userService.getAll (API) → https://mds.vtoxi.com/api/Users
  */
 
-import React, { useState, useCallback } from 'react';
-import { useGetUsers, useCreateUser, useUpdateUser, useDeleteUser } from '@/hooks/useUsers';
-import { useAuthActions } from '@/hooks/useAuth';
-import { UserDTO, CreateUserRequestDTO, UpdateUserRequestDTO, GetUsersQueryParams } from '@/types/api/users';
-import { UserRole, roleNames, getAvailableRoles } from '@/types/enums';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useCallback } from "react";
+import {
+  useGetUsers,
+  useCreateUser,
+  useUpdateUser,
+  useDeleteUser,
+} from "@/hooks/useUsers";
+import { useAuthActions } from "@/hooks/useAuth";
+import {
+  UserDTO,
+  CreateUserRequestDTO,
+  UpdateUserRequestDTO,
+  GetUsersQueryParams,
+} from "@/types/api/users";
+import { UserRole, roleNames, getAvailableRoles } from "@/types/enums";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -29,14 +45,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,13 +61,26 @@ import {
   AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
-import { AlertCircle, Plus, Pencil, Trash2, Loader2, Search } from 'lucide-react';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import {
+  AlertCircle,
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  Search,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
  * Form Dialog Component
@@ -61,7 +90,9 @@ interface UserFormDialogProps {
   open: boolean;
   user?: UserDTO;
   onClose: () => void;
-  onSubmit: (data: CreateUserRequestDTO | UpdateUserRequestDTO) => Promise<void>;
+  onSubmit: (
+    data: CreateUserRequestDTO | UpdateUserRequestDTO,
+  ) => Promise<void>;
   isLoading: boolean;
   error?: Error | null;
 }
@@ -76,11 +107,11 @@ function UserFormDialog({
 }: UserFormDialogProps) {
   const isEditing = !!user;
   const [formData, setFormData] = useState<any>({
-    username: user?.username || '',
-    fullName: user?.fullName || '',
-    email: user?.email || '',
-    phoneNumber: user?.phoneNumber || '',
-    password: '',
+    username: user?.username || "",
+    fullName: user?.fullName || "",
+    email: user?.email || "",
+    phoneNumber: user?.phoneNumber || "",
+    password: "",
     role: user?.role || UserRole.Sales,
     isActive: user?.isActive ?? true,
     isLocked: user?.isLocked ?? false,
@@ -114,11 +145,13 @@ function UserFormDialog({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit User' : 'Create New User'}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Edit User" : "Create New User"}
+          </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? 'Update user information'
-              : 'Add a new user to the system'}
+              ? "Update user information"
+              : "Add a new user to the system"}
           </DialogDescription>
         </DialogHeader>
 
@@ -137,7 +170,9 @@ function UserFormDialog({
               <Input
                 id="username"
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
                 placeholder="johndoe"
                 disabled={isLoading}
                 required
@@ -151,7 +186,9 @@ function UserFormDialog({
             <Input
               id="fullName"
               value={formData.fullName}
-              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, fullName: e.target.value })
+              }
               placeholder="John Doe"
               disabled={isLoading}
               required
@@ -165,7 +202,9 @@ function UserFormDialog({
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               placeholder="john@example.com"
               disabled={isLoading}
               required
@@ -178,7 +217,9 @@ function UserFormDialog({
             <Input
               id="phoneNumber"
               value={formData.phoneNumber}
-              onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, phoneNumber: e.target.value })
+              }
               placeholder="+1 (555) 123-4567"
               disabled={isLoading}
             />
@@ -192,7 +233,9 @@ function UserFormDialog({
                 id="password"
                 type="password"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 placeholder="••••••••"
                 disabled={isLoading}
                 required
@@ -205,7 +248,9 @@ function UserFormDialog({
             <Label htmlFor="role">Role *</Label>
             <Select
               value={String(formData.role)}
-              onValueChange={(value) => setFormData({ ...formData, role: parseInt(value) })}
+              onValueChange={(value) =>
+                setFormData({ ...formData, role: parseInt(value) })
+              }
               disabled={isLoading}
             >
               <SelectTrigger>
@@ -270,7 +315,7 @@ function UserFormDialog({
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? 'Update User' : 'Create User'}
+              {isEditing ? "Update User" : "Create User"}
             </Button>
           </div>
         </form>
@@ -286,7 +331,7 @@ export default function UsersPage() {
   const [pagination, setPagination] = useState<GetUsersQueryParams>({
     pageNumber: 1,
     pageSize: 10,
-    searchTerm: '',
+    searchTerm: "",
   });
 
   const [selectedUser, setSelectedUser] = useState<UserDTO | undefined>();
@@ -295,7 +340,11 @@ export default function UsersPage() {
   const [userToDelete, setUserToDelete] = useState<UserDTO | null>(null);
 
   // Fetch users
-  const { data: response, isPending: isLoadingUsers, error: fetchError } = useGetUsers(pagination);
+  const {
+    data: response,
+    isPending: isLoadingUsers,
+    error: fetchError,
+  } = useGetUsers(pagination);
   const users = response?.data.items || [];
   const totalCount = response?.data.totalCount || 0;
   const totalPages = response?.data.totalPages || 0;
@@ -303,7 +352,7 @@ export default function UsersPage() {
   // Mutations
   const { mutate: createUser, isPending: isCreating } = useCreateUser({
     onSuccess: () => {
-      toast.success('User created successfully');
+      toast.success("User created successfully");
       setFormDialogOpen(false);
       setSelectedUser(undefined);
     },
@@ -312,27 +361,33 @@ export default function UsersPage() {
     },
   });
 
-  const { mutate: updateUser, isPending: isUpdating } = useUpdateUser(selectedUser?.id || 0, {
-    onSuccess: () => {
-      toast.success('User updated successfully');
-      setFormDialogOpen(false);
-      setSelectedUser(undefined);
+  const { mutate: updateUser, isPending: isUpdating } = useUpdateUser(
+    selectedUser?.id || 0,
+    {
+      onSuccess: () => {
+        toast.success("User updated successfully");
+        setFormDialogOpen(false);
+        setSelectedUser(undefined);
+      },
+      onError: (error) => {
+        toast.error(error.userMessage);
+      },
     },
-    onError: (error) => {
-      toast.error(error.userMessage);
-    },
-  });
+  );
 
-  const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser(userToDelete?.id || 0, {
-    onSuccess: () => {
-      toast.success('User deleted successfully');
-      setDeleteDialogOpen(false);
-      setUserToDelete(null);
+  const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser(
+    userToDelete?.id || 0,
+    {
+      onSuccess: () => {
+        toast.success("User deleted successfully");
+        setDeleteDialogOpen(false);
+        setUserToDelete(null);
+      },
+      onError: (error) => {
+        toast.error(error.userMessage);
+      },
     },
-    onError: (error) => {
-      toast.error(error.userMessage);
-    },
-  });
+  );
 
   const handleCreateClick = () => {
     setSelectedUser(undefined);
@@ -349,7 +404,9 @@ export default function UsersPage() {
     setDeleteDialogOpen(true);
   };
 
-  const handleFormSubmit = async (data: CreateUserRequestDTO | UpdateUserRequestDTO) => {
+  const handleFormSubmit = async (
+    data: CreateUserRequestDTO | UpdateUserRequestDTO,
+  ) => {
     if (selectedUser) {
       updateUser(data as UpdateUserRequestDTO);
     } else {
@@ -387,9 +444,13 @@ export default function UsersPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name, email, or username..."
-                value={pagination.searchTerm || ''}
+                value={pagination.searchTerm || ""}
                 onChange={(e) =>
-                  setPagination({ ...pagination, searchTerm: e.target.value, pageNumber: 1 })
+                  setPagination({
+                    ...pagination,
+                    searchTerm: e.target.value,
+                    pageNumber: 1,
+                  })
                 }
                 className="pl-9"
               />
@@ -440,13 +501,13 @@ export default function UsersPage() {
                 <TableBody>
                   {users.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-mono text-sm">{user.username}</TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {user.username}
+                      </TableCell>
                       <TableCell>{user.fullName}</TableCell>
                       <TableCell className="text-sm">{user.email}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">
-                          {roleNames[user.role]}
-                        </Badge>
+                        <Badge variant="outline">{roleNames[user.role]}</Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
@@ -463,7 +524,7 @@ export default function UsersPage() {
                       <TableCell className="text-sm text-muted-foreground">
                         {user.lastLoginDate
                           ? new Date(user.lastLoginDate).toLocaleDateString()
-                          : 'Never'}
+                          : "Never"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -505,7 +566,10 @@ export default function UsersPage() {
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  setPagination({ ...pagination, pageNumber: pagination.pageNumber - 1 })
+                  setPagination({
+                    ...pagination,
+                    pageNumber: pagination.pageNumber - 1,
+                  })
                 }
                 disabled={pagination.pageNumber === 1}
               >
@@ -515,7 +579,10 @@ export default function UsersPage() {
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  setPagination({ ...pagination, pageNumber: pagination.pageNumber + 1 })
+                  setPagination({
+                    ...pagination,
+                    pageNumber: pagination.pageNumber + 1,
+                  })
                 }
                 disabled={pagination.pageNumber >= totalPages}
               >
@@ -545,7 +612,7 @@ export default function UsersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete{' '}
+              Are you sure you want to delete{" "}
               <span className="font-semibold">{userToDelete?.fullName}</span>?
               This action cannot be undone.
             </AlertDialogDescription>

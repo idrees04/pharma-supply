@@ -17,7 +17,7 @@
  * - Components use hooks, not this service directly
  */
 
-import { get, post, put, deleteRequest } from '../requests';
+import { get, post, put, deleteRequest } from "../requests";
 import {
   UserDTO,
   LoginRequestDTO,
@@ -28,7 +28,7 @@ import {
   GetUsersQueryParams,
   PaginatedListDTO,
   ApiResponseWrapperDTO,
-} from '@/types/api/users';
+} from "@/types/api/users";
 
 /**
  * User Management Service
@@ -48,8 +48,13 @@ class UserService {
    *   const loginResponse = await userService.login({ username: 'admin', password: 'pass123' });
    *   localStorage.setItem('authToken', loginResponse.data.token);
    */
-  async login(credentials: LoginRequestDTO): Promise<ApiResponseWrapperDTO<LoginResponseDTO>> {
-    return post<ApiResponseWrapperDTO<LoginResponseDTO>, LoginRequestDTO>('/api/Users/login', credentials);
+  async login(
+    credentials: LoginRequestDTO,
+  ): Promise<ApiResponseWrapperDTO<LoginResponseDTO>> {
+    return post<ApiResponseWrapperDTO<LoginResponseDTO>, LoginRequestDTO>(
+      "/api/Users/login",
+      credentials,
+    );
   }
 
   /**
@@ -78,14 +83,18 @@ class UserService {
    *   });
    *   const { items, totalCount } = response.data;
    */
-  async getAll(params: GetUsersQueryParams): Promise<ApiResponseWrapperDTO<PaginatedListDTO<UserDTO>>> {
+  async getAll(
+    params: GetUsersQueryParams,
+  ): Promise<ApiResponseWrapperDTO<PaginatedListDTO<UserDTO>>> {
     const queryString = new URLSearchParams(
       Object.entries(params)
         .filter(([_, value]) => value !== undefined)
-        .map(([key, value]) => [key, String(value)])
+        .map(([key, value]) => [key, String(value)]),
     ).toString();
 
-    return get<ApiResponseWrapperDTO<PaginatedListDTO<UserDTO>>>(`/api/Users?${queryString}`);
+    return get<ApiResponseWrapperDTO<PaginatedListDTO<UserDTO>>>(
+      `/api/Users?${queryString}`,
+    );
   }
 
   /**
@@ -127,8 +136,13 @@ class UserService {
    *   });
    *   const newUser = response.data;
    */
-  async create(userData: CreateUserRequestDTO): Promise<ApiResponseWrapperDTO<UserDTO>> {
-    return post<ApiResponseWrapperDTO<UserDTO>, CreateUserRequestDTO>('/api/Users', userData);
+  async create(
+    userData: CreateUserRequestDTO,
+  ): Promise<ApiResponseWrapperDTO<UserDTO>> {
+    return post<ApiResponseWrapperDTO<UserDTO>, CreateUserRequestDTO>(
+      "/api/Users",
+      userData,
+    );
   }
 
   /**
@@ -154,8 +168,14 @@ class UserService {
    *     isLocked: false
    *   });
    */
-  async update(id: number, userData: UpdateUserRequestDTO): Promise<ApiResponseWrapperDTO<UserDTO>> {
-    return put<ApiResponseWrapperDTO<UserDTO>, UpdateUserRequestDTO>(`/api/Users/${id}`, userData);
+  async update(
+    id: number,
+    userData: UpdateUserRequestDTO,
+  ): Promise<ApiResponseWrapperDTO<UserDTO>> {
+    return put<ApiResponseWrapperDTO<UserDTO>, UpdateUserRequestDTO>(
+      `/api/Users/${id}`,
+      userData,
+    );
   }
 
   /**
@@ -199,10 +219,13 @@ class UserService {
    *     newPassword: 'newPassword456!'
    *   });
    */
-  async changePassword(id: number, passwordData: ChangePasswordRequestDTO): Promise<ApiResponseWrapperDTO<string>> {
+  async changePassword(
+    id: number,
+    passwordData: ChangePasswordRequestDTO,
+  ): Promise<ApiResponseWrapperDTO<string>> {
     return post<ApiResponseWrapperDTO<string>, ChangePasswordRequestDTO>(
       `/api/Users/${id}/change-password`,
-      passwordData
+      passwordData,
     );
   }
 
@@ -239,4 +262,9 @@ export const userService = new UserService();
  * Type exports for convenience
  * Allow components to import types directly from this module
  */
-export type { UserDTO, LoginResponseDTO, GetUsersQueryParams, PaginatedListDTO };
+export type {
+  UserDTO,
+  LoginResponseDTO,
+  GetUsersQueryParams,
+  PaginatedListDTO,
+};

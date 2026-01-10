@@ -23,10 +23,13 @@ import { ApiError, ApiErrorType, ApiErrorResponse } from './errors';
 
 /**
  * Configuration constants
- * Move to environment variables in production
+ * In production, use environment variables instead of hardcoding
+ * Example: baseURL: import.meta.env.VITE_API_BASE_URL || 'https://mds.vtoxi.com'
  */
 const API_CONFIG = {
-  baseURL: '/api',
+  // External API endpoint: https://mds.vtoxi.com
+  // For development with local backend, use '/api' instead
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://mds.vtoxi.com',
   timeout: 30000, // 30 seconds
   retryAttempts: 3,
   retryDelay: 1000, // milliseconds

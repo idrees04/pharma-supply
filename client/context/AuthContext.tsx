@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useCallback, useMemo } from 'react';
-import { useStore, User, UserRole } from '@/hooks/useStore';
+import React, { createContext, useContext, useCallback, useMemo } from "react";
+import { useStore, UserRole } from "@/hooks/useStore";
+import { UserDTO } from "@/types/api/users";
 
-type Permission = 'create' | 'read' | 'update' | 'delete';
+type Permission = "create" | "read" | "update" | "delete";
 
 interface ModulePermissions {
   [key: string]: Permission[];
@@ -9,98 +10,98 @@ interface ModulePermissions {
 
 const rolePermissions: Record<UserRole, ModulePermissions> = {
   admin: {
-    products: ['create', 'read', 'update', 'delete'],
-    suppliers: ['create', 'read', 'update', 'delete'],
-    hospitals: ['create', 'read', 'update', 'delete'],
-    supplyOrders: ['create', 'read', 'update', 'delete'],
-    purchaseOrders: ['create', 'read', 'update', 'delete'],
-    salesOrders: ['create', 'read', 'update', 'delete'],
-    deliveryChallans: ['create', 'read', 'update', 'delete'],
-    invoices: ['create', 'read', 'update', 'delete'],
-    payments: ['create', 'read', 'update', 'delete'],
-    expenses: ['create', 'read', 'update', 'delete'],
-    transfers: ['create', 'read', 'update', 'delete'],
-    bankAccounts: ['create', 'read', 'update', 'delete'],
-    salaryVouchers: ['create', 'read', 'update', 'delete'],
-    tenders: ['create', 'read', 'update', 'delete'],
-    inventory: ['create', 'read', 'update', 'delete'],
-    reports: ['read'],
-    users: ['create', 'read', 'update', 'delete'],
+    products: ["create", "read", "update", "delete"],
+    suppliers: ["create", "read", "update", "delete"],
+    hospitals: ["create", "read", "update", "delete"],
+    supplyOrders: ["create", "read", "update", "delete"],
+    purchaseOrders: ["create", "read", "update", "delete"],
+    salesOrders: ["create", "read", "update", "delete"],
+    deliveryChallans: ["create", "read", "update", "delete"],
+    invoices: ["create", "read", "update", "delete"],
+    payments: ["create", "read", "update", "delete"],
+    expenses: ["create", "read", "update", "delete"],
+    transfers: ["create", "read", "update", "delete"],
+    bankAccounts: ["create", "read", "update", "delete"],
+    salaryVouchers: ["create", "read", "update", "delete"],
+    tenders: ["create", "read", "update", "delete"],
+    inventory: ["create", "read", "update", "delete"],
+    reports: ["read"],
+    users: ["create", "read", "update", "delete"],
   },
   manager: {
-    products: ['read', 'update'],
-    suppliers: ['read', 'update'],
-    hospitals: ['read', 'update'],
-    supplyOrders: ['create', 'read', 'update'],
-    purchaseOrders: ['create', 'read', 'update'],
-    salesOrders: ['create', 'read', 'update'],
-    deliveryChallans: ['create', 'read', 'update'],
-    invoices: ['create', 'read', 'update'],
-    payments: ['read', 'update'],
-    expenses: ['read'],
-    transfers: ['read'],
-    bankAccounts: ['read'],
-    salaryVouchers: ['read'],
-    tenders: ['read', 'create'],
-    inventory: ['read'],
-    reports: ['read'],
-    users: ['read'],
+    products: ["read", "update"],
+    suppliers: ["read", "update"],
+    hospitals: ["read", "update"],
+    supplyOrders: ["create", "read", "update"],
+    purchaseOrders: ["create", "read", "update"],
+    salesOrders: ["create", "read", "update"],
+    deliveryChallans: ["create", "read", "update"],
+    invoices: ["create", "read", "update"],
+    payments: ["read", "update"],
+    expenses: ["read"],
+    transfers: ["read"],
+    bankAccounts: ["read"],
+    salaryVouchers: ["read"],
+    tenders: ["read", "create"],
+    inventory: ["read"],
+    reports: ["read"],
+    users: ["read"],
   },
   accountant: {
-    products: ['read'],
-    suppliers: ['read'],
-    hospitals: ['read'],
-    supplyOrders: ['read'],
-    purchaseOrders: ['read'],
-    salesOrders: ['read'],
-    deliveryChallans: ['read'],
-    invoices: ['read'],
-    payments: ['create', 'read', 'update'],
-    expenses: ['create', 'read', 'update'],
-    transfers: ['create', 'read', 'update'],
-    bankAccounts: ['read', 'update'],
-    salaryVouchers: ['create', 'read', 'update'],
-    tenders: ['read'],
-    inventory: ['read'],
-    reports: ['read'],
+    products: ["read"],
+    suppliers: ["read"],
+    hospitals: ["read"],
+    supplyOrders: ["read"],
+    purchaseOrders: ["read"],
+    salesOrders: ["read"],
+    deliveryChallans: ["read"],
+    invoices: ["read"],
+    payments: ["create", "read", "update"],
+    expenses: ["create", "read", "update"],
+    transfers: ["create", "read", "update"],
+    bankAccounts: ["read", "update"],
+    salaryVouchers: ["create", "read", "update"],
+    tenders: ["read"],
+    inventory: ["read"],
+    reports: ["read"],
     users: [],
   },
   warehouse: {
-    products: ['read'],
-    suppliers: ['read'],
-    hospitals: ['read'],
-    supplyOrders: ['read'],
-    purchaseOrders: ['read'],
-    salesOrders: ['read'],
-    deliveryChallans: ['create', 'read', 'update'],
-    invoices: ['read'],
-    payments: ['read'],
-    expenses: ['read'],
+    products: ["read"],
+    suppliers: ["read"],
+    hospitals: ["read"],
+    supplyOrders: ["read"],
+    purchaseOrders: ["read"],
+    salesOrders: ["read"],
+    deliveryChallans: ["create", "read", "update"],
+    invoices: ["read"],
+    payments: ["read"],
+    expenses: ["read"],
     transfers: [],
     bankAccounts: [],
     salaryVouchers: [],
-    tenders: ['read'],
-    inventory: ['read', 'update'],
-    reports: ['read'],
+    tenders: ["read"],
+    inventory: ["read", "update"],
+    reports: ["read"],
     users: [],
   },
   sales: {
-    products: ['read'],
-    suppliers: ['read'],
-    hospitals: ['read'],
-    supplyOrders: ['create', 'read', 'update'],
-    purchaseOrders: ['read'],
-    salesOrders: ['create', 'read', 'update'],
-    deliveryChallans: ['read'],
-    invoices: ['read'],
-    payments: ['read'],
-    expenses: ['read'],
+    products: ["read"],
+    suppliers: ["read"],
+    hospitals: ["read"],
+    supplyOrders: ["create", "read", "update"],
+    purchaseOrders: ["read"],
+    salesOrders: ["create", "read", "update"],
+    deliveryChallans: ["read"],
+    invoices: ["read"],
+    payments: ["read"],
+    expenses: ["read"],
     transfers: [],
     bankAccounts: [],
     salaryVouchers: [],
-    tenders: ['read'],
-    inventory: ['read'],
-    reports: ['read'],
+    tenders: ["read"],
+    inventory: ["read"],
+    reports: ["read"],
     users: [],
   },
 };
@@ -129,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const permissions = rolePermissions[currentUser.role];
       return permissions[module]?.includes(permission) ?? false;
     },
-    [currentUser]
+    [currentUser],
   );
 
   const canAccess = useCallback(
@@ -138,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const permissions = rolePermissions[currentUser.role];
       return (permissions[module]?.length ?? 0) > 0;
     },
-    [currentUser]
+    [currentUser],
   );
 
   const value: AuthContextType = useMemo(
@@ -147,13 +148,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser,
       hasPermission,
       canAccess,
-      isAdmin: currentUser?.role === 'admin',
-      isManager: currentUser?.role === 'manager',
-      isAccountant: currentUser?.role === 'accountant',
-      isWarehouse: currentUser?.role === 'warehouse',
-      isSales: currentUser?.role === 'sales',
+      isAdmin: currentUser?.role === "admin",
+      isManager: currentUser?.role === "manager",
+      isAccountant: currentUser?.role === "accountant",
+      isWarehouse: currentUser?.role === "warehouse",
+      isSales: currentUser?.role === "sales",
     }),
-    [currentUser, setCurrentUser, hasPermission, canAccess]
+    [currentUser, setCurrentUser, hasPermission, canAccess],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -162,7 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

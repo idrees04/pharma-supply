@@ -18,15 +18,22 @@
  * - Timeout handling
  */
 
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { ApiError, ApiErrorType, ApiErrorResponse } from './errors';
+import axios, {
+  AxiosInstance,
+  AxiosError,
+  InternalAxiosRequestConfig,
+} from "axios";
+import { ApiError, ApiErrorType, ApiErrorResponse } from "./errors";
 
 /**
  * Configuration constants
- * Move to environment variables in production
+ * In production, use environment variables instead of hardcoding
+ * Example: baseURL: import.meta.env.VITE_API_BASE_URL || 'https://mds.vtoxi.com'
  */
 const API_CONFIG = {
-  baseURL: '/api',
+  // External API endpoint: https://mds.vtoxi.com
+  // For development with local backend, use '/api' instead
+  baseURL: import.meta.env.VITE_API_BASE_URL || "https://mds.vtoxi.com",
   timeout: 30000, // 30 seconds
   retryAttempts: 3,
   retryDelay: 1000, // milliseconds
@@ -40,7 +47,7 @@ export const apiClient: AxiosInstance = axios.create({
   baseURL: API_CONFIG.baseURL,
   timeout: API_CONFIG.timeout,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -63,11 +70,13 @@ apiClient.interceptors.request.use(
     }
 
     // Add correlation ID for request tracing (helpful for debugging and server logs)
-    config.headers['X-Request-ID'] = generateRequestId();
+    config.headers["X-Request-ID"] = generateRequestId();
 
     // Optional: Log requests in development
     if (import.meta.env.DEV) {
-      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(
+        `[API Request] ${config.method?.toUpperCase()} ${config.url}`,
+      );
     }
 
     return config;
@@ -75,13 +84,9 @@ apiClient.interceptors.request.use(
   (error) => {
     // Request setup failed (should rarely happen)
     return Promise.reject(
-      new ApiError(
-        'Failed to prepare request',
-        ApiErrorType.UNKNOWN_ERROR,
-        0
-      )
+      new ApiError("Failed to prepare request", ApiErrorType.UNKNOWN_ERROR, 0),
     );
-  }
+  },
 );
 
 /**
@@ -101,7 +106,7 @@ apiClient.interceptors.response.use(
     // you can unwrap here for consistent shape
     if (import.meta.env.DEV) {
       console.log(
-        `[API Response] ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`
+        `[API Response] ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`,
       );
     }
 
@@ -112,18 +117,22 @@ apiClient.interceptors.response.use(
 
     // Network error (no response from server)
     if (!error.response) {
-      if (error.code === 'ECONNABORTED') {
+      if (error.code === "ECONNABORTED") {
         return Promise.reject(
-          new ApiError('Request timeout', ApiErrorType.TIMEOUT, 0)
+          new ApiError("Request timeout", ApiErrorType.TIMEOUT, 0),
         );
       }
 
       if (import.meta.env.DEV) {
-        console.error('[API Network Error]', error.message);
+        console.error("[API Network Error]", error.message);
       }
 
       return Promise.reject(
-        new ApiError('Network connection failed', ApiErrorType.NETWORK_ERROR, 0)
+        new ApiError(
+          "Network connection failed",
+          ApiErrorType.NETWORK_ERROR,
+          0,
+        ),
       );
     }
 
@@ -164,51 +173,64 @@ apiClient.interceptors.response.use(
       data?.message || error.message,
       errorType,
       status,
-      data
+      data,
     );
 
     if (import.meta.env.DEV) {
-      console.error('[API Error]', apiError);
+      console.error("[API Error]", apiError);
     }
 
     return Promise.reject(apiError);
-  }
+  },
 );
 
 /**
  * Get authentication token from storage
  *
- * Customize this based on your auth implementation:
- * - localStorage.getItem('token')
- * - sessionStorage
- * - Zustand store
- * - Context API
+ * The token is stored in localStorage after successful login.
+ * Tokens are automatically attached to all API requests.
+ *
+ * @returns JWT token string or null if not authenticated
  */
 function getAuthToken(): string | null {
-  // TODO: Replace with your actual token retrieval logic
-  // Example with localStorage:
   try {
-    return localStorage.getItem('authToken');
+    return localStorage.getItem("authToken");
   } catch {
     return null;
   }
 }
 
 /**
- * Handle authentication errors
+ * Handle authentication errors (401/403 responses)
  *
- * Called when API returns 401 Unauthorized.
- * This is where you'd typically:
- * - Clear stored tokens
+ * Called when API returns 401 Unauthorized or 403 Forbidden.
+ * This occurs when:
+ * - Token is missing or invalid
+ * - Token has expired
+ * - User lacks permission for resource
+ *
+ * Actions:
+ * - Clear stored token
  * - Redirect to login page
- * - Emit auth state update
+ * - This prevents infinite redirect loops by only triggering once
  */
 function handleAuthError(): void {
-  // TODO: Implement auth error handling
-  // Example:
-  // localStorage.removeItem('authToken');
-  // window.location.href = '/login';
-  // Or dispatch to auth store/context
+  try {
+    // Clear stored authentication token
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("currentUser");
+
+    // Prevent infinite redirects: only redirect if not already on login page
+    if (!window.location.pathname.includes("/login")) {
+      // Store the page the user was trying to access (for redirect after login)
+      sessionStorage.setItem("redirectAfterLogin", window.location.pathname);
+      window.location.href = "/login";
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error("[Auth Error Handler]", error);
+    }
+  }
 }
 
 /**

@@ -10,7 +10,11 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { AuthProvider } from "@/context/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { queryClient } from "@/api/queryClient";
+import { useAuthInitialize } from "@/hooks/useAuth";
+import { AuthLoadingScreen } from "@/components/AuthLoadingScreen";
+import { ProtectedRoute, PublicRoute } from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
+import LoginPage from "./pages/Login";
 import TenderList from "./pages/tender/TenderList";
 import PurchaseOrderList from "./pages/orders/PurchaseOrderList";
 import SalesOrderList from "./pages/orders/SalesOrderList";
@@ -27,6 +31,7 @@ import InventoryList from "./pages/inventory/InventoryList";
 import SupplierList from "./pages/suppliers/SupplierList";
 import HospitalList from "./pages/hospitals/HospitalList";
 import SupplyOrderList from "./pages/supply/SupplyOrderList";
+import UsersPage from "./pages/users/UsersPage";
 import NotFound from "./pages/NotFound";
 
 const App = () => (

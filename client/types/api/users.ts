@@ -1,4 +1,4 @@
-import { UserRole } from '../enums';
+import { UserRole } from "../enums";
 
 /**
  * ============================================================================
@@ -141,7 +141,9 @@ export interface ApiResponseWrapperDTO<T = any> {
  *   const response = await get<ApiResponseWrapperDTO<PaginatedListDTO<UserDTO>>>('/api/Users?...');
  *   const { items, totalCount } = extractPaginatedData(response);
  */
-export function extractPaginatedData<T>(response: ApiResponseWrapperDTO<PaginatedListDTO<T>>) {
+export function extractPaginatedData<T>(
+  response: ApiResponseWrapperDTO<PaginatedListDTO<T>>,
+) {
   return response.data;
 }
 

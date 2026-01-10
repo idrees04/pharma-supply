@@ -21,10 +21,27 @@
  * - Dev tools integration
  */
 
-import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
-import { userService, UserDTO, GetUsersQueryParams, PaginatedListDTO } from '@/api/services/users.service';
-import { LoginRequestDTO, LoginResponseDTO, CreateUserRequestDTO, UpdateUserRequestDTO, ChangePasswordRequestDTO } from '@/types/api/users';
-import { ApiError } from '@/api/errors';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  UseQueryOptions,
+  UseMutationOptions,
+} from "@tanstack/react-query";
+import {
+  userService,
+  UserDTO,
+  GetUsersQueryParams,
+  PaginatedListDTO,
+} from "@/api/services/users.service";
+import {
+  LoginRequestDTO,
+  LoginResponseDTO,
+  CreateUserRequestDTO,
+  UpdateUserRequestDTO,
+  ChangePasswordRequestDTO,
+} from "@/types/api/users";
+import { ApiError } from "@/api/errors";
 
 /**
  * Query Keys for React Query
@@ -36,12 +53,13 @@ import { ApiError } from '@/api/errors';
  *   queryClient.invalidateQueries({ queryKey: userKeys.detail(5) });
  */
 const userKeys = {
-  all: ['users'] as const,
-  lists: () => [...userKeys.all, 'list'] as const,
-  list: (filters: GetUsersQueryParams) => [...userKeys.lists(), filters] as const,
-  details: () => [...userKeys.all, 'detail'] as const,
+  all: ["users"] as const,
+  lists: () => [...userKeys.all, "list"] as const,
+  list: (filters: GetUsersQueryParams) =>
+    [...userKeys.lists(), filters] as const,
+  details: () => [...userKeys.all, "detail"] as const,
   detail: (id: number) => [...userKeys.details(), id] as const,
-  byRole: (role: number) => [...userKeys.all, 'byRole', role] as const,
+  byRole: (role: number) => [...userKeys.all, "byRole", role] as const,
 };
 
 /**
@@ -92,7 +110,7 @@ const userKeys = {
  */
 export function useGetUsers(
   params: GetUsersQueryParams,
-  options?: Omit<UseQueryOptions<any, ApiError>, 'queryKey' | 'queryFn'>
+  options?: Omit<UseQueryOptions<any, ApiError>, "queryKey" | "queryFn">,
 ) {
   return useQuery({
     queryKey: userKeys.list(params),
@@ -101,7 +119,11 @@ export function useGetUsers(
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error) => {
       // Don't retry on 4xx errors (except timeout/network)
-      if (error instanceof ApiError && error.statusCode < 500 && !error.isRetryable) {
+      if (
+        error instanceof ApiError &&
+        error.statusCode < 500 &&
+        !error.isRetryable
+      ) {
         return false;
       }
       return failureCount < 3;
@@ -126,7 +148,7 @@ export function useGetUsers(
  */
 export function useGetUserById(
   id: number,
-  options?: Omit<UseQueryOptions<any, ApiError>, 'queryKey' | 'queryFn'>
+  options?: Omit<UseQueryOptions<any, ApiError>, "queryKey" | "queryFn">,
 ) {
   return useQuery({
     queryKey: userKeys.detail(id),
@@ -156,7 +178,7 @@ export function useGetUserById(
  */
 export function useGetUsersByRole(
   role: number,
-  options?: Omit<UseQueryOptions<any, ApiError>, 'queryKey' | 'queryFn'>
+  options?: Omit<UseQueryOptions<any, ApiError>, "queryKey" | "queryFn">,
 ) {
   return useQuery({
     queryKey: userKeys.byRole(role),
@@ -208,9 +230,15 @@ export function useGetUsersByRole(
  * };
  * ```
  */
-export function useLogin(options?: Omit<UseMutationOptions<any, ApiError, LoginRequestDTO>, 'mutationFn'>) {
+export function useLogin(
+  options?: Omit<
+    UseMutationOptions<any, ApiError, LoginRequestDTO>,
+    "mutationFn"
+  >,
+) {
   return useMutation({
-    mutationFn: (credentials: LoginRequestDTO) => userService.login(credentials),
+    mutationFn: (credentials: LoginRequestDTO) =>
+      userService.login(credentials),
     ...options,
   });
 }
@@ -258,12 +286,16 @@ export function useLogin(options?: Omit<UseMutationOptions<any, ApiError, LoginR
  * ```
  */
 export function useCreateUser(
-  options?: Omit<UseMutationOptions<any, ApiError, CreateUserRequestDTO>, 'mutationFn'>
+  options?: Omit<
+    UseMutationOptions<any, ApiError, CreateUserRequestDTO>,
+    "mutationFn"
+  >,
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (userData: CreateUserRequestDTO) => userService.create(userData),
+    mutationFn: (userData: CreateUserRequestDTO) =>
+      userService.create(userData),
     onSuccess: (data, variables, context) => {
       // Invalidate user lists to refetch with new user
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
@@ -307,12 +339,16 @@ export function useCreateUser(
  */
 export function useUpdateUser(
   id: number,
-  options?: Omit<UseMutationOptions<any, ApiError, UpdateUserRequestDTO>, 'mutationFn'>
+  options?: Omit<
+    UseMutationOptions<any, ApiError, UpdateUserRequestDTO>,
+    "mutationFn"
+  >,
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (userData: UpdateUserRequestDTO) => userService.update(id, userData),
+    mutationFn: (userData: UpdateUserRequestDTO) =>
+      userService.update(id, userData),
     onSuccess: (data, variables, context) => {
       // Update both the specific user and list queries
       queryClient.invalidateQueries({ queryKey: userKeys.detail(id) });
@@ -349,7 +385,7 @@ export function useUpdateUser(
  */
 export function useDeleteUser(
   id: number,
-  options?: Omit<UseMutationOptions<any, ApiError, void>, 'mutationFn'>
+  options?: Omit<UseMutationOptions<any, ApiError, void>, "mutationFn">,
 ) {
   const queryClient = useQueryClient();
 
@@ -402,10 +438,14 @@ export function useDeleteUser(
  */
 export function useChangePassword(
   id: number,
-  options?: Omit<UseMutationOptions<any, ApiError, ChangePasswordRequestDTO>, 'mutationFn'>
+  options?: Omit<
+    UseMutationOptions<any, ApiError, ChangePasswordRequestDTO>,
+    "mutationFn"
+  >,
 ) {
   return useMutation({
-    mutationFn: (passwordData: ChangePasswordRequestDTO) => userService.changePassword(id, passwordData),
+    mutationFn: (passwordData: ChangePasswordRequestDTO) =>
+      userService.changePassword(id, passwordData),
     ...options,
   });
 }

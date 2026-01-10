@@ -11,8 +11,8 @@
  * 4. Once auth check is complete, proper page is rendered
  */
 
-import React from 'react';
-import { Loader2 } from 'lucide-react';
+import React from "react";
+import { Loader2 } from "lucide-react";
 
 interface AuthLoadingScreenProps {
   message?: string;
@@ -25,7 +25,7 @@ interface AuthLoadingScreenProps {
  * Prevents flickering between pages during authentication verification.
  */
 export function AuthLoadingScreen({
-  message = 'Loading authentication...',
+  message = "Loading authentication...",
 }: AuthLoadingScreenProps) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">

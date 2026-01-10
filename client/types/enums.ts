@@ -22,11 +22,11 @@ export enum UserRole {
  * Useful for displaying roles in UI (e.g., tables, dropdowns)
  */
 export const roleNames: Record<UserRole, string> = {
-  [UserRole.Admin]: 'Admin',
-  [UserRole.Manager]: 'Manager',
-  [UserRole.Accountant]: 'Accountant',
-  [UserRole.Warehouse]: 'Warehouse',
-  [UserRole.Sales]: 'Sales',
+  [UserRole.Admin]: "Admin",
+  [UserRole.Manager]: "Manager",
+  [UserRole.Accountant]: "Accountant",
+  [UserRole.Warehouse]: "Warehouse",
+  [UserRole.Sales]: "Sales",
 };
 
 /**
@@ -35,7 +35,7 @@ export const roleNames: Record<UserRole, string> = {
  * @returns Human-readable role name or 'Unknown' if not found
  */
 export function getRoleName(roleId: number): string {
-  return roleNames[roleId as UserRole] || 'Unknown';
+  return roleNames[roleId as UserRole] || "Unknown";
 }
 
 /**

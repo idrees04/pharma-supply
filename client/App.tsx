@@ -267,9 +267,11 @@ const AppContent = () => {
  * - Browser router
  */
 const App = () => (
-  <ErrorBoundary onError={(error, errorInfo) => {
-    console.error('App error boundary caught:', error, errorInfo);
-  }}>
+  <ErrorBoundary
+    onError={(error, errorInfo) => {
+      console.error("App error boundary caught:", error, errorInfo);
+    }}
+  >
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>

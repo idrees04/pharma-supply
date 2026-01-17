@@ -68,8 +68,10 @@ export default function LoginPage() {
 
   // Form state
   const [formData, setFormData] = useState<LoginFormData>({
-    username: "",
-    password: "",
+    username: "admin",
+    password: "Admin@123",
+    // username: "",
+    // password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<
@@ -290,13 +292,13 @@ export default function LoginPage() {
               </Button>
 
               {/* Development Info */}
-              {import.meta.env.DEV && (
+              {/* {import.meta.env.DEV && (
                 <div className="rounded-md bg-secondary p-3 text-xs text-secondary-foreground">
                   <p className="font-semibold mb-1">Development Mode</p>
                   <p>API Base URL: https://mds.vtoxi.com</p>
                   <p>Tokens stored in localStorage</p>
                 </div>
-              )}
+              )} */}
             </form>
           </CardContent>
         </Card>

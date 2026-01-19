@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useCallback, useMemo } from "react";
-import { useStore, UserRole } from "@/hooks/useStore";
+import { useStore, UserRole, User } from "@/hooks/useStore";
 import { UserDTO } from "@/types/api/users";
 
 type Permission = "create" | "read" | "update" | "delete";

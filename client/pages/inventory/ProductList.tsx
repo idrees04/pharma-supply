@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useStore } from '@/hooks/useStore';
+import { Product, useStore } from '@/hooks/useStore';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,7 +16,7 @@ import { DataTable } from '@/components/common/DataTable';
 
 export default function ProductList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { hasPermission } = useAuth();
   const products = useStore((state) => state.products);
   const updateProduct = useStore((state) => state.updateProduct);

@@ -75,8 +75,8 @@ export default function ProductList() {
   // Handle the delete mutation when deletingProductId changes
   const deleteHandler = useDeleteProduct(deletingProductId ?? 0);
 
-  useState(() => {
-    if (deletingProductId !== null) {
+  useEffect(() => {
+    if (deletingProductId !== null && !deleteHandler.isPending) {
       deleteHandler.mutate(undefined, {
         onSuccess: () => {
           toast.success('Product deleted successfully');
@@ -88,7 +88,7 @@ export default function ProductList() {
         },
       });
     }
-  }, [deletingProductId]);
+  }, [deletingProductId, deleteHandler]);
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);

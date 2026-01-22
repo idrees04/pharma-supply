@@ -26,6 +26,7 @@ export default function ProductList() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
 
   const canCreate = hasPermission('products', 'create');
   const canUpdate = hasPermission('products', 'update');
@@ -42,15 +43,12 @@ export default function ProductList() {
     searchTerm: searchTerm || undefined,
   });
 
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Get the products list
   const products = useMemo(() => productsResponse?.items || [], [productsResponse]);
   const totalPages = useMemo(() => productsResponse?.totalPages || 1, [productsResponse]);
   const totalCount = useMemo(() => productsResponse?.totalCount || 0, [productsResponse]);
-
-  // Create a generic delete handler that we'll use for all delete operations
-  // We use a ref-based approach to avoid hook issues
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const deleteForId = useDeleteProduct(deletingId || 0);
 
   const handleEdit = (product: Product) => {
     if (!canUpdate) {
@@ -61,7 +59,7 @@ export default function ProductList() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (product: Product) => {
+  const handleDelete = async (product: Product) => {
     if (!canDelete) {
       toast.error('You do not have permission to delete products');
       return;
@@ -71,25 +69,19 @@ export default function ProductList() {
       return;
     }
 
-    // Set the product ID and trigger the mutation
-    setDeletingId(product.id);
-  };
-
-  // Execute delete when deletingId changes
-  useEffect(() => {
-    if (deletingId !== null) {
-      deleteForId.mutate(undefined, {
-        onSuccess: () => {
-          toast.success('Product deleted successfully');
-          setDeletingId(null);
-        },
-        onError: (error) => {
-          toast.error(error.userMessage || 'Failed to delete product');
-          setDeletingId(null);
-        },
-      });
+    setIsDeleting(true);
+    try {
+      await productService.deleteProduct(product.id);
+      toast.success('Product deleted successfully');
+      // Invalidate the products list to refetch
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    } catch (error: any) {
+      const message = error?.userMessage || 'Failed to delete product';
+      toast.error(message);
+    } finally {
+      setIsDeleting(false);
     }
-  }, [deletingId]);
+  };
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);

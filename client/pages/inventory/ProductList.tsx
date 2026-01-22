@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,8 +13,9 @@ import { toast } from 'sonner';
 import ProductForm from './ProductForm';
 import { DataTable } from '@/components/common/DataTable';
 import { Input } from '@/components/ui/input';
-import { useProductList, useDeleteProduct } from '@/api/services/products';
+import { useProductList, productService } from '@/api/services/products';
 import { Product } from '@/types/api/products';
+import { useQueryClient } from '@tanstack/react-query';
 
 const ITEMS_PER_PAGE = 10;
 

@@ -41,13 +41,14 @@ export default function ProductList() {
     searchTerm: searchTerm || undefined,
   });
 
-  // Delete mutation
-  const deleteMutation = useDeleteProduct(0);
-
   // Get the products list
   const products = useMemo(() => productsResponse?.items || [], [productsResponse]);
   const totalPages = useMemo(() => productsResponse?.totalPages || 1, [productsResponse]);
   const totalCount = useMemo(() => productsResponse?.totalCount || 0, [productsResponse]);
+
+  // For handling delete - we'll need to track which product is being deleted
+  const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
+  const deleteMutation = useDeleteProduct(deletingProductId ?? 0);
 
   const handleEdit = (product: Product) => {
     if (!canUpdate) {
@@ -68,18 +69,26 @@ export default function ProductList() {
       return;
     }
 
-    // Create a new mutation for this specific product
-    const deleteForThisProduct = useDeleteProduct(product.id);
-
-    deleteForThisProduct.mutate(undefined, {
-      onSuccess: () => {
-        toast.success('Product deleted successfully');
-      },
-      onError: (error) => {
-        toast.error(error.userMessage || 'Failed to delete product');
-      },
-    });
+    setDeletingProductId(product.id);
   };
+
+  // Handle the delete mutation when deletingProductId changes
+  const deleteHandler = useDeleteProduct(deletingProductId ?? 0);
+
+  useState(() => {
+    if (deletingProductId !== null) {
+      deleteHandler.mutate(undefined, {
+        onSuccess: () => {
+          toast.success('Product deleted successfully');
+          setDeletingProductId(null);
+        },
+        onError: (error) => {
+          toast.error(error.userMessage || 'Failed to delete product');
+          setDeletingProductId(null);
+        },
+      });
+    }
+  }, [deletingProductId]);
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);

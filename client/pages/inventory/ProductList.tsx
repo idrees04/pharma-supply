@@ -46,9 +46,10 @@ export default function ProductList() {
   const totalPages = useMemo(() => productsResponse?.totalPages || 1, [productsResponse]);
   const totalCount = useMemo(() => productsResponse?.totalCount || 0, [productsResponse]);
 
-  // For handling delete - we'll need to track which product is being deleted
-  const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
-  const deleteMutation = useDeleteProduct(deletingProductId ?? 0);
+  // Create a generic delete handler that we'll use for all delete operations
+  // We use a ref-based approach to avoid hook issues
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const deleteForId = useDeleteProduct(deletingId || 0);
 
   const handleEdit = (product: Product) => {
     if (!canUpdate) {
@@ -69,26 +70,25 @@ export default function ProductList() {
       return;
     }
 
-    setDeletingProductId(product.id);
+    // Set the product ID and trigger the mutation
+    setDeletingId(product.id);
   };
 
-  // Handle the delete mutation when deletingProductId changes
-  const deleteHandler = useDeleteProduct(deletingProductId ?? 0);
-
+  // Execute delete when deletingId changes
   useEffect(() => {
-    if (deletingProductId !== null && !deleteHandler.isPending) {
-      deleteHandler.mutate(undefined, {
+    if (deletingId !== null) {
+      deleteForId.mutate(undefined, {
         onSuccess: () => {
           toast.success('Product deleted successfully');
-          setDeletingProductId(null);
+          setDeletingId(null);
         },
         onError: (error) => {
           toast.error(error.userMessage || 'Failed to delete product');
-          setDeletingProductId(null);
+          setDeletingId(null);
         },
       });
     }
-  }, [deletingProductId, deleteHandler]);
+  }, [deletingId]);
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);

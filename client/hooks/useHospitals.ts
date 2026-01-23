@@ -340,17 +340,16 @@ export function useUpdateHospital(
  * - Soft or hard delete (depends on API)
  * - Automatic cache cleanup after deletion
  * - Confirmation handling supported
- * - Type-safe deletion with no parameters required
+ * - Type-safe deletion with ID passed on mutate
  *
- * @param id - Hospital ID to delete
  * @param options - Optional callbacks (onSuccess, onError)
  *
- * @returns Mutation object with mutate function and state
+ * @returns Mutation object with mutate function that accepts hospitalId
  *
  * @example
  * ```typescript
- * const { mutate: deleteHospital, isPending } = useDeleteHospital(hospitalId, {
- *   onSuccess: () => {
+ * const { mutate: deleteHospital, isPending } = useDeleteHospital({
+ *   onSuccess: (response, hospitalId) => {
  *     // Hospital successfully deleted
  *     queryClient.removeQueries({ queryKey: hospitalKeys.detail(hospitalId) });
  *     queryClient.invalidateQueries({ queryKey: hospitalKeys.lists() });
@@ -362,26 +361,25 @@ export function useUpdateHospital(
  *   }
  * });
  *
- * const handleDelete = () => {
+ * const handleDelete = (hospitalId: number) => {
  *   if (confirm('Are you sure you want to delete this hospital?')) {
- *     deleteHospital();
+ *     deleteHospital(hospitalId);
  *   }
  * };
  * ```
  */
 export function useDeleteHospital(
-  id: number,
-  options?: Omit<UseMutationOptions<any, ApiError, void>, "mutationFn">,
+  options?: Omit<UseMutationOptions<any, ApiError, number>, "mutationFn">,
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => hospitalService.delete(id),
-    onSuccess: (data, variables, context) => {
+    mutationFn: (id: number) => hospitalService.delete(id),
+    onSuccess: (data, hospitalId, context) => {
       // Remove from detail cache and invalidate lists
-      queryClient.removeQueries({ queryKey: hospitalKeys.detail(id) });
+      queryClient.removeQueries({ queryKey: hospitalKeys.detail(hospitalId) });
       queryClient.invalidateQueries({ queryKey: hospitalKeys.lists() });
-      options?.onSuccess?.(data, variables, context);
+      options?.onSuccess?.(data, hospitalId, context);
     },
     ...options,
   });

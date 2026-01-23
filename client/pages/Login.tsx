@@ -68,7 +68,7 @@ export default function LoginPage() {
 
   // Form state
   const [formData, setFormData] = useState<LoginFormData>({
-      username: "admin",
+    username: "admin",
     password: "Admin@123",
     // username: "",
     // password: "",

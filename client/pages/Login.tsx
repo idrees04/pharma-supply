@@ -292,13 +292,13 @@ export default function LoginPage() {
               </Button>
 
               {/* Development Info */}
-              {import.meta.env.DEV && (
+              {/* {import.meta.env.DEV && (
                 <div className="rounded-md bg-secondary p-3 text-xs text-secondary-foreground">
                   <p className="font-semibold mb-1">Development Mode</p>
                   <p>API Base URL: https://mds.vtoxi.com</p>
                   <p>Tokens stored in localStorage</p>
                 </div>
-              )}
+              )} */}
             </form>
           </CardContent>
         </Card>

@@ -62,7 +62,9 @@ class HospitalService {
    *   });
    *   const { items, totalCount } = response.data;
    */
-  async getAll(params: HospitalListQueryParams): Promise<GetHospitalsListResponse> {
+  async getAll(
+    params: HospitalListQueryParams,
+  ): Promise<GetHospitalsListResponse> {
     const queryString = new URLSearchParams(
       Object.entries(params)
         .filter(([_, value]) => value !== undefined)

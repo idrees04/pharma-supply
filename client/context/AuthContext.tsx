@@ -124,23 +124,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const currentUser = useStore((state) => state.currentUser);
   const setCurrentUser = useStore((state) => state.setCurrentUser);
 
-  const hasPermission = useCallback(
-    (module: string, permission: Permission): boolean => {
-      if (!currentUser) return false;
-      const permissions = rolePermissions[currentUser.role];
-      return permissions[module]?.includes(permission) ?? false;
-    },
-    [currentUser],
-  );
+const hasPermission = useCallback(
+  (module: string, permission: Permission): boolean => {
+    if (!currentUser?.role) return false;
 
-  const canAccess = useCallback(
-    (module: string): boolean => {
-      if (!currentUser) return false;
-      const permissions = rolePermissions[currentUser.role];
-      return (permissions[module]?.length ?? 0) > 0;
-    },
-    [currentUser],
-  );
+    const permissions = rolePermissions[currentUser.role];
+    if (!permissions) return false;
+
+    return permissions[module]?.includes(permission) ?? false;
+  },
+  [currentUser],
+);
+
+const canAccess = useCallback(
+  (module: string): boolean => {
+    if (!currentUser?.role) return false;
+
+    const permissions = rolePermissions[currentUser.role];
+    if (!permissions) return false;
+
+    return (permissions[module]?.length ?? 0) > 0;
+  },
+  [currentUser],
+);
+
 
   const value: AuthContextType = useMemo(
     () => ({
@@ -162,6 +169,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
+    console.log('context called',context)
+
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }

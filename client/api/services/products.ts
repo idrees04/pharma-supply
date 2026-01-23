@@ -1,149 +1,117 @@
 /**
  * Products API Service
  *
- * This module demonstrates the service layer pattern:
- * - Encapsulates API calls for a specific domain (products)
- * - Provides typed interfaces for request/response data
- * - Centralizes endpoint URLs
- * - Adds domain-specific logic (e.g., filtering, sorting)
- * - Can be used by multiple components/pages
+ * This module encapsulates all API calls for products.
+ * It provides both raw service methods and custom React Query hooks.
  *
  * Architecture:
- * Component (ProductList.tsx)
- *   ↓ (calls hook)
- * useProductList() hook
- *   ↓ (calls function)
- * productService.getProducts()
- *   ↓ (calls function)
- * get<Product[]>('/products')
- *   ↓ (calls interceptor)
- * Axios instance
- *   ↓ (calls)
- * Server /api/products endpoint
+ * Component → Hook (useProductList, etc.) → Service (productService) → Requests
  *
- * This separation allows:
- * - Easy testing (mock productService)
- * - Endpoint changes in one place
- * - Reusable API logic across components
- * - Clear data flow
+ * API Base: https://mds.vtoxi.com/api/Products
  */
 
-import { get, post, put, patch, deleteRequest, RequestConfig } from '../requests';
-import { useGetQuery, usePostMutation, usePutMutation, usePatchMutation, useDeleteMutation } from '../hooks';
+import { get, post, put, deleteRequest, RequestConfig } from '../requests';
+import {
+  Product,
+  CreateProductRequest,
+  UpdateProductRequest,
+  GetProductsListResponse,
+  CreateProductResponse,
+  GetProductResponse,
+  UpdateProductResponse,
+  DeleteProductResponse,
+  GetLowStockProductsResponse,
+  ProductListQueryParams,
+  PaginatedResponse,
+} from '@/types/api/products';
+import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '../hooks';
 import { useQueryClient } from '@tanstack/react-query';
-
-/**
- * Domain Types
- *
- * These types represent your domain model.
- * Should match your backend types for type safety.
- */
-export interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  quantity: number;
-  sku: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateProductDTO {
-  name: string;
-  description?: string;
-  price: number;
-  quantity: number;
-  sku: string;
-}
-
-export interface UpdateProductDTO {
-  name?: string;
-  description?: string;
-  price?: number;
-  quantity?: number;
-  sku?: string;
-}
-
-export interface ProductListResponse {
-  items: Product[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
-export interface ProductFilter {
-  search?: string;
-  page?: number;
-  pageSize?: number;
-  sortBy?: 'name' | 'price' | 'quantity' | 'createdAt';
-  sortOrder?: 'asc' | 'desc';
-}
 
 /**
  * Products API Service
  *
- * All API calls for products go through this service.
- * This keeps endpoint URLs and logic centralized.
+ * All product API calls go through this service object.
+ * This keeps endpoint URLs and logic centralized and reusable.
  */
 export const productService = {
   /**
-   * Get all products with optional filtering
+   * Get all products with optional filtering and pagination
    */
-  getProducts: async (filters?: ProductFilter, config?: RequestConfig): Promise<ProductListResponse> => {
-    const params = new URLSearchParams();
-    if (filters) {
-      if (filters.search) params.append('search', filters.search);
-      if (filters.page) params.append('page', filters.page.toString());
-      if (filters.pageSize) params.append('pageSize', filters.pageSize.toString());
-      if (filters.sortBy) params.append('sortBy', filters.sortBy);
-      if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
+  getProducts: async (
+    params?: ProductListQueryParams,
+    config?: RequestConfig
+  ): Promise<PaginatedResponse<Product>> => {
+    const queryParams = new URLSearchParams();
+
+    if (params) {
+      if (params.pageNumber !== undefined) queryParams.append('PageNumber', params.pageNumber.toString());
+      if (params.pageSize !== undefined) queryParams.append('PageSize', params.pageSize.toString());
+      if (params.searchTerm) queryParams.append('SearchTerm', params.searchTerm);
+      if (params.sortBy) queryParams.append('SortBy', params.sortBy);
+      if (params.sortDescending !== undefined)
+        queryParams.append('SortDescending', params.sortDescending.toString());
     }
 
-    const url = `/products${params.toString() ? `?${params.toString()}` : ''}`;
-    return get<ProductListResponse>(url, config);
+    const url = `/api/Products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await get<GetProductsListResponse>(url, config);
+
+    // Return just the data part, not the wrapper
+    return response.data;
   },
 
   /**
    * Get a single product by ID
    */
-  getProduct: async (id: string, config?: RequestConfig): Promise<Product> => {
-    return get<Product>(`/products/${id}`, config);
+  getProduct: async (id: number, config?: RequestConfig): Promise<Product> => {
+    const response = await get<GetProductResponse>(`/api/Products/${id}`, config);
+    return response.data;
   },
 
   /**
    * Create a new product
    */
-  createProduct: async (data: CreateProductDTO, config?: RequestConfig): Promise<Product> => {
-    return post<Product, CreateProductDTO>('/products', data, config);
+  createProduct: async (
+    data: CreateProductRequest,
+    config?: RequestConfig
+  ): Promise<Product> => {
+    const response = await post<CreateProductResponse, CreateProductRequest>(
+      '/api/Products',
+      data,
+      config
+    );
+    return response.data;
   },
 
   /**
-   * Update entire product (replace)
+   * Update a product
    */
-  updateProduct: async (id: string, data: UpdateProductDTO, config?: RequestConfig): Promise<Product> => {
-    return put<Product, UpdateProductDTO>(`/products/${id}`, data, config);
-  },
-
-  /**
-   * Partially update a product
-   */
-  patchProduct: async (id: string, data: Partial<UpdateProductDTO>, config?: RequestConfig): Promise<Product> => {
-    return patch<Product, Partial<UpdateProductDTO>>(`/products/${id}`, data, config);
+  updateProduct: async (
+    id: number,
+    data: UpdateProductRequest,
+    config?: RequestConfig
+  ): Promise<Product> => {
+    const response = await put<UpdateProductResponse, UpdateProductRequest>(
+      `/api/Products/${id}`,
+      data,
+      config
+    );
+    return response.data;
   },
 
   /**
    * Delete a product
    */
-  deleteProduct: async (id: string, config?: RequestConfig): Promise<void> => {
-    return deleteRequest<void>(`/products/${id}`, config);
+  deleteProduct: async (id: number, config?: RequestConfig): Promise<void> => {
+    await deleteRequest<DeleteProductResponse>(`/api/Products/${id}`, config);
   },
 
   /**
-   * Bulk delete products
+   * Get low stock products
+   * Returns products where availableQuantity <= reorderLevel
    */
-  bulkDeleteProducts: async (ids: string[], config?: RequestConfig): Promise<void> => {
-    return post<void, { ids: string[] }>('/products/bulk-delete', { ids }, config);
+  getLowStockProducts: async (config?: RequestConfig): Promise<Product[]> => {
+    const response = await get<GetLowStockProductsResponse>('/api/Products/low-stock', config);
+    return response.data;
   },
 };
 
@@ -151,47 +119,54 @@ export const productService = {
  * Custom Hooks for Products
  *
  * These hooks combine React Query with the service layer.
- * Components should use these hooks, not the service directly.
+ * Components should use these hooks instead of calling the service directly.
  */
 
 /**
- * useProductList - Fetch products with optional filters
+ * useProductList - Fetch products with optional filters and pagination
  *
  * Example:
- *   const { data, isPending, error } = useProductList({ page: 1, pageSize: 20 });
- *   
- *   if (isPending) return <div>Loading products...</div>;
+ *   const { data, isPending, error } = useProductList({
+ *     pageNumber: 1,
+ *     pageSize: 20,
+ *     searchTerm: 'paracetamol'
+ *   });
+ *
+ *   if (isPending) return <div>Loading...</div>;
  *   if (error) return <div>Error: {error.userMessage}</div>;
- *   
+ *
  *   return (
  *     <div>
  *       {data.items.map(product => <ProductCard key={product.id} {...product} />)}
  *     </div>
  *   );
  */
-export function useProductList(filters?: ProductFilter) {
+export function useProductList(params?: ProductListQueryParams) {
   return useGetQuery(
-    ['products', filters], // Include filters in cache key for separate caching per filter
-    () => productService.getProducts(filters),
+    ['products', params],
+    () => productService.getProducts(params),
     {
-      // Products list can be cached longer since we have pagination
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      // Products list can be cached for 5 minutes since pagination changes the cache key
+      staleTime: 5 * 60 * 1000,
     }
   );
 }
 
 /**
- * useProduct - Fetch a single product
+ * useProduct - Fetch a single product by ID
  *
  * Example:
  *   const { data: product, isPending, error } = useProduct(productId);
+ *
+ *   if (!product) return null;
+ *   return <div>{product.productName}</div>;
  */
-export function useProduct(id: string) {
+export function useProduct(id: number | null) {
   return useGetQuery(
     ['products', id],
-    () => productService.getProduct(id),
+    () => productService.getProduct(id!),
     {
-      enabled: !!id, // Don't fetch if id is undefined
+      enabled: id !== null, // Don't fetch if id is null
     }
   );
 }
@@ -201,19 +176,15 @@ export function useProduct(id: string) {
  *
  * Example:
  *   const { mutate: createProduct, isPending, error } = useCreateProduct();
- *   
- *   const handleCreate = (formData: CreateProductDTO) => {
+ *
+ *   const handleSubmit = (formData: CreateProductRequest) => {
  *     createProduct(formData, {
- *       onSuccess: (newProduct) => {
- *         toast.success('Product created');
- *         navigate(`/products/${newProduct.id}`);
+ *       onSuccess: () => {
+ *         toast.success('Product created successfully');
+ *         closeDialog();
  *       },
  *       onError: (error) => {
- *         if (error.hasValidationErrors) {
- *           setFormErrors(error.validationErrors);
- *         } else {
- *           toast.error(error.userMessage);
- *         }
+ *         toast.error(error.userMessage);
  *       },
  *     });
  *   };
@@ -221,15 +192,12 @@ export function useProduct(id: string) {
 export function useCreateProduct() {
   const queryClient = useQueryClient();
 
-  return usePostMutation<Product, CreateProductDTO>(
+  return usePostMutation<Product, CreateProductRequest>(
     (data) => productService.createProduct(data),
     {
-      onSuccess: (newProduct) => {
-        // Invalidate products list so it refetches
+      onSuccess: () => {
+        // Invalidate products list to refetch updated data
         queryClient.invalidateQueries({ queryKey: ['products'] });
-
-        // Optionally set the new product in cache for instant access
-        queryClient.setQueryData(['products', newProduct.id], newProduct);
       },
     }
   );
@@ -239,20 +207,20 @@ export function useCreateProduct() {
  * useUpdateProduct - Update a product
  *
  * Example:
- *   const { mutate: updateProduct } = useUpdateProduct(productId);
- *   
- *   const handleSubmit = (formData: UpdateProductDTO) => {
+ *   const { mutate: updateProduct, isPending } = useUpdateProduct(productId);
+ *
+ *   const handleSubmit = (formData: UpdateProductRequest) => {
  *     updateProduct(formData, {
- *       onSuccess: (updated) => {
+ *       onSuccess: () => {
  *         toast.success('Product updated');
  *       },
  *     });
  *   };
  */
-export function useUpdateProduct(id: string) {
+export function useUpdateProduct(id: number) {
   const queryClient = useQueryClient();
 
-  return usePutMutation<Product, UpdateProductDTO>(
+  return usePutMutation<Product, UpdateProductRequest>(
     (data) => productService.updateProduct(id, data),
     {
       onSuccess: (updated) => {
@@ -266,40 +234,22 @@ export function useUpdateProduct(id: string) {
 }
 
 /**
- * usePatchProduct - Partially update a product
- */
-export function usePatchProduct(id: string) {
-  const queryClient = useQueryClient();
-
-  return usePatchMutation<Product, Partial<UpdateProductDTO>>(
-    (data) => productService.patchProduct(id, data),
-    {
-      onSuccess: (updated) => {
-        queryClient.setQueryData(['products', id], updated);
-        queryClient.invalidateQueries({ queryKey: ['products'] });
-      },
-    }
-  );
-}
-
-/**
  * useDeleteProduct - Delete a product
  *
  * Example:
- *   const { mutate: deleteProduct } = useDeleteProduct(productId);
- *   
+ *   const { mutate: deleteProduct, isPending } = useDeleteProduct(productId);
+ *
  *   const handleDelete = () => {
  *     if (confirm('Delete this product?')) {
  *       deleteProduct(undefined, {
  *         onSuccess: () => {
  *           toast.success('Product deleted');
- *           navigate('/products');
  *         },
  *       });
  *     }
  *   };
  */
-export function useDeleteProduct(id: string) {
+export function useDeleteProduct(id: number) {
   const queryClient = useQueryClient();
 
   return useDeleteMutation(
@@ -311,6 +261,31 @@ export function useDeleteProduct(id: string) {
         // Invalidate list
         queryClient.invalidateQueries({ queryKey: ['products'] });
       },
+    }
+  );
+}
+
+/**
+ * useLowStockProducts - Fetch products with low stock
+ *
+ * Example:
+ *   const { data: lowStockProducts, isPending, error } = useLowStockProducts();
+ *
+ *   if (isPending) return <div>Loading...</div>;
+ *   if (error) return <div>Error: {error.userMessage}</div>;
+ *
+ *   return (
+ *     <div>
+ *       Found {lowStockProducts.length} products with low stock
+ *     </div>
+ *   );
+ */
+export function useLowStockProducts() {
+  return useGetQuery(
+    ['products', 'low-stock'],
+    () => productService.getLowStockProducts(),
+    {
+      staleTime: 10 * 60 * 1000, // Cache for 10 minutes
     }
   );
 }

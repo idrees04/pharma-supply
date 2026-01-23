@@ -1,17 +1,25 @@
 import { z } from 'zod';
 
-// Product Schema
+// Product Schema - Matches API specification
 export const productSchema = z.object({
+  productName: z.string().min(1, 'Product Name is required'),
   genericName: z.string().min(1, 'Generic Name is required'),
-  brandName: z.string().min(1, 'Brand Name is required'),
+  productCode: z.string().min(1, 'Product Code is required'),
   manufacturer: z.string().min(1, 'Manufacturer is required'),
-  strength: z.string().min(1, 'Strength is required'),
-  unit: z.string().min(1, 'Unit is required'),
-  packSize: z.coerce.number().positive('Pack Size must be positive'),
-  gstRate: z.coerce.number().min(0, 'GST Rate must be non-negative'),
-  minimumStock: z.coerce.number().min(0, 'Minimum Stock must be non-negative'),
-  maximumStock: z.coerce.number().min(0, 'Maximum Stock must be non-negative'),
-  reorderPoint: z.coerce.number().min(0, 'Reorder Point must be non-negative'),
+  productTypeId: z.coerce.number().int().min(1, 'Product Type is required'),
+  category: z.string().min(1, 'Category is required'),
+  subCategory: z.string().min(1, 'Sub Category is required'),
+  unitOfMeasure: z.string().min(1, 'Unit of Measure is required'),
+  standardPurchaseRate: z.coerce.number().min(0, 'Standard Purchase Rate must be non-negative'),
+  standardSaleRate: z.coerce.number().min(0, 'Standard Sale Rate must be non-negative'),
+  taxPercentage: z.coerce.number().min(0, 'Tax Percentage must be non-negative'),
+  reorderLevel: z.coerce.number().int().min(0, 'Reorder Level must be non-negative'),
+  reorderQuantity: z.coerce.number().int().min(1, 'Reorder Quantity must be positive'),
+  hsnCode: z.string().min(1, 'HSN Code is required'),
+  isBatchRequired: z.boolean().default(false),
+  description: z.string().optional().default(''),
+  requiresPrescription: z.boolean().default(false),
+  storageConditions: z.string().optional().default(''),
   isActive: z.boolean().default(true),
 });
 

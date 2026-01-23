@@ -108,7 +108,10 @@ const hospitalKeys = {
  */
 export function useGetHospitals(
   params: HospitalListQueryParams,
-  options?: Omit<UseQueryOptions<GetHospitalsListResponse, ApiError>, "queryKey" | "queryFn">,
+  options?: Omit<
+    UseQueryOptions<GetHospitalsListResponse, ApiError>,
+    "queryKey" | "queryFn"
+  >,
 ) {
   return useQuery({
     queryKey: hospitalKeys.list(params),
@@ -156,7 +159,10 @@ export function useGetHospitals(
  */
 export function useGetHospitalById(
   id: number | null | undefined,
-  options?: Omit<UseQueryOptions<GetHospitalResponse, ApiError>, "queryKey" | "queryFn">,
+  options?: Omit<
+    UseQueryOptions<GetHospitalResponse, ApiError>,
+    "queryKey" | "queryFn"
+  >,
 ) {
   return useQuery({
     queryKey: hospitalKeys.detail(id || 0),
@@ -202,7 +208,10 @@ export function useGetHospitalById(
 export function useGetHospitalOrders(
   id: number | null | undefined,
   params?: { startDate?: string; endDate?: string },
-  options?: Omit<UseQueryOptions<HospitalOrdersData, ApiError>, "queryKey" | "queryFn">,
+  options?: Omit<
+    UseQueryOptions<HospitalOrdersData, ApiError>,
+    "queryKey" | "queryFn"
+  >,
 ) {
   return useQuery({
     queryKey: [hospitalKeys.order(id || 0), params],

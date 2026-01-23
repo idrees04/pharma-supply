@@ -41,17 +41,22 @@ export const supplierSchema = z.object({
 
 export type SupplierFormData = z.infer<typeof supplierSchema>;
 
-// Hospital Schema
+// Hospital Schema - Matches API specification
 export const hospitalSchema = z.object({
-  name: z.string().min(1, 'Hospital Name is required'),
+  hospitalName: z.string().min(1, 'Hospital Name is required'),
+  contactPerson: z.string().min(1, 'Contact Person is required'),
+  phoneNumber: z.string().min(1, 'Phone Number is required'),
   email: z.string().email('Valid email is required'),
-  phone: z.string().min(1, 'Phone is required'),
   address: z.string().min(1, 'Address is required'),
   city: z.string().min(1, 'City is required'),
-  country: z.string().min(1, 'Country is required'),
+  state: z.string().min(1, 'State is required'),
   postalCode: z.string().min(1, 'Postal Code is required'),
-  licenseNo: z.string().min(1, 'License No is required'),
-  contactPerson: z.string().min(1, 'Contact Person is required'),
+  taxNumber: z.string().min(1, 'Tax Number is required'),
+  registrationNumber: z.string().min(1, 'Registration Number is required'),
+  hospitalType: z.coerce.number().int().min(0, 'Hospital Type is required'),
+  creditTermDays: z.coerce.number().int().min(0, 'Credit Term Days must be non-negative'),
+  creditLimit: z.coerce.number().min(0, 'Credit Limit must be non-negative'),
+  status: z.coerce.number().int().min(0, 'Status is required').optional().default(1),
   isActive: z.boolean().default(true),
 });
 

@@ -68,8 +68,10 @@ export default function LoginPage() {
 
   // Form state
   const [formData, setFormData] = useState<LoginFormData>({
-    username: "",
-    password: "",
+      username: "admin",
+    password: "Admin@123",
+    // username: "",
+    // password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<

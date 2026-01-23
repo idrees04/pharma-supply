@@ -40,7 +40,7 @@ export default function HospitalList() {
   const totalPages = hospitalsResponse?.data.totalPages || 0;
 
   // Delete hospital mutation
-  const { mutate: deleteHospital, isPending: isDeleting } = useDeleteHospital(0, {
+  const { mutate: deleteHospital, isPending: isDeleting } = useDeleteHospital({
     onSuccess: () => {
       toast.success('Hospital deleted successfully');
       // Refetch the current page or go back to page 1 if last item was deleted

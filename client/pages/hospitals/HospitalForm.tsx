@@ -1,9 +1,13 @@
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useCreateHospital, useUpdateHospital, useGetHospitalById } from '@/hooks/useHospitals';
-import { hospitalSchema, HospitalFormData } from '@/lib/schemas';
-import { Button } from '@/components/ui/button';
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  useCreateHospital,
+  useUpdateHospital,
+  useGetHospitalById,
+} from "@/hooks/useHospitals";
+import { hospitalSchema, HospitalFormData } from "@/lib/schemas";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -12,11 +16,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
-import { Hospital } from '@/types/api/hospitals';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import { Hospital } from "@/types/api/hospitals";
 
 interface HospitalFormProps {
   hospital?: Hospital;
@@ -36,9 +40,8 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
   });
 
   // Fetch hospital details if editing
-  const { data: hospitalResponse, isPending: isFetchingDetails } = useGetHospitalById(
-    hospital?.id
-  );
+  const { data: hospitalResponse, isPending: isFetchingDetails } =
+    useGetHospitalById(hospital?.id);
 
   // Update form when hospital data is loaded
   useEffect(() => {
@@ -67,7 +70,7 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
   // Create hospital mutation
   const { mutate: createHospital, isPending: isCreating } = useCreateHospital({
     onSuccess: () => {
-      toast.success('Hospital created successfully');
+      toast.success("Hospital created successfully");
       form.reset();
       onClose();
     },
@@ -79,7 +82,7 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
           form.setError(fieldKey, { message });
         });
       } else {
-        toast.error(error.userMessage || 'Failed to create hospital');
+        toast.error(error.userMessage || "Failed to create hospital");
       }
     },
   });
@@ -89,18 +92,20 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
     hospital?.id || 0,
     {
       onSuccess: () => {
-        toast.success('Hospital updated successfully');
+        toast.success("Hospital updated successfully");
         onClose();
       },
       onError: (error) => {
         if (error.hasValidationErrors) {
-          Object.entries(error.validationErrors).forEach(([field, messages]) => {
-            const fieldKey = field as keyof HospitalFormData;
-            const message = Array.isArray(messages) ? messages[0] : messages;
-            form.setError(fieldKey, { message });
-          });
+          Object.entries(error.validationErrors).forEach(
+            ([field, messages]) => {
+              const fieldKey = field as keyof HospitalFormData;
+              const message = Array.isArray(messages) ? messages[0] : messages;
+              form.setError(fieldKey, { message });
+            },
+          );
         } else {
-          toast.error(error.userMessage || 'Failed to update hospital');
+          toast.error(error.userMessage || "Failed to update hospital");
         }
       },
     },
@@ -194,7 +199,11 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
               <FormItem>
                 <FormLabel>Email *</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="email@hospital.com" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="email@hospital.com"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -339,27 +348,39 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
                 <FormLabel>Active</FormLabel>
-                <FormDescription>Hospital is available for supply orders</FormDescription>
+                <FormDescription>
+                  Hospital is available for supply orders
+                </FormDescription>
               </div>
               <FormControl>
-                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
               </FormControl>
             </FormItem>
           )}
         />
 
         <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                {hospital ? 'Updating...' : 'Creating...'}
+                {hospital ? "Updating..." : "Creating..."}
               </span>
+            ) : hospital ? (
+              "Update Hospital"
             ) : (
-              hospital ? 'Update Hospital' : 'Create Hospital'
+              "Create Hospital"
             )}
           </Button>
         </div>

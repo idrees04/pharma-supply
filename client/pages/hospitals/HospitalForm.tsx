@@ -1,6 +1,7 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useStore, Hospital } from '@/hooks/useStore';
+import { useCreateHospital, useUpdateHospital, useGetHospitalById } from '@/hooks/useHospitals';
 import { hospitalSchema, HospitalFormData } from '@/lib/schemas';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { Hospital } from '@/types/api/hospitals';
 
 interface HospitalFormProps {
   hospital?: Hospital;
@@ -22,54 +24,138 @@ interface HospitalFormProps {
 }
 
 export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
-  const addHospital = useStore((state) => state.addHospital);
-  const updateHospital = useStore((state) => state.updateHospital);
-
   const form = useForm<HospitalFormData>({
     resolver: zodResolver(hospitalSchema),
-    defaultValues: hospital ? {
-      name: hospital.name,
-      email: hospital.email,
-      phone: hospital.phone,
-      address: hospital.address,
-      city: hospital.city,
-      country: hospital.country,
-      postalCode: hospital.postalCode,
-      licenseNo: hospital.licenseNo,
-      contactPerson: hospital.contactPerson,
-      isActive: hospital.isActive,
-    } : {
+    defaultValues: {
+      hospitalType: 1,
+      creditTermDays: 0,
+      creditLimit: 0,
+      status: 1,
       isActive: true,
     },
   });
 
-  const onSubmit = (data: HospitalFormData) => {
-    try {
-      const hospitalData: Omit<Hospital, 'id' | 'createdAt'> = {
-        name: data.name,
+  // Fetch hospital details if editing
+  const { data: hospitalResponse, isPending: isFetchingDetails } = useGetHospitalById(
+    hospital?.id
+  );
+
+  // Update form when hospital data is loaded
+  useEffect(() => {
+    if (hospitalResponse?.data) {
+      const data = hospitalResponse.data;
+      form.reset({
+        hospitalName: data.hospitalName,
+        contactPerson: data.contactPerson,
+        phoneNumber: data.phoneNumber,
         email: data.email,
-        phone: data.phone,
         address: data.address,
         city: data.city,
-        country: data.country,
+        state: data.state,
         postalCode: data.postalCode,
-        licenseNo: data.licenseNo,
-        contactPerson: data.contactPerson,
+        taxNumber: data.taxNumber,
+        registrationNumber: data.registrationNumber,
+        hospitalType: data.hospitalType,
+        creditTermDays: data.creditTermDays,
+        creditLimit: data.creditLimit,
+        status: data.status,
         isActive: data.isActive,
-      };
+      });
+    }
+  }, [hospitalResponse?.data, form]);
 
-      if (hospital) {
-        updateHospital(hospital.id, hospitalData);
-        toast.success('Hospital updated successfully');
-      } else {
-        addHospital(hospitalData);
-        toast.success('Hospital created successfully');
-      }
+  // Create hospital mutation
+  const { mutate: createHospital, isPending: isCreating } = useCreateHospital({
+    onSuccess: () => {
+      toast.success('Hospital created successfully');
+      form.reset();
       onClose();
-    } catch (error) {
-      toast.error('Failed to save hospital');
+    },
+    onError: (error) => {
+      if (error.hasValidationErrors) {
+        Object.entries(error.validationErrors).forEach(([field, messages]) => {
+          const fieldKey = field as keyof HospitalFormData;
+          const message = Array.isArray(messages) ? messages[0] : messages;
+          form.setError(fieldKey, { message });
+        });
+      } else {
+        toast.error(error.userMessage || 'Failed to create hospital');
+      }
+    },
+  });
+
+  // Update hospital mutation
+  const { mutate: updateHospital, isPending: isUpdating } = useUpdateHospital(
+    hospital?.id || 0,
+    {
+      onSuccess: () => {
+        toast.success('Hospital updated successfully');
+        onClose();
+      },
+      onError: (error) => {
+        if (error.hasValidationErrors) {
+          Object.entries(error.validationErrors).forEach(([field, messages]) => {
+            const fieldKey = field as keyof HospitalFormData;
+            const message = Array.isArray(messages) ? messages[0] : messages;
+            form.setError(fieldKey, { message });
+          });
+        } else {
+          toast.error(error.userMessage || 'Failed to update hospital');
+        }
+      },
+    },
+  );
+
+  const isSubmitting = isCreating || isUpdating || isFetchingDetails;
+
+  const onSubmit = (data: HospitalFormData) => {
+    if (hospital) {
+      // Update mode: use full update with all fields
+      updateHospital({
+        hospitalName: data.hospitalName,
+        contactPerson: data.contactPerson,
+        phoneNumber: data.phoneNumber,
+        email: data.email,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        postalCode: data.postalCode,
+        taxNumber: data.taxNumber,
+        registrationNumber: data.registrationNumber,
+        hospitalType: data.hospitalType,
+        creditTermDays: data.creditTermDays,
+        creditLimit: data.creditLimit,
+        status: data.status || 1,
+        isActive: data.isActive,
+      });
+    } else {
+      // Create mode: use only creation fields
+      createHospital({
+        hospitalName: data.hospitalName,
+        contactPerson: data.contactPerson,
+        phoneNumber: data.phoneNumber,
+        email: data.email,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        postalCode: data.postalCode,
+        taxNumber: data.taxNumber,
+        registrationNumber: data.registrationNumber,
+        hospitalType: data.hospitalType,
+        creditTermDays: data.creditTermDays,
+        creditLimit: data.creditLimit,
+      });
     }
   };
+
+  // Show loading state while fetching edit data
+  if (hospital && isFetchingDetails) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
@@ -77,7 +163,7 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="name"
+            name="hospitalName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Hospital Name *</FormLabel>
@@ -116,25 +202,12 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
           />
           <FormField
             control={form.control}
-            name="phone"
+            name="phoneNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone *</FormLabel>
+                <FormLabel>Phone Number *</FormLabel>
                 <FormControl>
                   <Input placeholder="+1-555-0123" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="licenseNo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>License No *</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., HOS-12345" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -168,12 +241,12 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
           />
           <FormField
             control={form.control}
-            name="country"
+            name="state"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country *</FormLabel>
+                <FormLabel>State *</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Pakistan" {...field} />
+                  <Input placeholder="e.g., Sindh" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -187,6 +260,71 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
                 <FormLabel>Postal Code *</FormLabel>
                 <FormControl>
                   <Input placeholder="e.g., 74000" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="taxNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tax Number *</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., NTN123456" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="registrationNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Registration Number *</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., REG123456" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="hospitalType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Hospital Type *</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="e.g., 1" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="creditTermDays"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Credit Term Days</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="e.g., 30" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="creditLimit"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Credit Limit</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="e.g., 500000" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -211,11 +349,18 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
         />
 
         <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? 'Saving...' : hospital ? 'Update Hospital' : 'Create Hospital'}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <span className="flex items-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                {hospital ? 'Updating...' : 'Creating...'}
+              </span>
+            ) : (
+              hospital ? 'Update Hospital' : 'Create Hospital'
+            )}
           </Button>
         </div>
       </form>

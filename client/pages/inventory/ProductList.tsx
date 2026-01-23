@@ -26,7 +26,6 @@ export default function ProductList() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const { hasPermission } = useAuth();
-  console.log('hasPermission',hasPermission)
   const queryClient = useQueryClient();
 
   const canCreate = hasPermission('products', 'create');

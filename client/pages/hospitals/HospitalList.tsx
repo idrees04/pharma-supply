@@ -89,10 +89,10 @@ export default function HospitalList() {
   };
 
   const handleAddClick = () => {
-    if (!canCreate) {
-      toast.error("You do not have permission to create hospitals");
-      return;
-    }
+    // if (!canCreate) {
+    //   toast.error("You do not have permission to create hospitals");
+    //   return;
+    // }
     setSelectedHospital(null);
     setIsDialogOpen(true);
   };
@@ -119,7 +119,7 @@ export default function HospitalList() {
             Manage hospital customer accounts
           </p>
         </div>
-        {canCreate && (
+        {/* {canCreate && ( */}
           <Button
             onClick={handleAddClick}
             disabled={isLoadingHospitals}
@@ -128,7 +128,7 @@ export default function HospitalList() {
             <Plus className="w-4 h-4" />
             Add Hospital
           </Button>
-        )}
+        {/* )} */}
       </div>
 
       {/* Search Input */}
@@ -245,7 +245,7 @@ export default function HospitalList() {
 
       {/* Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedHospital ? "Edit Hospital" : "Add New Hospital"}

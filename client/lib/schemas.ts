@@ -37,17 +37,33 @@ export const productSchema = z.object({
 
 export type ProductFormData = z.infer<typeof productSchema>;
 
-// Supplier Schema
+// Supplier Schema - Matches API specification (CreateSupplierRequest & UpdateSupplierRequest)
 export const supplierSchema = z.object({
-  name: z.string().min(1, "Supplier Name is required"),
+  supplierName: z.string().min(1, "Supplier Name is required"),
+  contactPerson: z.string().min(1, "Contact Person is required"),
+  phoneNumber: z.string().min(1, "Phone Number is required"),
   email: z.string().email("Valid email is required"),
-  phone: z.string().min(1, "Phone is required"),
   address: z.string().min(1, "Address is required"),
   city: z.string().min(1, "City is required"),
-  country: z.string().min(1, "Country is required"),
+  state: z.string().min(1, "State is required"),
   postalCode: z.string().min(1, "Postal Code is required"),
-  licenseNo: z.string().min(1, "License No is required"),
-  paymentTerms: z.enum(["Net15", "Net30", "Net60", "COD"]),
+  country: z.string().min(1, "Country is required"),
+  taxNumber: z.string().min(1, "Tax Number is required"),
+  licenseNumber: z.string().min(1, "License Number is required"),
+  paymentTermDays: z.coerce
+    .number()
+    .int()
+    .min(0, "Payment Term Days must be non-negative"),
+  creditLimit: z.coerce
+    .number()
+    .min(0, "Credit Limit must be non-negative"),
+  notes: z.string().optional().default(""),
+  status: z.coerce
+    .number()
+    .int()
+    .min(0, "Status must be non-negative")
+    .optional()
+    .default(1),
   isActive: z.boolean().default(true),
 });
 

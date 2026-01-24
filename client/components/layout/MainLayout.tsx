@@ -113,7 +113,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                 alt="Ideal Distributor Logo"
                 className="w-6 h-6 object-contain"
               />
-            <span> Ideal Distributor</span>
+            <span>Ideal Distributor</span>
           </Link>
 
           {/* Desktop Navigation */}

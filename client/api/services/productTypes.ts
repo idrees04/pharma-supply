@@ -10,7 +10,7 @@
  * API Base: https://mds.vtoxi.com/api/ProductTypes
  */
 
-import { get, post, put, deleteRequest, RequestConfig } from '../requests';
+import { get, post, put, deleteRequest, RequestConfig } from "../requests";
 import {
   ProductType,
   CreateProductTypeRequest,
@@ -20,9 +20,14 @@ import {
   GetProductTypeResponse,
   UpdateProductTypeResponse,
   DeleteProductTypeResponse,
-} from '@/types/api/productTypes';
-import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '../hooks';
-import { useQueryClient } from '@tanstack/react-query';
+} from "@/types/api/productTypes";
+import {
+  useGetQuery,
+  usePostMutation,
+  usePutMutation,
+  useDeleteMutation,
+} from "../hooks";
+import { useQueryClient } from "@tanstack/react-query";
 
 /**
  * ProductTypes API Service
@@ -35,15 +40,24 @@ export const productTypeService = {
    * Get all product types
    */
   getProductTypes: async (config?: RequestConfig): Promise<ProductType[]> => {
-    const response = await get<GetProductTypesListResponse>('/api/ProductTypes', config);
+    const response = await get<GetProductTypesListResponse>(
+      "/api/ProductTypes",
+      config,
+    );
     return response.data;
   },
 
   /**
    * Get a single product type by ID
    */
-  getProductType: async (id: number, config?: RequestConfig): Promise<ProductType> => {
-    const response = await get<GetProductTypeResponse>(`/api/ProductTypes/${id}`, config);
+  getProductType: async (
+    id: number,
+    config?: RequestConfig,
+  ): Promise<ProductType> => {
+    const response = await get<GetProductTypeResponse>(
+      `/api/ProductTypes/${id}`,
+      config,
+    );
     return response.data;
   },
 
@@ -52,13 +66,12 @@ export const productTypeService = {
    */
   createProductType: async (
     data: CreateProductTypeRequest,
-    config?: RequestConfig
+    config?: RequestConfig,
   ): Promise<ProductType> => {
-    const response = await post<CreateProductTypeResponse, CreateProductTypeRequest>(
-      '/api/ProductTypes',
-      data,
-      config
-    );
+    const response = await post<
+      CreateProductTypeResponse,
+      CreateProductTypeRequest
+    >("/api/ProductTypes", data, config);
     return response.data;
   },
 
@@ -68,21 +81,26 @@ export const productTypeService = {
   updateProductType: async (
     id: number,
     data: UpdateProductTypeRequest,
-    config?: RequestConfig
+    config?: RequestConfig,
   ): Promise<ProductType> => {
-    const response = await put<UpdateProductTypeResponse, UpdateProductTypeRequest>(
-      `/api/ProductTypes/${id}`,
-      data,
-      config
-    );
+    const response = await put<
+      UpdateProductTypeResponse,
+      UpdateProductTypeRequest
+    >(`/api/ProductTypes/${id}`, data, config);
     return response.data;
   },
 
   /**
    * Delete a product type
    */
-  deleteProductType: async (id: number, config?: RequestConfig): Promise<void> => {
-    await deleteRequest<DeleteProductTypeResponse>(`/api/ProductTypes/${id}`, config);
+  deleteProductType: async (
+    id: number,
+    config?: RequestConfig,
+  ): Promise<void> => {
+    await deleteRequest<DeleteProductTypeResponse>(
+      `/api/ProductTypes/${id}`,
+      config,
+    );
   },
 };
 
@@ -109,9 +127,13 @@ export const productTypeService = {
  *   );
  */
 export function useProductTypeList() {
-  return useGetQuery(['productTypes'], () => productTypeService.getProductTypes(), {
-    staleTime: 5 * 60 * 1000,
-  });
+  return useGetQuery(
+    ["productTypes"],
+    () => productTypeService.getProductTypes(),
+    {
+      staleTime: 5 * 60 * 1000,
+    },
+  );
 }
 
 /**
@@ -121,10 +143,14 @@ export function useProductTypeList() {
  *   const { data: productType, isPending } = useProductType(5);
  */
 export function useProductType(id: number) {
-  return useGetQuery(['productType', id], () => productTypeService.getProductType(id), {
-    enabled: !!id,
-    staleTime: 5 * 60 * 1000,
-  });
+  return useGetQuery(
+    ["productType", id],
+    () => productTypeService.getProductType(id),
+    {
+      enabled: !!id,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
 }
 
 /**
@@ -149,9 +175,9 @@ export function useCreateProductType() {
     {
       onSuccess: () => {
         // Invalidate the product types list to refetch
-        queryClient.invalidateQueries({ queryKey: ['productTypes'] });
+        queryClient.invalidateQueries({ queryKey: ["productTypes"] });
       },
-    }
+    },
   );
 }
 
@@ -177,11 +203,11 @@ export function useUpdateProductType(id: number) {
     {
       onSuccess: (updatedProductType) => {
         // Update the cache with the new data
-        queryClient.setQueryData(['productType', id], updatedProductType);
+        queryClient.setQueryData(["productType", id], updatedProductType);
         // Invalidate the list to refetch
-        queryClient.invalidateQueries({ queryKey: ['productTypes'] });
+        queryClient.invalidateQueries({ queryKey: ["productTypes"] });
       },
-    }
+    },
   );
 }
 
@@ -206,9 +232,9 @@ export function useDeleteProductType(id: number) {
   return useDeleteMutation(() => productTypeService.deleteProductType(id), {
     onSuccess: () => {
       // Remove the deleted item from cache
-      queryClient.removeQueries({ queryKey: ['productType', id] });
+      queryClient.removeQueries({ queryKey: ["productType", id] });
       // Invalidate the list to refetch
-      queryClient.invalidateQueries({ queryKey: ['productTypes'] });
+      queryClient.invalidateQueries({ queryKey: ["productTypes"] });
     },
   });
 }

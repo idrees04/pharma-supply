@@ -10,7 +10,7 @@
  * API Base: https://mds.vtoxi.com/api/Units
  */
 
-import { get, post, put, deleteRequest, RequestConfig } from '../requests';
+import { get, post, put, deleteRequest, RequestConfig } from "../requests";
 import {
   Unit,
   CreateUnitRequest,
@@ -20,9 +20,14 @@ import {
   GetUnitResponse,
   UpdateUnitResponse,
   DeleteUnitResponse,
-} from '@/types/api/units';
-import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '../hooks';
-import { useQueryClient } from '@tanstack/react-query';
+} from "@/types/api/units";
+import {
+  useGetQuery,
+  usePostMutation,
+  usePutMutation,
+  useDeleteMutation,
+} from "../hooks";
+import { useQueryClient } from "@tanstack/react-query";
 
 /**
  * Units API Service
@@ -35,7 +40,7 @@ export const unitService = {
    * Get all units
    */
   getUnits: async (config?: RequestConfig): Promise<Unit[]> => {
-    const response = await get<GetUnitsListResponse>('/api/Units', config);
+    const response = await get<GetUnitsListResponse>("/api/Units", config);
     return response.data;
   },
 
@@ -50,11 +55,14 @@ export const unitService = {
   /**
    * Create a new unit
    */
-  createUnit: async (data: CreateUnitRequest, config?: RequestConfig): Promise<Unit> => {
+  createUnit: async (
+    data: CreateUnitRequest,
+    config?: RequestConfig,
+  ): Promise<Unit> => {
     const response = await post<CreateUnitResponse, CreateUnitRequest>(
-      '/api/Units',
+      "/api/Units",
       data,
-      config
+      config,
     );
     return response.data;
   },
@@ -65,12 +73,12 @@ export const unitService = {
   updateUnit: async (
     id: number,
     data: UpdateUnitRequest,
-    config?: RequestConfig
+    config?: RequestConfig,
   ): Promise<Unit> => {
     const response = await put<UpdateUnitResponse, UpdateUnitRequest>(
       `/api/Units/${id}`,
       data,
-      config
+      config,
     );
     return response.data;
   },
@@ -106,7 +114,7 @@ export const unitService = {
  *   );
  */
 export function useUnitList() {
-  return useGetQuery(['units'], () => unitService.getUnits(), {
+  return useGetQuery(["units"], () => unitService.getUnits(), {
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -118,7 +126,7 @@ export function useUnitList() {
  *   const { data: unit, isPending } = useUnit(5);
  */
 export function useUnit(id: number) {
-  return useGetQuery(['unit', id], () => unitService.getUnit(id), {
+  return useGetQuery(["unit", id], () => unitService.getUnit(id), {
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
   });
@@ -146,9 +154,9 @@ export function useCreateUnit() {
     {
       onSuccess: () => {
         // Invalidate the units list to refetch
-        queryClient.invalidateQueries({ queryKey: ['units'] });
+        queryClient.invalidateQueries({ queryKey: ["units"] });
       },
-    }
+    },
   );
 }
 
@@ -174,11 +182,11 @@ export function useUpdateUnit(id: number) {
     {
       onSuccess: (updatedUnit) => {
         // Update the cache with the new data
-        queryClient.setQueryData(['unit', id], updatedUnit);
+        queryClient.setQueryData(["unit", id], updatedUnit);
         // Invalidate the list to refetch
-        queryClient.invalidateQueries({ queryKey: ['units'] });
+        queryClient.invalidateQueries({ queryKey: ["units"] });
       },
-    }
+    },
   );
 }
 
@@ -203,9 +211,9 @@ export function useDeleteUnit(id: number) {
   return useDeleteMutation(() => unitService.deleteUnit(id), {
     onSuccess: () => {
       // Remove the deleted item from cache
-      queryClient.removeQueries({ queryKey: ['unit', id] });
+      queryClient.removeQueries({ queryKey: ["unit", id] });
       // Invalidate the list to refetch
-      queryClient.invalidateQueries({ queryKey: ['units'] });
+      queryClient.invalidateQueries({ queryKey: ["units"] });
     },
   });
 }

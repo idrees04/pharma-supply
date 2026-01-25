@@ -1,17 +1,17 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Plus, Edit2, Trash2, AlertCircle, Loader } from 'lucide-react';
-import { toast } from 'sonner';
-import UnitsForm from './UnitsForm';
-import { Unit } from '@/types/api/units';
-import { useUnitList, useDeleteUnit } from '@/api/services/units';
+} from "@/components/ui/dialog";
+import { Plus, Edit2, Trash2, AlertCircle, Loader } from "lucide-react";
+import { toast } from "sonner";
+import UnitsForm from "./UnitsForm";
+import { Unit } from "@/types/api/units";
+import { useUnitList, useDeleteUnit } from "@/api/services/units";
 import {
   Table,
   TableBody,
@@ -19,12 +19,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 export default function UnitsList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedUnitId, setSelectedUnitId] = useState<number | undefined>(undefined);
+  const [selectedUnitId, setSelectedUnitId] = useState<number | undefined>(
+    undefined,
+  );
 
   // Fetch units
   const {
@@ -49,10 +51,10 @@ export default function UnitsList() {
     setIsDeleting(true);
     try {
       await deleteUnitMutation.mutateAsync();
-      toast.success('Unit deleted successfully');
+      toast.success("Unit deleted successfully");
       setSelectedUnitId(undefined);
     } catch (error: any) {
-      const message = error?.userMessage || 'Failed to delete unit';
+      const message = error?.userMessage || "Failed to delete unit";
       toast.error(message);
     } finally {
       setIsDeleting(false);
@@ -71,7 +73,11 @@ export default function UnitsList() {
 
   const handleFormSuccess = () => {
     handleCloseDialog();
-    toast.success(selectedUnitId ? 'Unit updated successfully' : 'Unit created successfully');
+    toast.success(
+      selectedUnitId
+        ? "Unit updated successfully"
+        : "Unit created successfully",
+    );
   };
 
   // Show error state
@@ -86,8 +92,12 @@ export default function UnitsList() {
         </div>
         <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-red-600" />
-          <h3 className="mt-4 text-lg font-semibold text-red-900">Error Loading Units</h3>
-          <p className="text-red-700">{unitsError.userMessage || 'Failed to load units'}</p>
+          <h3 className="mt-4 text-lg font-semibold text-red-900">
+            Error Loading Units
+          </h3>
+          <p className="text-red-700">
+            {unitsError.userMessage || "Failed to load units"}
+          </p>
           <Button onClick={() => window.location.reload()} className="mt-4">
             Retry
           </Button>
@@ -122,7 +132,9 @@ export default function UnitsList() {
         <div className="rounded-lg border border-dashed p-8 text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
           <h3 className="mt-4 text-lg font-semibold">No units yet</h3>
-          <p className="text-muted-foreground">Create your first unit to get started</p>
+          <p className="text-muted-foreground">
+            Create your first unit to get started
+          </p>
         </div>
       )}
 
@@ -146,11 +158,13 @@ export default function UnitsList() {
                   <TableCell>
                     <span
                       className={cn(
-                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-                        unit.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                        unit.isActive
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800",
                       )}
                     >
-                      {unit.isActive ? 'Active' : 'Inactive'}
+                      {unit.isActive ? "Active" : "Inactive"}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
@@ -189,9 +203,11 @@ export default function UnitsList() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{selectedUnitId ? 'Edit Unit' : 'Add Unit'}</DialogTitle>
+            <DialogTitle>
+              {selectedUnitId ? "Edit Unit" : "Add Unit"}
+            </DialogTitle>
             <DialogDescription>
-              {selectedUnitId ? 'Update the unit details' : 'Create a new unit'}
+              {selectedUnitId ? "Update the unit details" : "Create a new unit"}
             </DialogDescription>
           </DialogHeader>
           <UnitsForm

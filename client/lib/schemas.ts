@@ -54,9 +54,7 @@ export const supplierSchema = z.object({
     .number()
     .int()
     .min(0, "Payment Term Days must be non-negative"),
-  creditLimit: z.coerce
-    .number()
-    .min(0, "Credit Limit must be non-negative"),
+  creditLimit: z.coerce.number().min(0, "Credit Limit must be non-negative"),
   notes: z.string().optional().default(""),
   status: z.coerce
     .number()

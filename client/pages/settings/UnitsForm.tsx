@@ -1,8 +1,8 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { unitSchema, UnitFormData } from '@/lib/schemas';
-import { useCreateUnit, useUpdateUnit, useUnit } from '@/api/services/units';
-import { Button } from '@/components/ui/button';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { unitSchema, UnitFormData } from "@/lib/schemas";
+import { useCreateUnit, useUpdateUnit, useUnit } from "@/api/services/units";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -10,11 +10,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { CreateUnitRequest, UpdateUnitRequest } from '@/types/api/units';
-import { Loader } from 'lucide-react';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CreateUnitRequest, UpdateUnitRequest } from "@/types/api/units";
+import { Loader } from "lucide-react";
 
 interface UnitsFormProps {
   unitId?: number;
@@ -22,7 +22,11 @@ interface UnitsFormProps {
   onCancel: () => void;
 }
 
-export default function UnitsForm({ unitId, onSuccess, onCancel }: UnitsFormProps) {
+export default function UnitsForm({
+  unitId,
+  onSuccess,
+  onCancel,
+}: UnitsFormProps) {
   const { data: unit, isPending: isLoadingUnit } = useUnit(unitId || 0);
   const createMutation = useCreateUnit();
   const updateMutation = useUpdateUnit(unitId || 0);
@@ -36,14 +40,14 @@ export default function UnitsForm({ unitId, onSuccess, onCancel }: UnitsFormProp
           isActive: unit.isActive,
         }
       : {
-          name: '',
+          name: "",
           quantity: 0,
           isActive: true,
         },
   });
 
   // Update form when unit data loads
-  if (unit && !form.getValues('name')) {
+  if (unit && !form.getValues("name")) {
     form.reset({
       name: unit.name,
       quantity: unit.quantity,
@@ -51,7 +55,8 @@ export default function UnitsForm({ unitId, onSuccess, onCancel }: UnitsFormProp
     });
   }
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending || isLoadingUnit;
+  const isSubmitting =
+    createMutation.isPending || updateMutation.isPending || isLoadingUnit;
 
   const onSubmit = (data: UnitFormData) => {
     if (unitId) {
@@ -67,8 +72,8 @@ export default function UnitsForm({ unitId, onSuccess, onCancel }: UnitsFormProp
           onSuccess();
         },
         onError: (error) => {
-          form.setError('root', {
-            message: error.userMessage || 'Failed to update unit',
+          form.setError("root", {
+            message: error.userMessage || "Failed to update unit",
           });
         },
       });
@@ -84,8 +89,8 @@ export default function UnitsForm({ unitId, onSuccess, onCancel }: UnitsFormProp
           onSuccess();
         },
         onError: (error) => {
-          form.setError('root', {
-            message: error.userMessage || 'Failed to create unit',
+          form.setError("root", {
+            message: error.userMessage || "Failed to create unit",
           });
         },
       });
@@ -142,7 +147,10 @@ export default function UnitsForm({ unitId, onSuccess, onCancel }: UnitsFormProp
               <FormItem className="flex items-center justify-between">
                 <FormLabel>Active</FormLabel>
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 </FormControl>
               </FormItem>
             )}
@@ -160,9 +168,15 @@ export default function UnitsForm({ unitId, onSuccess, onCancel }: UnitsFormProp
         <div className="flex gap-3 pt-4">
           <Button type="submit" disabled={isSubmitting} className="flex-1">
             {isSubmitting && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-            {unitId ? 'Update' : 'Create'}
+            {unitId ? "Update" : "Create"}
           </Button>
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} className="flex-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="flex-1"
+          >
             Cancel
           </Button>
         </div>

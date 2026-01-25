@@ -1,17 +1,20 @@
-import { useState, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Plus, Edit2, Trash2, AlertCircle, Loader } from 'lucide-react';
-import { toast } from 'sonner';
-import ProductTypesForm from './ProductTypesForm';
-import { ProductType } from '@/types/api/productTypes';
-import { useProductTypeList, useDeleteProductType } from '@/api/services/productTypes';
+} from "@/components/ui/dialog";
+import { Plus, Edit2, Trash2, AlertCircle, Loader } from "lucide-react";
+import { toast } from "sonner";
+import ProductTypesForm from "./ProductTypesForm";
+import { ProductType } from "@/types/api/productTypes";
+import {
+  useProductTypeList,
+  useDeleteProductType,
+} from "@/api/services/productTypes";
 import {
   Table,
   TableBody,
@@ -19,12 +22,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 export default function ProductTypesList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedProductTypeId, setSelectedProductTypeId] = useState<number | undefined>(undefined);
+  const [selectedProductTypeId, setSelectedProductTypeId] = useState<
+    number | undefined
+  >(undefined);
 
   // Fetch product types
   const {
@@ -34,7 +39,9 @@ export default function ProductTypesList() {
   } = useProductTypeList();
 
   const [isDeleting, setIsDeleting] = useState(false);
-  const deleteProductTypeMutation = useDeleteProductType(selectedProductTypeId || 0);
+  const deleteProductTypeMutation = useDeleteProductType(
+    selectedProductTypeId || 0,
+  );
 
   const handleEdit = (productType: ProductType) => {
     setSelectedProductTypeId(productType.id);
@@ -42,17 +49,19 @@ export default function ProductTypesList() {
   };
 
   const handleDelete = async (productType: ProductType) => {
-    if (!confirm(`Are you sure you want to delete "${productType.typeName}"?`)) {
+    if (
+      !confirm(`Are you sure you want to delete "${productType.typeName}"?`)
+    ) {
       return;
     }
 
     setIsDeleting(true);
     try {
       await deleteProductTypeMutation.mutateAsync();
-      toast.success('Product type deleted successfully');
+      toast.success("Product type deleted successfully");
       setSelectedProductTypeId(undefined);
     } catch (error: any) {
-      const message = error?.userMessage || 'Failed to delete product type';
+      const message = error?.userMessage || "Failed to delete product type";
       toast.error(message);
     } finally {
       setIsDeleting(false);
@@ -71,7 +80,11 @@ export default function ProductTypesList() {
 
   const handleFormSuccess = () => {
     handleCloseDialog();
-    toast.success(selectedProductTypeId ? 'Product type updated successfully' : 'Product type created successfully');
+    toast.success(
+      selectedProductTypeId
+        ? "Product type updated successfully"
+        : "Product type created successfully",
+    );
   };
 
   // Show error state
@@ -81,13 +94,19 @@ export default function ProductTypesList() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Product Types</h1>
-            <p className="text-muted-foreground">Manage product types and categories</p>
+            <p className="text-muted-foreground">
+              Manage product types and categories
+            </p>
           </div>
         </div>
         <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-red-600" />
-          <h3 className="mt-4 text-lg font-semibold text-red-900">Error Loading Product Types</h3>
-          <p className="text-red-700">{productTypesError.userMessage || 'Failed to load product types'}</p>
+          <h3 className="mt-4 text-lg font-semibold text-red-900">
+            Error Loading Product Types
+          </h3>
+          <p className="text-red-700">
+            {productTypesError.userMessage || "Failed to load product types"}
+          </p>
           <Button onClick={() => window.location.reload()} className="mt-4">
             Retry
           </Button>
@@ -102,7 +121,9 @@ export default function ProductTypesList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Product Types</h1>
-          <p className="text-muted-foreground">Manage product types and categories</p>
+          <p className="text-muted-foreground">
+            Manage product types and categories
+          </p>
         </div>
         <Button onClick={handleCreate} className="gap-2">
           <Plus className="w-4 h-4" />
@@ -122,7 +143,9 @@ export default function ProductTypesList() {
         <div className="rounded-lg border border-dashed p-8 text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
           <h3 className="mt-4 text-lg font-semibold">No product types yet</h3>
-          <p className="text-muted-foreground">Create your first product type to get started</p>
+          <p className="text-muted-foreground">
+            Create your first product type to get started
+          </p>
         </div>
       )}
 
@@ -143,7 +166,9 @@ export default function ProductTypesList() {
             <TableBody>
               {productTypes.map((productType) => (
                 <TableRow key={productType.id}>
-                  <TableCell className="font-medium">{productType.typeName}</TableCell>
+                  <TableCell className="font-medium">
+                    {productType.typeName}
+                  </TableCell>
                   <TableCell>{productType.typeCode}</TableCell>
                   <TableCell className="max-w-xs truncate text-muted-foreground">
                     {productType.description}
@@ -152,13 +177,13 @@ export default function ProductTypesList() {
                   <TableCell>
                     <span
                       className={cn(
-                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
                         productType.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800",
                       )}
                     >
-                      {productType.isActive ? 'Active' : 'Inactive'}
+                      {productType.isActive ? "Active" : "Inactive"}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
@@ -197,9 +222,13 @@ export default function ProductTypesList() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{selectedProductTypeId ? 'Edit Product Type' : 'Add Product Type'}</DialogTitle>
+            <DialogTitle>
+              {selectedProductTypeId ? "Edit Product Type" : "Add Product Type"}
+            </DialogTitle>
             <DialogDescription>
-              {selectedProductTypeId ? 'Update the product type details' : 'Create a new product type'}
+              {selectedProductTypeId
+                ? "Update the product type details"
+                : "Create a new product type"}
             </DialogDescription>
           </DialogHeader>
           <ProductTypesForm

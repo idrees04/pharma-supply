@@ -324,3 +324,26 @@ export const salesTaxInvoiceSchema = z.object({
 });
 
 export type SalesTaxInvoiceFormData = z.infer<typeof salesTaxInvoiceSchema>;
+
+// Product Type Schema
+export const productTypeSchema = z.object({
+  typeName: z.string().min(1, "Type Name is required"),
+  typeCode: z.string().min(1, "Type Code is required"),
+  description: z.string().optional().default(""),
+  displayOrder: z.coerce
+    .number()
+    .int()
+    .min(0, "Display Order must be non-negative"),
+  isActive: z.boolean().default(true),
+});
+
+export type ProductTypeFormData = z.infer<typeof productTypeSchema>;
+
+// Unit Schema
+export const unitSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  quantity: z.coerce.number().min(0, "Quantity must be non-negative"),
+  isActive: z.boolean().default(true),
+});
+
+export type UnitFormData = z.infer<typeof unitSchema>;

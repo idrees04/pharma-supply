@@ -97,6 +97,14 @@ const menuItems: MenuItemType[] = [
     label: 'Reports',
     href: '/reports',
   },
+  {
+    icon: <Settings className="w-5 h-5" />,
+    label: 'Settings',
+    children: [
+      { icon: <Package className="w-4 h-4" />, label: 'Product Types', href: '/settings/product-types' },
+      { icon: <Pill className="w-4 h-4" />, label: 'Units', href: '/settings/units' },
+    ],
+  },
 ];
 
 export function MainLayout({ children }: MainLayoutProps) {

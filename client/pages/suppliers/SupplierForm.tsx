@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useStore, Supplier } from '@/hooks/useStore';
 import { supplierSchema, SupplierFormData } from '@/lib/schemas';
+import { useCreateSupplier, useUpdateSupplier } from '@/api/services/suppliers';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -13,15 +13,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { Supplier } from '@/types/api/suppliers';
+import { CreateSupplierRequest, UpdateSupplierRequest } from '@/types/api/suppliers';
 
 interface SupplierFormProps {
   supplier?: Supplier;
@@ -29,53 +25,101 @@ interface SupplierFormProps {
 }
 
 export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
-  const addSupplier = useStore((state) => state.addSupplier);
-  const updateSupplier = useStore((state) => state.updateSupplier);
+  const createMutation = useCreateSupplier();
+  const updateMutation = useUpdateSupplier(supplier?.id || 0);
 
   const form = useForm<SupplierFormData>({
     resolver: zodResolver(supplierSchema),
-    defaultValues: supplier ? {
-      name: supplier.name,
-      email: supplier.email,
-      phone: supplier.phone,
-      address: supplier.address,
-      city: supplier.city,
-      country: supplier.country,
-      postalCode: supplier.postalCode,
-      licenseNo: supplier.licenseNo,
-      paymentTerms: supplier.paymentTerms,
-      isActive: supplier.isActive,
-    } : {
-      paymentTerms: 'Net30',
-      isActive: true,
-    },
+    defaultValues: supplier
+      ? {
+          supplierName: supplier.supplierName,
+          contactPerson: supplier.contactPerson,
+          phoneNumber: supplier.phoneNumber,
+          email: supplier.email,
+          address: supplier.address,
+          city: supplier.city,
+          state: supplier.state,
+          postalCode: supplier.postalCode,
+          country: supplier.country,
+          taxNumber: supplier.taxNumber,
+          licenseNumber: supplier.licenseNumber,
+          paymentTermDays: supplier.paymentTermDays,
+          creditLimit: supplier.creditLimit,
+          notes: supplier.notes,
+          status: supplier.status,
+          isActive: supplier.isActive,
+        }
+      : {
+          paymentTermDays: 0,
+          creditLimit: 0,
+          notes: '',
+          status: 1,
+          isActive: true,
+        },
   });
 
+  const isSubmitting =
+    createMutation.isPending || updateMutation.isPending;
+
   const onSubmit = (data: SupplierFormData) => {
-    try {
-      const supplierData: Omit<Supplier, 'id' | 'createdAt'> = {
-        name: data.name,
+    if (supplier) {
+      // Update existing supplier
+      const updateData: UpdateSupplierRequest = {
+        supplierName: data.supplierName,
+        contactPerson: data.contactPerson,
+        phoneNumber: data.phoneNumber,
         email: data.email,
-        phone: data.phone,
         address: data.address,
         city: data.city,
-        country: data.country,
+        state: data.state,
         postalCode: data.postalCode,
-        licenseNo: data.licenseNo,
-        paymentTerms: data.paymentTerms,
+        country: data.country,
+        taxNumber: data.taxNumber,
+        licenseNumber: data.licenseNumber,
+        paymentTermDays: data.paymentTermDays,
+        creditLimit: data.creditLimit,
+        status: data.status || 1,
+        notes: data.notes,
         isActive: data.isActive,
       };
 
-      if (supplier) {
-        updateSupplier(supplier.id, supplierData);
-        toast.success('Supplier updated successfully');
-      } else {
-        addSupplier(supplierData);
-        toast.success('Supplier created successfully');
-      }
-      onClose();
-    } catch (error) {
-      toast.error('Failed to save supplier');
+      updateMutation.mutate(updateData, {
+        onSuccess: () => {
+          toast.success('Supplier updated successfully');
+          onClose();
+        },
+        onError: (error) => {
+          toast.error(error.userMessage || 'Failed to update supplier');
+        },
+      });
+    } else {
+      // Create new supplier
+      const createData: CreateSupplierRequest = {
+        supplierName: data.supplierName,
+        contactPerson: data.contactPerson,
+        phoneNumber: data.phoneNumber,
+        email: data.email,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        postalCode: data.postalCode,
+        country: data.country,
+        taxNumber: data.taxNumber,
+        licenseNumber: data.licenseNumber,
+        paymentTermDays: data.paymentTermDays,
+        creditLimit: data.creditLimit,
+        notes: data.notes,
+      };
+
+      createMutation.mutate(createData, {
+        onSuccess: () => {
+          toast.success('Supplier created successfully');
+          onClose();
+        },
+        onError: (error) => {
+          toast.error(error.userMessage || 'Failed to create supplier');
+        },
+      });
     }
   };
 
@@ -83,9 +127,10 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Supplier Name */}
           <FormField
             control={form.control}
-            name="name"
+            name="supplierName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Supplier Name *</FormLabel>
@@ -96,6 +141,23 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
               </FormItem>
             )}
           />
+
+          {/* Contact Person */}
+          <FormField
+            control={form.control}
+            name="contactPerson"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contact Person *</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., John Doe" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Email */}
           <FormField
             control={form.control}
             name="email"
@@ -109,12 +171,14 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
               </FormItem>
             )}
           />
+
+          {/* Phone Number */}
           <FormField
             control={form.control}
-            name="phone"
+            name="phoneNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone *</FormLabel>
+                <FormLabel>Phone Number *</FormLabel>
                 <FormControl>
                   <Input placeholder="+1-555-0123" {...field} />
                 </FormControl>
@@ -122,19 +186,8 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="licenseNo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>License No *</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., LIC-12345" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+
+          {/* Address */}
           <FormField
             control={form.control}
             name="address"
@@ -148,6 +201,8 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
               </FormItem>
             )}
           />
+
+          {/* City */}
           <FormField
             control={form.control}
             name="city"
@@ -161,6 +216,23 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
               </FormItem>
             )}
           />
+
+          {/* State */}
+          <FormField
+            control={form.control}
+            name="state"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>State *</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., Sindh" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Country */}
           <FormField
             control={form.control}
             name="country"
@@ -174,6 +246,8 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
               </FormItem>
             )}
           />
+
+          {/* Postal Code */}
           <FormField
             control={form.control}
             name="postalCode"
@@ -187,53 +261,132 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
               </FormItem>
             )}
           />
+
+          {/* Tax Number */}
           <FormField
             control={form.control}
-            name="paymentTerms"
+            name="taxNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Payment Terms *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Net15">Net 15</SelectItem>
-                    <SelectItem value="Net30">Net 30</SelectItem>
-                    <SelectItem value="Net60">Net 60</SelectItem>
-                    <SelectItem value="COD">Cash on Delivery</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormLabel>Tax Number *</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., TAX-123456" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* License Number */}
+          <FormField
+            control={form.control}
+            name="licenseNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>License Number *</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., LIC-12345" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Payment Term Days */}
+          <FormField
+            control={form.control}
+            name="paymentTermDays"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment Term Days</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="e.g., 30" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Credit Limit */}
+          <FormField
+            control={form.control}
+            name="creditLimit"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Credit Limit</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="e.g., 100000" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
+        {/* Notes */}
         <FormField
           control={form.control}
-          name="isActive"
+          name="notes"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel>Active</FormLabel>
-                <FormDescription>Supplier is available for purchase orders</FormDescription>
-              </div>
+            <FormItem>
+              <FormLabel>Notes</FormLabel>
               <FormControl>
-                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                <Textarea
+                  placeholder="Any additional notes about this supplier..."
+                  className="resize-none"
+                  rows={3}
+                  {...field}
+                />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Active Status - only show on edit */}
+        {supplier && (
+          <FormField
+            control={form.control}
+            name="isActive"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel>Active</FormLabel>
+                  <FormDescription>
+                    Supplier is available for purchase orders
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        )}
+
+        {/* Form Actions */}
         <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? 'Saving...' : supplier ? 'Update Supplier' : 'Create Supplier'}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <span className="mr-2">Saving...</span>
+              </>
+            ) : supplier ? (
+              'Update Supplier'
+            ) : (
+              'Create Supplier'
+            )}
           </Button>
         </div>
       </form>

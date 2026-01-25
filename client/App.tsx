@@ -32,6 +32,8 @@ import SupplierList from "./pages/suppliers/SupplierList";
 import HospitalList from "./pages/hospitals/HospitalList";
 import SupplyOrderList from "./pages/supply/SupplyOrderList";
 import UsersPage from "./pages/users/UsersPage";
+import ProductTypesList from "./pages/settings/ProductTypesList";
+import UnitsList from "./pages/settings/UnitsList";
 import NotFound from "./pages/NotFound";
 
 /**
@@ -229,6 +231,26 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <MainLayout>
             <Reports />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/settings/product-types"
+      element={
+        <ProtectedRoute>
+          <MainLayout>
+            <ProductTypesList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/settings/units"
+      element={
+        <ProtectedRoute>
+          <MainLayout>
+            <UnitsList />
           </MainLayout>
         </ProtectedRoute>
       }

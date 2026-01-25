@@ -110,8 +110,9 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
       },
     },
   );
+  const isEditMode = typeof hospital?.id === 'number';
 
-  const isSubmitting = isCreating || isUpdating || isFetchingDetails;
+  const isSubmitting = isCreating || isUpdating || (isEditMode && isFetchingDetails);
 
   const onSubmit = (data: HospitalFormData) => {
     if (hospital) {

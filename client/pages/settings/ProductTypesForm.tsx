@@ -1,8 +1,12 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { productTypeSchema, ProductTypeFormData } from '@/lib/schemas';
-import { useCreateProductType, useUpdateProductType, useProductType } from '@/api/services/productTypes';
-import { Button } from '@/components/ui/button';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { productTypeSchema, ProductTypeFormData } from "@/lib/schemas";
+import {
+  useCreateProductType,
+  useUpdateProductType,
+  useProductType,
+} from "@/api/services/productTypes";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -10,12 +14,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { CreateProductTypeRequest, UpdateProductTypeRequest } from '@/types/api/productTypes';
-import { Loader } from 'lucide-react';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  CreateProductTypeRequest,
+  UpdateProductTypeRequest,
+} from "@/types/api/productTypes";
+import { Loader } from "lucide-react";
 
 interface ProductTypesFormProps {
   productTypeId?: number;
@@ -23,8 +30,14 @@ interface ProductTypesFormProps {
   onCancel: () => void;
 }
 
-export default function ProductTypesForm({ productTypeId, onSuccess, onCancel }: ProductTypesFormProps) {
-  const { data: productType, isPending: isLoadingProductType } = useProductType(productTypeId || 0);
+export default function ProductTypesForm({
+  productTypeId,
+  onSuccess,
+  onCancel,
+}: ProductTypesFormProps) {
+  const { data: productType, isPending: isLoadingProductType } = useProductType(
+    productTypeId || 0,
+  );
   const createMutation = useCreateProductType();
   const updateMutation = useUpdateProductType(productTypeId || 0);
 
@@ -39,16 +52,16 @@ export default function ProductTypesForm({ productTypeId, onSuccess, onCancel }:
           isActive: productType.isActive,
         }
       : {
-          typeName: '',
-          typeCode: '',
-          description: '',
+          typeName: "",
+          typeCode: "",
+          description: "",
           displayOrder: 0,
           isActive: true,
         },
   });
 
   // Update form when productType data loads
-  if (productType && !form.getValues('typeName')) {
+  if (productType && !form.getValues("typeName")) {
     form.reset({
       typeName: productType.typeName,
       typeCode: productType.typeCode,
@@ -58,7 +71,10 @@ export default function ProductTypesForm({ productTypeId, onSuccess, onCancel }:
     });
   }
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending || isLoadingProductType;
+  const isSubmitting =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    isLoadingProductType;
 
   const onSubmit = (data: ProductTypeFormData) => {
     if (productTypeId) {
@@ -66,7 +82,7 @@ export default function ProductTypesForm({ productTypeId, onSuccess, onCancel }:
       const updateData: UpdateProductTypeRequest = {
         typeName: data.typeName,
         typeCode: data.typeCode,
-        description: data.description || '',
+        description: data.description || "",
         displayOrder: data.displayOrder,
         isActive: data.isActive,
       };
@@ -76,8 +92,8 @@ export default function ProductTypesForm({ productTypeId, onSuccess, onCancel }:
           onSuccess();
         },
         onError: (error) => {
-          form.setError('root', {
-            message: error.userMessage || 'Failed to update product type',
+          form.setError("root", {
+            message: error.userMessage || "Failed to update product type",
           });
         },
       });
@@ -86,7 +102,7 @@ export default function ProductTypesForm({ productTypeId, onSuccess, onCancel }:
       const createData: CreateProductTypeRequest = {
         typeName: data.typeName,
         typeCode: data.typeCode,
-        description: data.description || '',
+        description: data.description || "",
         displayOrder: data.displayOrder,
       };
 
@@ -95,8 +111,8 @@ export default function ProductTypesForm({ productTypeId, onSuccess, onCancel }:
           onSuccess();
         },
         onError: (error) => {
-          form.setError('root', {
-            message: error.userMessage || 'Failed to create product type',
+          form.setError("root", {
+            message: error.userMessage || "Failed to create product type",
           });
         },
       });
@@ -183,7 +199,10 @@ export default function ProductTypesForm({ productTypeId, onSuccess, onCancel }:
               <FormItem className="flex items-center justify-between">
                 <FormLabel>Active</FormLabel>
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 </FormControl>
               </FormItem>
             )}
@@ -201,9 +220,15 @@ export default function ProductTypesForm({ productTypeId, onSuccess, onCancel }:
         <div className="flex gap-3 pt-4">
           <Button type="submit" disabled={isSubmitting} className="flex-1">
             {isSubmitting && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-            {productTypeId ? 'Update' : 'Create'}
+            {productTypeId ? "Update" : "Create"}
           </Button>
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} className="flex-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="flex-1"
+          >
             Cancel
           </Button>
         </div>

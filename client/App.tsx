@@ -235,6 +235,26 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     />
+    <Route
+      path="/settings/product-types"
+      element={
+        <ProtectedRoute>
+          <MainLayout>
+            <ProductTypesList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/settings/units"
+      element={
+        <ProtectedRoute>
+          <MainLayout>
+            <UnitsList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
     {/* Catch-all route */}
     <Route path="*" element={<NotFound />} />
   </Routes>

@@ -8,16 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Plus, Edit2, Trash2, AlertCircle, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import ProductForm from './ProductForm';
@@ -326,31 +317,22 @@ export default function ProductList() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete
-              <span className="font-semibold text-foreground"> {productToDelete?.productName} </span>
-              and remove it from your inventory.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                confirmDelete();
-              }}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="Are you sure?"
+        description={
+          <span>
+            This action cannot be undone. This will permanently delete
+            <span className="font-semibold text-foreground"> {productToDelete?.productName} </span>
+            and remove it from your inventory.
+          </span>
+        }
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+        confirmText="Delete"
+        variant="destructive"
+      />
     </div>
   );
 }

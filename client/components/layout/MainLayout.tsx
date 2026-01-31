@@ -1,6 +1,7 @@
 import { ReactNode, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { UserNav } from "./UserNav";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Menu,
@@ -180,34 +181,35 @@ export function MainLayout({ children }: MainLayoutProps) {
             <span>Ideal Distributor</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:block" />
-
-          {/* Mobile Menu */}
-          <Sheet>
-            <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon">
-                <Menu className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0">
-              <div className="py-4 space-y-2">
-                {menuItems.map((item, idx) => (
-                  <SidebarMenuItem
-                    key={idx}
-                    item={item}
-                    isOpen={openSubmenu === item.label}
-                    onToggle={() =>
-                      setOpenSubmenu(
-                        openSubmenu === item.label ? null : item.label,
-                      )
-                    }
-                    location={location.pathname}
-                  />
-                ))}
-              </div>
-            </SheetContent>
-          </Sheet>
+          {/* User Nav - Visible on all screens */}
+          <div className="flex items-center gap-4">
+            <UserNav />
+            {/* Mobile Menu Trigger */}
+            <Sheet>
+              <SheetTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="icon">
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64 p-0">
+                <div className="py-4 space-y-2">
+                  {menuItems.map((item, idx) => (
+                    <SidebarMenuItem
+                      key={idx}
+                      item={item}
+                      isOpen={openSubmenu === item.label}
+                      onToggle={() =>
+                        setOpenSubmenu(
+                          openSubmenu === item.label ? null : item.label,
+                        )
+                      }
+                      location={location.pathname}
+                    />
+                  ))}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </header>
 

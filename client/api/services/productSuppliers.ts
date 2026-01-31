@@ -529,6 +529,9 @@ export function useBulkLinkProductSuppliers() {
 /**
  * useBulkDelinkProductSuppliers - Bulk delink multiple products from a supplier
  *
+ * Note: This uses a custom mutation pattern because the API uses DELETE with a request body,
+ * which is non-standard but per the API specification.
+ *
  * Example:
  *   const { mutate: bulkDelink, isPending } = useBulkDelinkProductSuppliers();
  *
@@ -546,11 +549,8 @@ export function useBulkLinkProductSuppliers() {
 export function useBulkDelinkProductSuppliers() {
   const queryClient = useQueryClient();
 
-  return useDeleteMutation(
-    () => productSupplierService.bulkDelinkProductSuppliers({
-      supplierId: 0,
-      productIds: []
-    }),
+  return usePostMutation<BulkDelinkResponse, BulkDelinktProductSupplierRequest>(
+    (data) => productSupplierService.bulkDelinkProductSuppliers(data),
     {
       onSuccess: () => {
         // Invalidate all product supplier queries

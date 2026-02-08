@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore, DeliveryChallan } from '@/hooks/useStore';
+import { useAuth } from '@/context/AuthContext';
 import { DataTable, Column } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
 import { Plus, Search } from 'lucide-react';
@@ -9,10 +10,15 @@ import DeliveryChallanForm from './DeliveryChallanForm';
 
 export default function DeliveryChallanList() {
   const { deliveryChallans, deleteDeliveryChallan } = useStore();
+  const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDC, setSelectedDC] = useState<DeliveryChallan | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(null);
+
+  const canCreate = hasPermission('deliveryChallans', 'create');
+  const canUpdate = hasPermission('deliveryChallans', 'update');
+  const canDelete = hasPermission('deliveryChallans', 'delete');
 
   const filteredDCs = deliveryChallans.filter(
     (dc) =>
@@ -58,16 +64,18 @@ export default function DeliveryChallanList() {
           <h1 className="text-3xl font-bold">Delivery Challans</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage delivery challans and shipment tracking</p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedDC(null);
-            setIsFormOpen(true);
-          }}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          New DC
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={() => {
+              setSelectedDC(null);
+              setIsFormOpen(true);
+            }}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New DC
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -97,11 +105,11 @@ export default function DeliveryChallanList() {
         <DataTable
           columns={columns}
           data={filteredDCs}
-          onEdit={(dc) => {
+          onEdit={canUpdate ? (dc) => {
             setSelectedDC(dc);
             setIsFormOpen(true);
-          }}
-          onDelete={(dc) => setIsDeleteConfirming(dc.id)}
+          } : undefined}
+          onDelete={canDelete ? (dc) => setIsDeleteConfirming(dc.id) : undefined}
           emptyMessage="No delivery challans found. Create your first DC to get started."
         />
       </div>

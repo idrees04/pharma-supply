@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -26,10 +27,15 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function ProductTypesList() {
+  const { hasPermission } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProductTypeId, setSelectedProductTypeId] = useState<
     number | undefined
   >(undefined);
+
+  const canCreate = hasPermission('products', 'create');
+  const canUpdate = hasPermission('products', 'update');
+  const canDelete = hasPermission('products', 'delete');
 
   // Fetch product types
   const {
@@ -125,10 +131,12 @@ export default function ProductTypesList() {
             Manage product types and categories
           </p>
         </div>
-        <Button onClick={handleCreate} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Add Product Type
-        </Button>
+        {canCreate && (
+          <Button onClick={handleCreate} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Add Product Type
+          </Button>
+        )}
       </div>
 
       {/* Loading State */}
@@ -160,7 +168,7 @@ export default function ProductTypesList() {
                 <TableHead>Description</TableHead>
                 <TableHead className="w-24">Display Order</TableHead>
                 <TableHead className="w-20">Status</TableHead>
-                <TableHead className="text-right w-24">Actions</TableHead>
+                {(canUpdate || canDelete) && <TableHead className="text-right w-24">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -186,31 +194,37 @@ export default function ProductTypesList() {
                       {productType.isActive ? "Active" : "Inactive"}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(productType)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(productType)}
-                        disabled={isDeleting}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        {isDeleting ? (
-                          <Loader className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
+                  {(canUpdate || canDelete) && (
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {canUpdate && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(productType)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
                         )}
-                      </Button>
-                    </div>
-                  </TableCell>
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(productType)}
+                            disabled={isDeleting}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            {isDeleting ? (
+                              <Loader className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

@@ -35,11 +35,8 @@ export default function ProductList() {
   const queryClient = useQueryClient();
 
   const canCreate = hasPermission('products', 'create');
-  // Assume permissions are true for demo if useAuth fails, or respect hook
-  // const canUpdate = hasPermission('products', 'update');
-  // const canDelete = hasPermission('products', 'delete');
-  const canUpdate = true; // Forcing true for UI demo based on user request "how user will delete"
-  const canDelete = true;
+  const canUpdate = hasPermission('products', 'update');
+  const canDelete = hasPermission('products', 'delete');
 
   // Fetch products from API with pagination and search
   const {
@@ -101,24 +98,28 @@ export default function ProductList() {
       header: 'Actions',
       accessor: (row: Product) => (
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-            onClick={() => handleEdit(row)}
-            title="Edit Product"
-          >
-            <Edit2 className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-            onClick={() => handleDeleteClick(row)}
-            title="Delete Product"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          {canUpdate && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              onClick={() => handleEdit(row)}
+              title="Edit Product"
+            >
+              <Edit2 className="w-4 h-4" />
+            </Button>
+          )}
+          {canDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => handleDeleteClick(row)}
+              title="Delete Product"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       ),
       className: 'w-[100px]',
@@ -175,13 +176,15 @@ export default function ProductList() {
           <h1 className="text-3xl font-bold tracking-tight">Products</h1>
           <p className="text-muted-foreground">Manage pharmaceutical products in your inventory</p>
         </div>
-        <Button
-          onClick={handleCreate}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add Product
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={handleCreate}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Product
+          </Button>
+        )}
       </div>
 
       {/* Search */}

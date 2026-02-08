@@ -35,6 +35,7 @@ import UsersPage from "./pages/users/UsersPage";
 import ProductTypesList from "./pages/settings/ProductTypesList";
 import UnitsList from "./pages/settings/UnitsList";
 import NotFound from "./pages/NotFound";
+import Unauthorized from "./pages/Unauthorized";
 
 /**
  * AppRoutes Component
@@ -53,8 +54,9 @@ const AppRoutes = () => (
         </PublicRoute>
       }
     />
+    <Route path="/unauthorized" element={<Unauthorized />} />
 
-    {/* Protected Routes - Require Authentication */}
+    {/* Protected Routes - Require Authentication + Permissions */}
     <Route
       path="/"
       element={
@@ -68,7 +70,7 @@ const AppRoutes = () => (
     <Route
       path="/users"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="users" permission="read">
           <MainLayout>
             <UsersPage />
           </MainLayout>
@@ -78,7 +80,7 @@ const AppRoutes = () => (
     <Route
       path="/inventory/products"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="products" permission="read">
           <MainLayout>
             <ProductList />
           </MainLayout>
@@ -88,7 +90,7 @@ const AppRoutes = () => (
     <Route
       path="/inventory"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="inventory" permission="read">
           <MainLayout>
             <InventoryList />
           </MainLayout>
@@ -98,7 +100,7 @@ const AppRoutes = () => (
     <Route
       path="/suppliers"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="suppliers" permission="read">
           <MainLayout>
             <SupplierList />
           </MainLayout>
@@ -108,7 +110,7 @@ const AppRoutes = () => (
     <Route
       path="/hospitals"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="hospitals" permission="read">
           <MainLayout>
             <HospitalList />
           </MainLayout>
@@ -118,7 +120,7 @@ const AppRoutes = () => (
     <Route
       path="/supply-orders"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="supplyOrders" permission="read">
           <MainLayout>
             <SupplyOrderList />
           </MainLayout>
@@ -128,7 +130,7 @@ const AppRoutes = () => (
     <Route
       path="/tender"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="tenders" permission="read">
           <MainLayout>
             <TenderList />
           </MainLayout>
@@ -138,7 +140,7 @@ const AppRoutes = () => (
     <Route
       path="/orders/purchase"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="purchaseOrders" permission="read">
           <MainLayout>
             <PurchaseOrderList />
           </MainLayout>
@@ -148,7 +150,7 @@ const AppRoutes = () => (
     <Route
       path="/orders/sales"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="salesOrders" permission="read">
           <MainLayout>
             <SalesOrderList />
           </MainLayout>
@@ -158,7 +160,7 @@ const AppRoutes = () => (
     <Route
       path="/delivery"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="deliveryChallans" permission="read">
           <MainLayout>
             <DeliveryChallanList />
           </MainLayout>
@@ -168,7 +170,7 @@ const AppRoutes = () => (
     <Route
       path="/invoices"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="invoices" permission="read">
           <MainLayout>
             <SalesTaxInvoiceList />
           </MainLayout>
@@ -178,7 +180,7 @@ const AppRoutes = () => (
     <Route
       path="/finance/expenses"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="expenses" permission="read">
           <MainLayout>
             <DailyExpenseList />
           </MainLayout>
@@ -188,7 +190,7 @@ const AppRoutes = () => (
     <Route
       path="/finance/payments"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="payments" permission="read">
           <MainLayout>
             <PaymentList />
           </MainLayout>
@@ -198,7 +200,7 @@ const AppRoutes = () => (
     <Route
       path="/finance/accounts"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="bankAccounts" permission="read">
           <MainLayout>
             <BankAccountList />
           </MainLayout>
@@ -208,7 +210,7 @@ const AppRoutes = () => (
     <Route
       path="/finance/transfers"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="transfers" permission="read">
           <MainLayout>
             <InternalTransferList />
           </MainLayout>
@@ -218,7 +220,7 @@ const AppRoutes = () => (
     <Route
       path="/payroll"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="salaryVouchers" permission="read">
           <MainLayout>
             <SalaryVoucherList />
           </MainLayout>
@@ -228,7 +230,7 @@ const AppRoutes = () => (
     <Route
       path="/reports"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="reports" permission="read">
           <MainLayout>
             <Reports />
           </MainLayout>
@@ -238,7 +240,7 @@ const AppRoutes = () => (
     <Route
       path="/settings/product-types"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="products" permission="read">
           <MainLayout>
             <ProductTypesList />
           </MainLayout>
@@ -248,7 +250,7 @@ const AppRoutes = () => (
     <Route
       path="/settings/units"
       element={
-        <ProtectedRoute>
+        <ProtectedRoute module="products" permission="read">
           <MainLayout>
             <UnitsList />
           </MainLayout>

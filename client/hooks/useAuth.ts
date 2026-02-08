@@ -21,9 +21,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useStore } from "./useStore";
+import { useStore, AuthUser } from "./useStore";
 import { UserDTO, LoginResponseDTO } from "@/types/api/users";
-import { UserRole } from "@/types/enums";
+import { UserRole, getRoleKey, RoleKey } from "@/types/enums";
 
 /**
  * Auth State returned by useAuth hook
@@ -31,7 +31,7 @@ import { UserRole } from "@/types/enums";
 export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
-  user: UserDTO | null;
+  user: AuthUser | null;
   error: string | null;
 }
 
@@ -108,7 +108,8 @@ export function useAuthInitialize(): AuthState & { isInitialized: boolean } {
 
         if (token && storedUser) {
           // Token and user exist in storage
-          const user = JSON.parse(storedUser) as UserDTO;
+          // The stored user should already have the converted roleKey
+          const user = JSON.parse(storedUser) as AuthUser;
 
           // Validate token format (basic check)
           // In production, you might want to validate token expiration
@@ -189,14 +190,21 @@ export function useAuthActions() {
       // Store token in localStorage (expires on browser close if using sessionStorage)
       localStorage.setItem("authToken", loginResponse.token);
 
+      // Convert numeric role from API to string key for permission checks
+      const roleKey = getRoleKey(loginResponse.role);
+      if (!roleKey) {
+        console.error('Unknown role ID from API:', loginResponse.role);
+      }
+
       // Create UserDTO from login response
-      const user: UserDTO = {
+      // Note: We store roleKey (string) not the numeric role, for permission lookups
+      const user = {
         id: loginResponse.userId,
         username: loginResponse.username,
         fullName: loginResponse.fullName,
         email: loginResponse.email,
         phoneNumber: "", // Not included in login response
-        role: loginResponse.role as UserRole,
+        role: roleKey ?? 'sales' as RoleKey, // Fallback to least-privileged role
         lastLoginDate: new Date().toISOString(),
         isActive: true,
         isLocked: false,
@@ -257,9 +265,9 @@ export function useCheckAuth(): boolean {
  * return <span>Welcome, {user?.fullName}</span>;
  * ```
  */
-export function useCurrentUser(): UserDTO | null {
+export function useCurrentUser(): AuthUser | null {
   const { currentUser } = useStore();
-  return currentUser as UserDTO | null;
+  return currentUser;
 }
 
 /**

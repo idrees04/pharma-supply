@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useCallback, useMemo } from "react";
-import { useStore, UserRole, User } from "@/hooks/useStore";
+import { useStore, UserRole, AuthUser } from "@/hooks/useStore";
 import { UserDTO } from "@/types/api/users";
 
 type Permission = "create" | "read" | "update" | "delete";
@@ -107,8 +107,8 @@ const rolePermissions: Record<UserRole, ModulePermissions> = {
 };
 
 interface AuthContextType {
-  currentUser: User | null;
-  setCurrentUser: (user: User | null) => void;
+  currentUser: AuthUser | null;
+  setCurrentUser: (user: AuthUser | null) => void;
   hasPermission: (module: string, permission: Permission) => boolean;
   canAccess: (module: string) => boolean;
   isAdmin: boolean;
@@ -124,29 +124,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const currentUser = useStore((state) => state.currentUser);
   const setCurrentUser = useStore((state) => state.setCurrentUser);
 
-const hasPermission = useCallback(
-  (module: string, permission: Permission): boolean => {
-    if (!currentUser?.role) return false;
+  const hasPermission = useCallback(
+    (module: string, permission: Permission): boolean => {
+      if (!currentUser?.role) return false;
 
-    const permissions = rolePermissions[currentUser.role];
-    if (!permissions) return false;
+      const permissions = rolePermissions[currentUser.role];
+      if (!permissions) return false;
 
-    return permissions[module]?.includes(permission) ?? false;
-  },
-  [currentUser],
-);
+      return permissions[module]?.includes(permission) ?? false;
+    },
+    [currentUser],
+  );
 
-const canAccess = useCallback(
-  (module: string): boolean => {
-    if (!currentUser?.role) return false;
+  const canAccess = useCallback(
+    (module: string): boolean => {
+      if (!currentUser?.role) return false;
 
-    const permissions = rolePermissions[currentUser.role];
-    if (!permissions) return false;
+      const permissions = rolePermissions[currentUser.role];
+      if (!permissions) return false;
 
-    return (permissions[module]?.length ?? 0) > 0;
-  },
-  [currentUser],
-);
+      return (permissions[module]?.length ?? 0) > 0;
+    },
+    [currentUser],
+  );
 
 
   const value: AuthContextType = useMemo(
@@ -169,7 +169,6 @@ const canAccess = useCallback(
 
 export function useAuth() {
   const context = useContext(AuthContext);
-    console.log('context called',context)
 
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");

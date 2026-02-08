@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore, Tender } from '@/hooks/useStore';
+import { useAuth } from '@/context/AuthContext';
 import { DataTable, Column } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
 import { Plus, Search } from 'lucide-react';
@@ -10,10 +11,15 @@ import { formatCurrency } from '@/lib/utils';
 
 export default function TenderList() {
   const { tenders, deleteTender } = useStore();
+  const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTender, setSelectedTender] = useState<Tender | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(null);
+
+  const canCreate = hasPermission('tenders', 'create');
+  const canUpdate = hasPermission('tenders', 'update');
+  const canDelete = hasPermission('tenders', 'delete');
 
   const filteredTenders = tenders.filter(
     (tender) =>
@@ -59,16 +65,18 @@ export default function TenderList() {
           <h1 className="text-3xl font-bold">Tender Management</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage all tender quotations and prices</p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedTender(null);
-            setIsFormOpen(true);
-          }}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          New Tender
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={() => {
+              setSelectedTender(null);
+              setIsFormOpen(true);
+            }}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New Tender
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -97,11 +105,11 @@ export default function TenderList() {
         <DataTable
           columns={columns}
           data={filteredTenders}
-          onEdit={(tender) => {
+          onEdit={canUpdate ? (tender) => {
             setSelectedTender(tender);
             setIsFormOpen(true);
-          }}
-          onDelete={(tender) => setIsDeleteConfirming(tender.id)}
+          } : undefined}
+          onDelete={canDelete ? (tender) => setIsDeleteConfirming(tender.id) : undefined}
           emptyMessage="No tenders found. Create your first tender to get started."
         />
       </div>

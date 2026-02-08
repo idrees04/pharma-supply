@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { UserNav } from "./UserNav";
@@ -20,6 +20,7 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -29,6 +30,8 @@ interface MenuItemType {
   icon: React.ReactNode;
   label: string;
   href?: string;
+  /** Module for permission check - if set, item is hidden when user lacks access */
+  module?: string;
   children?: MenuItemType[];
 }
 
@@ -37,20 +40,24 @@ const menuItems: MenuItemType[] = [
     icon: <Home className="w-5 h-5" />,
     label: "Dashboard",
     href: "/",
+    // Dashboard is accessible to all authenticated users
   },
   {
     icon: <Package className="w-5 h-5" />,
     label: "Inventory",
+    module: "inventory",
     children: [
       {
         icon: <Package className="w-4 h-4" />,
         label: "Stock Levels",
         href: "/inventory",
+        module: "inventory",
       },
       {
         icon: <Pill className="w-4 h-4" />,
         label: "Products",
         href: "/inventory/products",
+        module: "products",
       },
     ],
   },
@@ -62,11 +69,13 @@ const menuItems: MenuItemType[] = [
         icon: <Users className="w-4 h-4" />,
         label: "Suppliers",
         href: "/suppliers",
+        module: "suppliers",
       },
       {
         icon: <Users className="w-4 h-4" />,
         label: "Hospitals",
         href: "/hospitals",
+        module: "hospitals",
       },
     ],
   },
@@ -78,16 +87,19 @@ const menuItems: MenuItemType[] = [
         icon: <FileText className="w-4 h-4" />,
         label: "Supply Orders",
         href: "/supply-orders",
+        module: "supplyOrders",
       },
       {
         icon: <FileText className="w-4 h-4" />,
         label: "Purchase Orders",
         href: "/orders/purchase",
+        module: "purchaseOrders",
       },
       {
         icon: <FileText className="w-4 h-4" />,
         label: "Sales Orders",
         href: "/orders/sales",
+        module: "salesOrders",
       },
     ],
   },
@@ -95,35 +107,42 @@ const menuItems: MenuItemType[] = [
     icon: <Truck className="w-5 h-5" />,
     label: "Delivery",
     href: "/delivery",
+    module: "deliveryChallans",
   },
   {
     icon: <Receipt className="w-5 h-5" />,
     label: "Invoices",
     href: "/invoices",
+    module: "invoices",
   },
   {
     icon: <DollarSign className="w-5 h-5" />,
     label: "Finance",
+    module: "bankAccounts", // Parent requires at least bankAccounts access
     children: [
       {
         icon: <DollarSign className="w-4 h-4" />,
         label: "Bank Accounts",
         href: "/finance/accounts",
+        module: "bankAccounts",
       },
       {
         icon: <DollarSign className="w-4 h-4" />,
         label: "Transfers",
         href: "/finance/transfers",
+        module: "transfers",
       },
       {
         icon: <DollarSign className="w-4 h-4" />,
         label: "Expenses",
         href: "/finance/expenses",
+        module: "expenses",
       },
       {
         icon: <DollarSign className="w-4 h-4" />,
         label: "Payments",
         href: "/finance/payments",
+        module: "payments",
       },
     ],
   },
@@ -131,38 +150,75 @@ const menuItems: MenuItemType[] = [
     icon: <Pill className="w-5 h-5" />,
     label: "Tender",
     href: "/tender",
+    module: "tenders",
   },
   {
     icon: <Users className="w-5 h-5" />,
     label: "Payroll",
     href: "/payroll",
+    module: "salaryVouchers",
   },
   {
     icon: <BarChart3 className="w-5 h-5" />,
     label: "Reports",
     href: "/reports",
+    module: "reports",
   },
   {
     icon: <Settings className="w-5 h-5" />,
     label: "Settings",
+    module: "products", // Settings requires product management access
     children: [
       {
         icon: <Package className="w-4 h-4" />,
         label: "Product Types",
         href: "/settings/product-types",
+        module: "products",
       },
       {
         icon: <Pill className="w-4 h-4" />,
         label: "Units",
         href: "/settings/units",
+        module: "products",
       },
     ],
   },
 ];
 
+/**
+ * Filter menu items based on user permissions
+ * Recursively filters children and removes parent items with no visible children
+ */
+function filterMenuItems(
+  items: MenuItemType[],
+  canAccess: (module: string) => boolean
+): MenuItemType[] {
+  return items
+    .filter((item) => {
+      // If no module specified, item is visible to all
+      if (!item.module) return true;
+      // Check if user has access to this module
+      return canAccess(item.module);
+    })
+    .map((item) => ({
+      ...item,
+      // Recursively filter children
+      children: item.children ? filterMenuItems(item.children, canAccess) : undefined,
+    }))
+    // Remove parent items that have no visible children
+    .filter((item) => !item.children || item.children.length > 0);
+}
+
 export function MainLayout({ children }: MainLayoutProps) {
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const location = useLocation();
+  const { canAccess } = useAuth();
+
+  // Filter menu items based on user permissions (memoized for performance)
+  const visibleMenuItems = useMemo(
+    () => filterMenuItems(menuItems, canAccess),
+    [canAccess]
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -193,7 +249,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
                 <div className="py-4 space-y-2">
-                  {menuItems.map((item, idx) => (
+                  {visibleMenuItems.map((item, idx) => (
                     <SidebarMenuItem
                       key={idx}
                       item={item}
@@ -217,7 +273,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         {/* Sidebar - Desktop */}
         <aside className="hidden md:flex md:w-64 flex-col border-r border-border bg-sidebar sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
           <nav className="flex-1 space-y-2 p-4">
-            {menuItems.map((item, idx) => (
+            {visibleMenuItems.map((item, idx) => (
               <SidebarMenuItem
                 key={idx}
                 item={item}

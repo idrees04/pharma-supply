@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useStore, SalaryVoucher } from "@/hooks/useStore";
+import { useAuth } from "@/context/AuthContext";
 import { DataTable, Column } from "@/components/common/DataTable";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
@@ -16,6 +17,7 @@ import { formatCurrency } from "@/lib/utils";
 
 export default function SalaryVoucherList() {
   const { salaryVouchers, deleteSalaryVoucher } = useStore();
+  const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVoucher, setSelectedVoucher] = useState<SalaryVoucher | null>(
     null,
@@ -24,6 +26,10 @@ export default function SalaryVoucherList() {
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(
     null,
   );
+
+  const canCreate = hasPermission('salaryVouchers', 'create');
+  const canUpdate = hasPermission('salaryVouchers', 'update');
+  const canDelete = hasPermission('salaryVouchers', 'delete');
 
   const filteredVouchers = salaryVouchers.filter(
     (voucher) =>
@@ -87,16 +93,18 @@ export default function SalaryVoucherList() {
             Manage employee salaries and payroll
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedVoucher(null);
-            setIsFormOpen(true);
-          }}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          New Voucher
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={() => {
+              setSelectedVoucher(null);
+              setIsFormOpen(true);
+            }}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New Voucher
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -172,11 +180,11 @@ export default function SalaryVoucherList() {
         <DataTable
           columns={columns}
           data={filteredVouchers}
-          onEdit={(voucher) => {
+          onEdit={canUpdate ? (voucher) => {
             setSelectedVoucher(voucher);
             setIsFormOpen(true);
-          }}
-          onDelete={(voucher) => setIsDeleteConfirming(voucher.id)}
+          } : undefined}
+          onDelete={canDelete ? (voucher) => setIsDeleteConfirming(voucher.id) : undefined}
           emptyMessage="No salary vouchers found. Create your first voucher to get started."
         />
       </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useStore, DailyExpense } from "@/hooks/useStore";
+import { useAuth } from "@/context/AuthContext";
 import { DataTable, Column } from "@/components/common/DataTable";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
@@ -16,6 +17,7 @@ import { formatCurrency } from "@/lib/utils";
 
 export default function DailyExpenseList() {
   const { dailyExpenses, deleteDailyExpense } = useStore();
+  const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedExpense, setSelectedExpense] = useState<DailyExpense | null>(
     null,
@@ -24,6 +26,10 @@ export default function DailyExpenseList() {
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(
     null,
   );
+
+  const canCreate = hasPermission('expenses', 'create');
+  const canUpdate = hasPermission('expenses', 'update');
+  const canDelete = hasPermission('expenses', 'delete');
 
   const filteredExpenses = dailyExpenses.filter(
     (expense) =>
@@ -70,16 +76,18 @@ export default function DailyExpenseList() {
             Record and track daily expenses
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedExpense(null);
-            setIsFormOpen(true);
-          }}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          New Voucher
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={() => {
+              setSelectedExpense(null);
+              setIsFormOpen(true);
+            }}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New Voucher
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -118,11 +126,11 @@ export default function DailyExpenseList() {
         <DataTable
           columns={columns}
           data={filteredExpenses}
-          onEdit={(expense) => {
+          onEdit={canUpdate ? (expense) => {
             setSelectedExpense(expense);
             setIsFormOpen(true);
-          }}
-          onDelete={(expense) => setIsDeleteConfirming(expense.id)}
+          } : undefined}
+          onDelete={canDelete ? (expense) => setIsDeleteConfirming(expense.id) : undefined}
           emptyMessage="No expenses found. Create your first voucher to get started."
         />
       </div>

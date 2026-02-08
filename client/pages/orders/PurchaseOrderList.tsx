@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore, PurchaseOrder } from '@/hooks/useStore';
+import { useAuth } from '@/context/AuthContext';
 import { DataTable, Column } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
 import { Plus, Search } from 'lucide-react';
@@ -10,10 +11,15 @@ import { formatCurrency } from '@/lib/utils';
 
 export default function PurchaseOrderList() {
   const { purchaseOrders, deletePurchaseOrder } = useStore();
+  const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(null);
+
+  const canCreate = hasPermission('purchaseOrders', 'create');
+  const canUpdate = hasPermission('purchaseOrders', 'update');
+  const canDelete = hasPermission('purchaseOrders', 'delete');
 
   const filteredPOs = purchaseOrders.filter(
     (po) =>
@@ -59,16 +65,18 @@ export default function PurchaseOrderList() {
           <h1 className="text-3xl font-bold">Purchase Orders</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage supplier purchase orders</p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedPO(null);
-            setIsFormOpen(true);
-          }}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          New PO
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={() => {
+              setSelectedPO(null);
+              setIsFormOpen(true);
+            }}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New PO
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -96,11 +104,11 @@ export default function PurchaseOrderList() {
         <DataTable
           columns={columns}
           data={filteredPOs}
-          onEdit={(po) => {
+          onEdit={canUpdate ? (po) => {
             setSelectedPO(po);
             setIsFormOpen(true);
-          }}
-          onDelete={(po) => setIsDeleteConfirming(po.id)}
+          } : undefined}
+          onDelete={canDelete ? (po) => setIsDeleteConfirming(po.id) : undefined}
           emptyMessage="No purchase orders found. Create your first PO to get started."
         />
       </div>

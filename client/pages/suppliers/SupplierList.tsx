@@ -13,8 +13,10 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import SupplierForm from './SupplierForm';
 import { DataTable } from '@/components/common/DataTable';
-import { useSupplierList, useDeleteSupplier } from '@/api/services/suppliers';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Supplier, SupplierListQueryParams } from '@/types/api/suppliers';
+import { supplierService, useSupplierList } from '@/api/services/suppliers';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function SupplierList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -23,7 +25,13 @@ export default function SupplierList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  // Delete State
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
 
   // Fetch suppliers with pagination and search
   const queryParams: SupplierListQueryParams = {
@@ -38,11 +46,6 @@ export default function SupplierList() {
     error: listError,
   } = useSupplierList(queryParams);
 
-  // Delete mutation
-  const { mutate: deleteSupplier, isPending: isDeleting } = useDeleteSupplier(
-    selectedSupplier?.id || 0
-  );
-
   const canCreate = hasPermission('suppliers', 'create');
   const canUpdate = hasPermission('suppliers', 'update');
   const canDelete = hasPermission('suppliers', 'delete');
@@ -56,22 +59,31 @@ export default function SupplierList() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (supplier: Supplier) => {
+  const handleDeleteClick = (supplier: Supplier) => {
     if (!canDelete) {
       toast.error('You do not have permission to delete suppliers');
       return;
     }
+    setSupplierToDelete(supplier);
+    setIsDeleteOpen(true);
+  };
 
-    if (confirm(`Are you sure you want to delete ${supplier.supplierName}?`)) {
-      deleteSupplier(undefined, {
-        onSuccess: () => {
-          toast.success('Supplier deleted successfully');
-          setSelectedSupplier(null);
-        },
-        onError: (error) => {
-          toast.error(error.userMessage || 'Failed to delete supplier');
-        },
-      });
+  const confirmDelete = async () => {
+    if (!supplierToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await supplierService.deleteSupplier(supplierToDelete.id);
+      toast.success('Supplier deleted successfully');
+      // Invalidate the suppliers list to refetch
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      setIsDeleteOpen(false);
+      setSupplierToDelete(null);
+    } catch (error: any) {
+      const message = error?.userMessage || 'Failed to delete supplier';
+      toast.error(message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -86,6 +98,36 @@ export default function SupplierList() {
   };
 
   const columns = [
+    {
+      header: 'Actions',
+      accessor: (row: Supplier) => (
+        <div className="flex items-center gap-2">
+          {canUpdate && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              onClick={() => handleEdit(row)}
+              title="Edit Supplier"
+            >
+              <Edit2 className="w-4 h-4" />
+            </Button>
+          )}
+          {canDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => handleDeleteClick(row)}
+              title="Delete Supplier"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      ),
+      className: 'w-[100px]',
+    },
     { header: 'Supplier Name', accessor: 'supplierName' as const },
     { header: 'Email', accessor: 'email' as const },
     { header: 'Phone', accessor: 'phoneNumber' as const },
@@ -176,8 +218,7 @@ export default function SupplierList() {
           <DataTable
             columns={columns}
             data={suppliers}
-            onEdit={canUpdate ? handleEdit : undefined}
-            onDelete={canDelete ? handleDelete : undefined}
+            // onEdit/onDelete removed as we use Actions column
             isLoading={isDeleting}
             emptyMessage="No suppliers found"
           />
@@ -234,6 +275,24 @@ export default function SupplierList() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="Are you sure?"
+        description={
+          <span>
+            This action cannot be undone. This will permanently delete
+            <span className="font-semibold text-foreground"> {supplierToDelete?.supplierName} </span>
+            and remove it from your data.
+          </span>
+        }
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+        confirmText="Delete"
+        variant="destructive"
+      />
     </div>
   );
 }

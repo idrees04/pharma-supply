@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore, SalesTaxInvoice } from '@/hooks/useStore';
+import { useAuth } from '@/context/AuthContext';
 import { DataTable, Column } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
 import { Plus, Search } from 'lucide-react';
@@ -10,10 +11,15 @@ import { formatCurrency } from '@/lib/utils';
 
 export default function SalesTaxInvoiceList() {
   const { taxInvoices, deleteTaxInvoice } = useStore();
+  const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<SalesTaxInvoice | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(null);
+
+  const canCreate = hasPermission('invoices', 'create');
+  const canUpdate = hasPermission('invoices', 'update');
+  const canDelete = hasPermission('invoices', 'delete');
 
   const filteredInvoices = taxInvoices.filter(
     (invoice) =>
@@ -53,16 +59,18 @@ export default function SalesTaxInvoiceList() {
           <h1 className="text-3xl font-bold">Sales Tax Invoices</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage tax invoices and billing</p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedInvoice(null);
-            setIsFormOpen(true);
-          }}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          New Invoice
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={() => {
+              setSelectedInvoice(null);
+              setIsFormOpen(true);
+            }}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New Invoice
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -92,11 +100,11 @@ export default function SalesTaxInvoiceList() {
         <DataTable
           columns={columns}
           data={filteredInvoices}
-          onEdit={(invoice) => {
+          onEdit={canUpdate ? (invoice) => {
             setSelectedInvoice(invoice);
             setIsFormOpen(true);
-          }}
-          onDelete={(invoice) => setIsDeleteConfirming(invoice.id)}
+          } : undefined}
+          onDelete={canDelete ? (invoice) => setIsDeleteConfirming(invoice.id) : undefined}
           emptyMessage="No invoices found. Create your first invoice to get started."
         />
       </div>

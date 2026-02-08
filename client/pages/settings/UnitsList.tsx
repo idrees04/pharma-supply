@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -23,10 +24,15 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function UnitsList() {
+  const { hasPermission } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedUnitId, setSelectedUnitId] = useState<number | undefined>(
     undefined,
   );
+
+  const canCreate = hasPermission('products', 'create');
+  const canUpdate = hasPermission('products', 'update');
+  const canDelete = hasPermission('products', 'delete');
 
   // Fetch units
   const {
@@ -114,10 +120,12 @@ export default function UnitsList() {
           <h1 className="text-3xl font-bold tracking-tight">Units</h1>
           <p className="text-muted-foreground">Manage measurement units</p>
         </div>
-        <Button onClick={handleCreate} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Add Unit
-        </Button>
+        {canCreate && (
+          <Button onClick={handleCreate} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Add Unit
+          </Button>
+        )}
       </div>
 
       {/* Loading State */}
@@ -147,7 +155,7 @@ export default function UnitsList() {
                 <TableHead>Name</TableHead>
                 <TableHead className="w-24">Quantity</TableHead>
                 <TableHead className="w-20">Status</TableHead>
-                <TableHead className="text-right w-24">Actions</TableHead>
+                {(canUpdate || canDelete) && <TableHead className="text-right w-24">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -167,31 +175,37 @@ export default function UnitsList() {
                       {unit.isActive ? "Active" : "Inactive"}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(unit)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(unit)}
-                        disabled={isDeleting}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        {isDeleting ? (
-                          <Loader className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
+                  {(canUpdate || canDelete) && (
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {canUpdate && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(unit)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
                         )}
-                      </Button>
-                    </div>
-                  </TableCell>
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(unit)}
+                            disabled={isDeleting}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            {isDeleting ? (
+                              <Loader className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

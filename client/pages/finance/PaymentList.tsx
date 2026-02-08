@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useStore, Payment } from "@/hooks/useStore";
+import { useAuth } from "@/context/AuthContext";
 import { DataTable, Column } from "@/components/common/DataTable";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
@@ -17,12 +18,17 @@ import { formatCurrency } from "@/lib/utils";
 
 export default function PaymentList() {
   const { payments, deletePayment } = useStore();
+  const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(
     null,
   );
+
+  const canCreate = hasPermission('payments', 'create');
+  const canUpdate = hasPermission('payments', 'update');
+  const canDelete = hasPermission('payments', 'delete');
 
   const filteredPayments = payments.filter(
     (payment) =>
@@ -91,16 +97,18 @@ export default function PaymentList() {
             Track and manage payment transactions
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedPayment(null);
-            setIsFormOpen(true);
-          }}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Record Payment
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={() => {
+              setSelectedPayment(null);
+              setIsFormOpen(true);
+            }}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Record Payment
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -128,11 +136,11 @@ export default function PaymentList() {
         <DataTable
           columns={columns}
           data={filteredPayments}
-          onEdit={(payment) => {
+          onEdit={canUpdate ? (payment) => {
             setSelectedPayment(payment);
             setIsFormOpen(true);
-          }}
-          onDelete={(payment) => setIsDeleteConfirming(payment.id)}
+          } : undefined}
+          onDelete={canDelete ? (payment) => setIsDeleteConfirming(payment.id) : undefined}
           emptyMessage="No payments found. Record a new payment to get started."
         />
       </div>

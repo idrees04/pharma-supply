@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Plus, Edit2, Trash2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import HospitalForm from "./HospitalForm";
@@ -28,6 +29,10 @@ export default function HospitalList() {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Delete State
+  const [hospitalToDelete, setHospitalToDelete] = useState<Hospital | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
@@ -59,6 +64,8 @@ export default function HospitalList() {
       } else {
         queryClient.invalidateQueries({ queryKey: hospitalKeys.lists() });
       }
+      setIsDeleteOpen(false);
+      setHospitalToDelete(null);
     },
     onError: (error) => {
       toast.error(error.userMessage || "Failed to delete hospital");
@@ -78,13 +85,18 @@ export default function HospitalList() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (hospital: Hospital) => {
+  const handleDeleteClick = (hospital: Hospital) => {
     if (!canDelete) {
       toast.error("You do not have permission to delete hospitals");
       return;
     }
-    if (confirm("Are you sure you want to delete this hospital?")) {
-      deleteHospital(hospital.id);
+    setHospitalToDelete(hospital);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (hospitalToDelete) {
+      deleteHospital(hospitalToDelete.id);
     }
   };
 
@@ -103,6 +115,36 @@ export default function HospitalList() {
   };
 
   const columns = [
+    {
+      header: 'Actions',
+      accessor: (row: Hospital) => (
+        <div className="flex items-center gap-2">
+          {/* {canUpdate && ( */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            onClick={() => handleEdit(row)}
+            title="Edit Hospital"
+          >
+            <Edit2 className="w-4 h-4" />
+          </Button>
+          {/* )} */}
+          {/* {canDelete && ( */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={() => handleDeleteClick(row)}
+            title="Delete Hospital"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+          {/* )} */}
+        </div>
+      ),
+      className: 'w-[100px]',
+    },
     { header: "Hospital Name", accessor: "hospitalName" as const },
     { header: "Contact Person", accessor: "contactPerson" as const },
     { header: "Email", accessor: "email" as const },
@@ -120,14 +162,14 @@ export default function HospitalList() {
           </p>
         </div>
         {/* {canCreate && ( */}
-          <Button
-            onClick={handleAddClick}
-            disabled={isLoadingHospitals}
-            className="gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Hospital
-          </Button>
+        <Button
+          onClick={handleAddClick}
+          disabled={isLoadingHospitals}
+          className="gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Add Hospital
+        </Button>
         {/* )} */}
       </div>
 
@@ -201,8 +243,7 @@ export default function HospitalList() {
           <DataTable
             columns={columns}
             data={hospitals}
-            onEdit={canUpdate ? handleEdit : undefined}
-            onDelete={canDelete ? handleDelete : undefined}
+            // onEdit/onDelete removed
             itemsPerPage={pageSize}
             isLoading={isDeleting}
           />
@@ -262,6 +303,24 @@ export default function HospitalList() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="Are you sure?"
+        description={
+          <span>
+            This action cannot be undone. This will permanently delete
+            <span className="font-semibold text-foreground"> {hospitalToDelete?.hospitalName} </span>
+            and remove it from your data.
+          </span>
+        }
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+        confirmText="Delete"
+        variant="destructive"
+      />
     </div>
   );
 }

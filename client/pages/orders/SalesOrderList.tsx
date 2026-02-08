@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore, SalesOrder } from '@/hooks/useStore';
+import { useAuth } from '@/context/AuthContext';
 import { DataTable, Column } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
 import { Plus, Search } from 'lucide-react';
@@ -11,10 +12,15 @@ import { formatCurrency } from '@/lib/utils';
 
 export default function SalesOrderList() {
   const { salesOrders, deleteSalesOrder } = useStore();
+  const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSO, setSelectedSO] = useState<SalesOrder | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(null);
+
+  const canCreate = hasPermission('salesOrders', 'create');
+  const canUpdate = hasPermission('salesOrders', 'update');
+  const canDelete = hasPermission('salesOrders', 'delete');
 
   const filteredSOs = salesOrders.filter(
     (so) =>
@@ -72,16 +78,18 @@ export default function SalesOrderList() {
           <h1 className="text-3xl font-bold">Sales Orders</h1>
           <p className="text-sm text-muted-foreground mt-1">Track hospital sales orders</p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedSO(null);
-            setIsFormOpen(true);
-          }}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          New SO
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={() => {
+              setSelectedSO(null);
+              setIsFormOpen(true);
+            }}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New SO
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -112,11 +120,11 @@ export default function SalesOrderList() {
         <DataTable
           columns={columns}
           data={filteredSOs}
-          onEdit={(so) => {
+          onEdit={canUpdate ? (so) => {
             setSelectedSO(so);
             setIsFormOpen(true);
-          }}
-          onDelete={(so) => setIsDeleteConfirming(so.id)}
+          } : undefined}
+          onDelete={canDelete ? (so) => setIsDeleteConfirming(so.id) : undefined}
           emptyMessage="No sales orders found. Create your first SO to get started."
         />
       </div>

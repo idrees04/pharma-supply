@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { RoleKey } from '@/types/enums';
 
 // Core Entities
 export interface Product {
@@ -104,8 +105,13 @@ export interface InternalTransfer {
   createdAt: string;
 }
 
-export type UserRole = 'admin' | 'manager' | 'accountant' | 'warehouse' | 'sales';
+// UserRole is now imported from types/enums as RoleKey for consistency
+export type UserRole = RoleKey;
 
+/**
+ * User interface for the local users array (mock data)
+ * Uses string IDs for local state management
+ */
 export interface User {
   id: string;
   name: string;
@@ -113,6 +119,22 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   createdAt: string;
+}
+
+/**
+ * AuthUser interface for the authenticated current user
+ * Matches the structure from API login response with converted role
+ */
+export interface AuthUser {
+  id: number;
+  username: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  role: RoleKey;  // String key for permission lookups
+  lastLoginDate: string | null;
+  isActive: boolean;
+  isLocked: boolean;
 }
 
 export interface Tender {
@@ -335,8 +357,8 @@ interface AppStore {
   addUser: (user: Omit<User, 'id' | 'createdAt'>) => void;
   updateUser: (id: string, user: Partial<User>) => void;
   deleteUser: (id: string) => void;
-  currentUser: User | null;
-  setCurrentUser: (user: User | null) => void;
+  currentUser: AuthUser | null;
+  setCurrentUser: (user: AuthUser | null) => void;
 
   // Tenders
   tenders: Tender[];

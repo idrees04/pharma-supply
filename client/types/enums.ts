@@ -48,3 +48,30 @@ export function getAvailableRoles() {
     label: value,
   }));
 }
+
+/**
+ * String-based role keys for frontend permission system
+ * These map to the keys used in AuthContext rolePermissions
+ */
+export type RoleKey = 'admin' | 'manager' | 'accountant' | 'warehouse' | 'sales';
+
+/**
+ * Maps numeric role IDs to string permission keys
+ * Used to bridge between API (numeric) and frontend permissions (string keys)
+ */
+export const ROLE_KEYS: Record<UserRole, RoleKey> = {
+  [UserRole.Admin]: 'admin',
+  [UserRole.Manager]: 'manager',
+  [UserRole.Accountant]: 'accountant',
+  [UserRole.Warehouse]: 'warehouse',
+  [UserRole.Sales]: 'sales',
+};
+
+/**
+ * Convert numeric role ID from API to string permission key
+ * @param roleId - Numeric role from API (e.g., 1 for Admin)
+ * @returns String key for permission lookup (e.g., 'admin')
+ */
+export function getRoleKey(roleId: UserRole | number): RoleKey | undefined {
+  return ROLE_KEYS[roleId as UserRole];
+}

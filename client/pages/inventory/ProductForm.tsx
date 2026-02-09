@@ -55,7 +55,7 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
       productTypeId: 1,
       category: '',
       subCategory: '',
-      unitOfMeasure: '',
+      unitId: 0,
       standardPurchaseRate: 0,
       standardSaleRate: 0,
       taxPercentage: 0,
@@ -84,7 +84,7 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
         productTypeId: existingProduct.productTypeId,
         category: existingProduct.category,
         subCategory: existingProduct.subCategory,
-        unitOfMeasure: existingProduct.unitOfMeasure,
+        unitId: existingProduct.unitId,
         standardPurchaseRate: existingProduct.standardPurchaseRate,
         standardSaleRate: existingProduct.standardSaleRate,
         taxPercentage: existingProduct.taxPercentage,
@@ -125,7 +125,7 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
           productTypeId: data.productTypeId,
           category: data.category,
           subCategory: data.subCategory,
-          unitOfMeasure: data.unitOfMeasure,
+          unitId: data.unitId,
           standardPurchaseRate: data.standardPurchaseRate,
           standardSaleRate: data.standardSaleRate,
           taxPercentage: data.taxPercentage,
@@ -159,7 +159,7 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
           productTypeId: data.productTypeId,
           category: data.category,
           subCategory: data.subCategory,
-          unitOfMeasure: data.unitOfMeasure,
+          unitId: data.unitId,
           standardPurchaseRate: data.standardPurchaseRate,
           standardSaleRate: data.standardSaleRate,
           taxPercentage: data.taxPercentage,
@@ -316,7 +316,7 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
 
           <FormField
             control={form.control}
-            name="unitOfMeasure"
+            name="unitId"
             render={({ field }) => (
               <FormItem className="flex-1">
                 <FormLabel>Unit of Measure *</FormLabel>
@@ -324,11 +324,11 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
                   <FormControl>
                     <SearchableSelect
                       items={(units || []).map((u) => ({
-                        value: u.name,
+                        value: u.id,
                         label: u.name,
                       }))}
                       value={field.value}
-                      onValueChange={(val) => field.onChange(String(val))}
+                      onValueChange={(val) => field.onChange(Number(val))}
                       placeholder="Select unit..."
                       isLoading={isLoadingUnits}
                     />

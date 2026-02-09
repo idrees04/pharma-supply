@@ -9,7 +9,7 @@ export const productSchema = z.object({
   productTypeId: z.coerce.number().int().min(1, "Product Type is required"),
   category: z.string().min(1, "Category is required"),
   subCategory: z.string().min(1, "Sub Category is required"),
-  unitOfMeasure: z.string().min(1, "Unit of Measure is required"),
+  unitId: z.coerce.number().int().min(1, "Unit of Measure is required"),
   standardPurchaseRate: z.coerce
     .number()
     .min(0, "Standard Purchase Rate must be non-negative"),

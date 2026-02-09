@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { productSchema, ProductFormData } from '@/lib/schemas';
@@ -18,6 +18,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useCreateProduct, useUpdateProduct, useProduct } from '@/api/services/products';
 import { Product, CreateProductRequest, UpdateProductRequest } from '@/types/api/products';
+import { useUnitList } from '@/api/services/units';
+import { useProductTypeList } from '@/api/services/productTypes';
+import { Unit } from '@/types/api/units';
+import { ProductType } from '@/types/api/productTypes';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { PlusCircle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import UnitsForm from '../settings/UnitsForm';
+import ProductTypesForm from '../settings/ProductTypesForm';
 
 interface ProductFormProps {
   productId?: number;
@@ -25,6 +40,11 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ productId, onClose }: ProductFormProps) {
+  const [isAddUnitOpen, setIsAddUnitOpen] = useState(false);
+  const [isAddProductTypeOpen, setIsAddProductTypeOpen] = useState(false);
+
+  const { data: units, isLoading: isLoadingUnits } = useUnitList() as { data: Unit[] | undefined, isLoading: boolean };
+  const { data: productTypes, isLoading: isLoadingProductTypes } = useProductTypeList() as { data: ProductType[] | undefined, isLoading: boolean };
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -51,7 +71,7 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
   });
 
   // Fetch existing product if editing
-  const { data: existingProduct, isPending: isLoadingProduct } = useProduct(productId ?? null);
+  const { data: existingProduct, isPending: isLoadingProduct } = useProduct(productId ?? null) as { data: Product | undefined, isPending: boolean };
 
   // Set form values when existing product is loaded
   useEffect(() => {
@@ -88,10 +108,10 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
   const isUpdating = updateMutation.isPending;
   const isEditMode = typeof productId === 'number';
 
-const isSubmitting =
-  isCreating ||
-  isUpdating ||
-  (isEditMode && isLoadingProduct);
+  const isSubmitting =
+    isCreating ||
+    isUpdating ||
+    (isEditMode && isLoadingProduct);
 
 
   const onSubmit = async (data: ProductFormData) => {
@@ -263,24 +283,67 @@ const isSubmitting =
             control={form.control}
             name="productTypeId"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Product Type ID *</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="e.g., 1" {...field} />
-                </FormControl>
+              <FormItem className="flex-1">
+                <FormLabel>Product Type *</FormLabel>
+                <div className="flex gap-2">
+                  <FormControl>
+                    <SearchableSelect
+                      items={(productTypes || []).map((t) => ({
+                        value: t.id,
+                        label: t.typeName,
+                      }))}
+                      value={field.value}
+                      onValueChange={(val) => field.onChange(Number(val))}
+                      placeholder="Select type..."
+                      isLoading={isLoadingProductTypes}
+                    />
+                  </FormControl>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => setIsAddProductTypeOpen(true)}
+                    title="Add new product type"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                  </Button>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="unitOfMeasure"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex-1">
                 <FormLabel>Unit of Measure *</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Tablet, Capsule, ml" {...field} />
-                </FormControl>
+                <div className="flex gap-2">
+                  <FormControl>
+                    <SearchableSelect
+                      items={(units || []).map((u) => ({
+                        value: u.name,
+                        label: u.name,
+                      }))}
+                      value={field.value}
+                      onValueChange={(val) => field.onChange(String(val))}
+                      placeholder="Select unit..."
+                      isLoading={isLoadingUnits}
+                    />
+                  </FormControl>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => setIsAddUnitOpen(true)}
+                    title="Add new unit"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                  </Button>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -484,6 +547,43 @@ const isSubmitting =
           </Button>
         </div>
       </form>
+
+      {/* Quick Add Dialogs */}
+      <Dialog open={isAddUnitOpen} onOpenChange={setIsAddUnitOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Unit</DialogTitle>
+            <DialogDescription>
+              Create a new unit of measure for products.
+            </DialogDescription>
+          </DialogHeader>
+          <UnitsForm
+            onSuccess={() => {
+              setIsAddUnitOpen(false);
+              toast.success("Unit added successfully");
+            }}
+            onCancel={() => setIsAddUnitOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddProductTypeOpen} onOpenChange={setIsAddProductTypeOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Product Type</DialogTitle>
+            <DialogDescription>
+              Create a new category/type for products.
+            </DialogDescription>
+          </DialogHeader>
+          <ProductTypesForm
+            onSuccess={() => {
+              setIsAddProductTypeOpen(false);
+              toast.success("Product type added successfully");
+            }}
+            onCancel={() => setIsAddProductTypeOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </Form>
   );
 }

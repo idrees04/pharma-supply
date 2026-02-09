@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CreateUnitRequest, UpdateUnitRequest } from "@/types/api/units";
+import { CreateUnitRequest, UpdateUnitRequest, Unit } from "@/types/api/units";
 import { Loader } from "lucide-react";
 
 interface UnitsFormProps {
@@ -27,7 +27,7 @@ export default function UnitsForm({
   onSuccess,
   onCancel,
 }: UnitsFormProps) {
-  const { data: unit, isPending: isLoadingUnit } = useUnit(unitId || 0);
+  const { data: unit, isPending: isLoadingUnit } = useUnit(unitId || 0) as { data: Unit | undefined, isPending: boolean };
   const createMutation = useCreateUnit();
   const updateMutation = useUpdateUnit(unitId || 0);
 
@@ -35,15 +35,15 @@ export default function UnitsForm({
     resolver: zodResolver(unitSchema),
     defaultValues: unit
       ? {
-          name: unit.name,
-          quantity: unit.quantity,
-          isActive: unit.isActive,
-        }
+        name: unit.name,
+        quantity: unit.quantity,
+        isActive: unit.isActive,
+      }
       : {
-          name: "",
-          quantity: 0,
-          isActive: true,
-        },
+        name: "",
+        quantity: 0,
+        isActive: true,
+      },
   });
 
   // Update form when unit data loads
@@ -56,7 +56,9 @@ export default function UnitsForm({
   }
 
   const isSubmitting =
-    createMutation.isPending || updateMutation.isPending || isLoadingUnit;
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    (!!unitId && isLoadingUnit);
 
   const onSubmit = (data: UnitFormData) => {
     if (unitId) {

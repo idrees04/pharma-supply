@@ -143,7 +143,7 @@ export function useProductTypeList() {
  *   const { data: productType, isPending } = useProductType(5);
  */
 export function useProductType(id: number) {
-  return useGetQuery(
+  return useGetQuery<ProductType>(
     ["productType", id],
     () => productTypeService.getProductType(id),
     {

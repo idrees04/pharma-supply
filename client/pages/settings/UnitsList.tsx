@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import {
   Dialog,
@@ -39,7 +40,7 @@ export default function UnitsList() {
     data: units = [],
     isPending: isLoadingUnits,
     error: unitsError,
-  } = useUnitList();
+  } = useUnitList() as { data: Unit[] | undefined, isPending: boolean, error: any };
 
   const [isDeleting, setIsDeleting] = useState(false);
   const deleteUnitMutation = useDeleteUnit(selectedUnitId || 0);
@@ -154,7 +155,7 @@ export default function UnitsList() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead className="w-24">Quantity</TableHead>
-                <TableHead className="w-20">Status</TableHead>
+                <TableHead className="w-28 text-center">Status</TableHead>
                 {(canUpdate || canDelete) && <TableHead className="text-right w-24">Actions</TableHead>}
               </TableRow>
             </TableHeader>
@@ -163,17 +164,22 @@ export default function UnitsList() {
                 <TableRow key={unit.id}>
                   <TableCell className="font-medium">{unit.name}</TableCell>
                   <TableCell>{unit.quantity}</TableCell>
-                  <TableCell>
-                    <span
+                  <TableCell className="text-center">
+                    <Badge
+                      variant={unit.isActive ? "default" : "secondary"}
                       className={cn(
-                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                        "font-medium whitespace-nowrap gap-1.5",
                         unit.isActive
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800",
+                          ? "bg-sidebar-accent/10 text-sidebar-accent border-sidebar-accent/20 hover:bg-sidebar-accent/20"
+                          : "bg-muted text-muted-foreground border-border hover:bg-muted/80",
                       )}
                     >
+                      <span className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        unit.isActive ? "bg-sidebar-accent animate-pulse" : "bg-muted-foreground/50"
+                      )} />
                       {unit.isActive ? "Active" : "Inactive"}
-                    </span>
+                    </Badge>
                   </TableCell>
                   {(canUpdate || canDelete) && (
                     <TableCell className="text-right">

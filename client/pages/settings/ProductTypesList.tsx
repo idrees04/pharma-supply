@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import {
   Dialog,
@@ -42,7 +43,7 @@ export default function ProductTypesList() {
     data: productTypes = [],
     isPending: isLoadingProductTypes,
     error: productTypesError,
-  } = useProductTypeList();
+  } = useProductTypeList() as { data: ProductType[] | undefined, isPending: boolean, error: any };
 
   const [isDeleting, setIsDeleting] = useState(false);
   const deleteProductTypeMutation = useDeleteProductType(
@@ -167,7 +168,7 @@ export default function ProductTypesList() {
                 <TableHead>Type Code</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="w-24">Display Order</TableHead>
-                <TableHead className="w-20">Status</TableHead>
+                <TableHead className="w-28 text-center">Status</TableHead>
                 {(canUpdate || canDelete) && <TableHead className="text-right w-24">Actions</TableHead>}
               </TableRow>
             </TableHeader>
@@ -182,17 +183,22 @@ export default function ProductTypesList() {
                     {productType.description}
                   </TableCell>
                   <TableCell>{productType.displayOrder}</TableCell>
-                  <TableCell>
-                    <span
+                  <TableCell className="text-center">
+                    <Badge
+                      variant={productType.isActive ? "default" : "secondary"}
                       className={cn(
-                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                        "font-medium whitespace-nowrap gap-1.5",
                         productType.isActive
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800",
+                          ? "bg-sidebar-accent/10 text-sidebar-accent border-sidebar-accent/20 hover:bg-sidebar-accent/20"
+                          : "bg-muted text-muted-foreground border-border hover:bg-muted/80",
                       )}
                     >
+                      <span className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        productType.isActive ? "bg-sidebar-accent animate-pulse" : "bg-muted-foreground/50"
+                      )} />
                       {productType.isActive ? "Active" : "Inactive"}
-                    </span>
+                    </Badge>
                   </TableCell>
                   {(canUpdate || canDelete) && (
                     <TableCell className="text-right">

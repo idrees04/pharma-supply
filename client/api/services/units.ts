@@ -126,7 +126,7 @@ export function useUnitList() {
  *   const { data: unit, isPending } = useUnit(5);
  */
 export function useUnit(id: number) {
-  return useGetQuery(["unit", id], () => unitService.getUnit(id), {
+  return useGetQuery<Unit>(["unit", id], () => unitService.getUnit(id), {
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
   });

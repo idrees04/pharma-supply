@@ -128,7 +128,7 @@ export default function ProductList() {
     { header: 'Generic Name', accessor: 'genericName' as const },
     { header: 'Manufacturer', accessor: 'manufacturer' as const },
     { header: 'Category', accessor: 'category' as const },
-    { header: 'Unit', accessor: 'unitOfMeasure' as const },
+    { header: 'Unit', accessor: 'unitName' as const },
     {
       header: 'Purchase Rate',
       accessor: (row: Product) => `PKR ${row.standardPurchaseRate.toFixed(2)}`,

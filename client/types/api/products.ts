@@ -21,7 +21,8 @@ export interface Product {
   productTypeName: string;
   category: string;
   subCategory: string;
-  unitOfMeasure: string;
+  unitId: number;
+  unitName: string;
   standardPurchaseRate: number;
   standardSaleRate: number;
   taxPercentage: number;
@@ -48,7 +49,7 @@ export interface CreateProductRequest {
   productTypeId: number;
   category: string;
   subCategory: string;
-  unitOfMeasure: string;
+  unitId: number;
   standardPurchaseRate: number;
   standardSaleRate: number;
   taxPercentage: number;
@@ -72,7 +73,7 @@ export interface UpdateProductRequest {
   productTypeId: number;
   category: string;
   subCategory: string;
-  unitOfMeasure: string;
+  unitId: number;
   standardPurchaseRate: number;
   standardSaleRate: number;
   taxPercentage: number;

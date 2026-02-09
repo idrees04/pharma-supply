@@ -221,7 +221,7 @@ interface KPICardProps {
 
 function KPICard({ icon, label, value, color }: KPICardProps) {
   return (
-    <Card className="p-6 relative overflow-hidden">
+    <Card className="p-6 relative overflow-hidden" interactive>
       <div className={`absolute top-0 right-0 w-24 h-24 ${color} opacity-10 rounded-full -mr-12 -mt-12`} />
       <div className="relative z-10">
         <div className={`w-12 h-12 rounded-lg ${color} bg-opacity-10 flex items-center justify-center mb-3`}>
@@ -244,7 +244,10 @@ interface StatCardProps {
 function StatCard({ icon, label, value, href }: StatCardProps) {
   return (
     <Link to={href}>
-      <Card className="p-4 cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all duration-200">
+      <Card
+        className="p-4 cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all duration-200"
+        interactive
+      >
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg text-primary">{icon}</div>
           <div>

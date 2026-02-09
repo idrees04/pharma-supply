@@ -2,19 +2,29 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+import { InteractiveGlow } from "./interactive-glow";
+
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      className,
-    )}
-    {...props}
-  />
-));
+  React.HTMLAttributes<HTMLDivElement> & { interactive?: boolean }
+>(({ className, interactive, ...props }, ref) => {
+  const content = (
+    <div
+      ref={ref}
+      className={cn(
+        "rounded-lg border bg-card text-card-foreground shadow-sm",
+        className
+      )}
+      {...props}
+    />
+  );
+
+  if (interactive) {
+    return <InteractiveGlow>{content}</InteractiveGlow>;
+  }
+
+  return content;
+});
 Card.displayName = "Card";
 
 const CardHeader = React.forwardRef<

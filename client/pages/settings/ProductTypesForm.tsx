@@ -45,19 +45,19 @@ export default function ProductTypesForm({
     resolver: zodResolver(productTypeSchema),
     defaultValues: productType
       ? {
-          typeName: productType.typeName,
-          typeCode: productType.typeCode,
-          description: productType.description,
-          displayOrder: productType.displayOrder,
-          isActive: productType.isActive,
-        }
+        typeName: productType.typeName,
+        typeCode: productType.typeCode,
+        description: productType.description,
+        displayOrder: productType.displayOrder,
+        isActive: productType.isActive,
+      }
       : {
-          typeName: "",
-          typeCode: "",
-          description: "",
-          displayOrder: 0,
-          isActive: true,
-        },
+        typeName: "",
+        typeCode: "",
+        description: "",
+        displayOrder: 0,
+        isActive: true,
+      },
   });
 
   // Update form when productType data loads
@@ -74,7 +74,7 @@ export default function ProductTypesForm({
   const isSubmitting =
     createMutation.isPending ||
     updateMutation.isPending ||
-    isLoadingProductType;
+    (!!productTypeId && isLoadingProductType);
 
   const onSubmit = (data: ProductTypeFormData) => {
     if (productTypeId) {

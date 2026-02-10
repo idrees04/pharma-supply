@@ -402,7 +402,7 @@ export function useSupplierProducts(supplierId: number | null) {
  *   );
  */
 export function useProductSuppliersBySupplier(supplierId: number | null) {
-  return useGetQuery(
+  return useGetQuery<ProductSupplier[]>(
     ['productSuppliers', 'by-supplier', supplierId],
     () => productSupplierService.getProductSuppliersBySupplier(supplierId!),
     {

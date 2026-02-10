@@ -66,9 +66,8 @@ export const supplierService = {
         queryParams.append('SortDescending', params.sortDescending.toString());
     }
 
-    const url = `/api/Suppliers${
-      queryParams.toString() ? `?${queryParams.toString()}` : ''
-    }`;
+    const url = `/api/Suppliers${queryParams.toString() ? `?${queryParams.toString()}` : ''
+      }`;
     const response = await get<GetSuppliersListResponse>(url, config);
 
     // Return just the data part, not the wrapper
@@ -168,9 +167,8 @@ export const supplierService = {
         queryParams.append('SortDescending', params.sortDescending.toString());
     }
 
-    const url = `/api/Suppliers/${id}/purchase-orders${
-      queryParams.toString() ? `?${queryParams.toString()}` : ''
-    }`;
+    const url = `/api/Suppliers/${id}/purchase-orders${queryParams.toString() ? `?${queryParams.toString()}` : ''
+      }`;
     const response = await get<GetSupplierPurchaseOrdersResponse>(
       url,
       config
@@ -249,7 +247,7 @@ export const supplierService = {
  *   );
  */
 export function useSupplierList(params?: SupplierListQueryParams) {
-  return useGetQuery(
+  return useGetQuery<PaginatedResponse<Supplier>>(
     ['suppliers', params],
     () => supplierService.getSuppliers(params),
     {
@@ -268,7 +266,7 @@ export function useSupplierList(params?: SupplierListQueryParams) {
  *   return <div>{supplier.supplierName}</div>;
  */
 export function useSupplier(id: number | null) {
-  return useGetQuery(
+  return useGetQuery<Supplier>(
     ['suppliers', id],
     () => supplierService.getSupplier(id!),
     {
@@ -384,7 +382,7 @@ export function useDeleteSupplier(id: number) {
  *   const { data: products, isPending } = useSupplierProducts(supplierId);
  */
 export function useSupplierProducts(id: number | null) {
-  return useGetQuery(
+  return useGetQuery<SupplierProduct[]>(
     ['suppliers', id, 'products'],
     () => supplierService.getSupplierProducts(id!),
     {
@@ -424,7 +422,7 @@ export function useSupplierPurchaseOrders(
  *   const { data: balance, isPending } = useSupplierBalance(supplierId);
  */
 export function useSupplierBalance(id: number | null) {
-  return useGetQuery(
+  return useGetQuery<SupplierBalance>(
     ['suppliers', id, 'balance'],
     () => supplierService.getSupplierBalance(id!),
     {

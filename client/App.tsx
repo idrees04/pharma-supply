@@ -29,6 +29,7 @@ import Reports from "./pages/reports/Reports";
 import ProductList from "./pages/inventory/ProductList";
 import InventoryList from "./pages/inventory/InventoryList";
 import SupplierList from "./pages/suppliers/SupplierList";
+import SupplierDetails from "./pages/suppliers/SupplierDetails";
 import HospitalList from "./pages/hospitals/HospitalList";
 import SupplyOrderList from "./pages/supply/SupplyOrderList";
 import UsersPage from "./pages/users/UsersPage";
@@ -113,6 +114,16 @@ const AppRoutes = () => (
         <ProtectedRoute module="hospitals" permission="read">
           <MainLayout>
             <HospitalList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/suppliers/:id"
+      element={
+        <ProtectedRoute module="suppliers" permission="read">
+          <MainLayout>
+            <SupplierDetails />
           </MainLayout>
         </ProtectedRoute>
       }

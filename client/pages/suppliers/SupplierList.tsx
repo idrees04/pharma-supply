@@ -128,7 +128,17 @@ export default function SupplierList() {
       ),
       className: 'w-[100px]',
     },
-    { header: 'Supplier Name', accessor: 'supplierName' as const },
+    {
+      header: 'Supplier Name',
+      accessor: (row: Supplier) => (
+        <span
+          className="font-medium text-primary hover:underline cursor-pointer"
+          onClick={() => window.location.href = `/suppliers/${row.id}`} // Using basic nav for now, preferably useNavigate from router
+        >
+          {row.supplierName}
+        </span>
+      ),
+    },
     { header: 'Email', accessor: 'email' as const },
     { header: 'Phone', accessor: 'phoneNumber' as const },
     { header: 'City', accessor: 'city' as const },

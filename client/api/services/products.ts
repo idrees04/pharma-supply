@@ -142,7 +142,7 @@ export const productService = {
  *   );
  */
 export function useProductList(params?: ProductListQueryParams) {
-  return useGetQuery(
+  return useGetQuery<PaginatedResponse<Product>>(
     ['products', params],
     () => productService.getProducts(params),
     {

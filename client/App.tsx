@@ -13,6 +13,7 @@ import { queryClient } from "@/api/queryClient";
 import { useAuthInitialize } from "@/hooks/useAuth";
 import { AuthLoadingScreen } from "@/components/AuthLoadingScreen";
 import { ProtectedRoute, PublicRoute } from "@/components/ProtectedRoute";
+import { ClickSpark } from "@/components/effects/ClickSpark";
 import Dashboard from "./pages/Dashboard";
 import LoginPage from "./pages/Login";
 import TenderList from "./pages/tender/TenderList";
@@ -309,6 +310,7 @@ const App = () => (
   >
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <ClickSpark />
         <AuthProvider>
           <Toaster />
           <Sonner />

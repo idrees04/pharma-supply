@@ -184,26 +184,32 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="w-full max-w-md px-4">
         {/* Header */}
+        {/* Header */}
         <div className="mb-8 text-center flex flex-col items-center">
           <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.8 }}
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            whileHover={{ y: -4, scale: 1.02 }}
-            transition={{
-              type: "spring",
-              stiffness: 260,
-              damping: 20,
-            }}
-            className="mb-6 relative group"
+            whileHover={{ scale: 1.05, rotate: 5 }}
+            transition={{ type: "spring", stiffness: 260, damping: 18 }}
+            className="relative mb-6 group flex items-center justify-center"
           >
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-primary/10 rounded-full blur opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <img
-              src="/ideal-distributor.png"
-              alt="Ideal Distributor Logo"
-              className="h-16 w-auto relative animate-float"
-              style={{ filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.05))" }}
+            {/* Animated Glow Layer (Remains outside) */}
+            <motion.div
+              className="absolute w-44 h-44 rounded-full bg-primary/20 blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-500"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ repeat: Infinity, duration: 3 }}
             />
+
+            {/* Inner Circle Wrapper */}
+            <div className="relative bg-white p-4 rounded-full shadow-xl transition-all duration-300 group-hover:shadow-2xl overflow-hidden flex items-center justify-center h-40 w-40 border border-muted/20">
+              <img
+                src="/ideal-distributor-favicon.png"
+                alt="Ideal Distributor Logo"
+                className="h-full w-full object-contain"
+              />
+            </div>
           </motion.div>
+
           <h1 className="text-3xl font-bold tracking-tight">Sign In</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Enter your credentials to access the system

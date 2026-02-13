@@ -230,7 +230,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             className="flex items-center gap-2 font-bold text-lg text-primary"
           >
             <img
-              src="/ideal-distributor.png"
+              src="/ideal-distributor-icon.png"
               alt="Ideal Distributor Logo"
               className="w-6 h-6 object-contain"
             />

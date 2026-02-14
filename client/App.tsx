@@ -18,6 +18,8 @@ import Dashboard from "./pages/Dashboard";
 import LoginPage from "./pages/Login";
 import TenderList from "./pages/tender/TenderList";
 import PurchaseOrderList from "./pages/orders/PurchaseOrderList";
+import PurchaseOrderForm from "./pages/orders/PurchaseOrderForm";
+import PurchaseOrderView from "./pages/orders/PurchaseOrderView";
 import SalesOrderList from "./pages/orders/SalesOrderList";
 import DeliveryChallanList from "./pages/delivery/DeliveryChallanList";
 import SalesTaxInvoiceList from "./pages/invoices/SalesTaxInvoiceList";
@@ -155,6 +157,36 @@ const AppRoutes = () => (
         <ProtectedRoute module="purchaseOrders" permission="read">
           <MainLayout>
             <PurchaseOrderList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/orders/purchase/create"
+      element={
+        <ProtectedRoute module="purchaseOrders" permission="create">
+          <MainLayout>
+            <PurchaseOrderForm />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/orders/purchase/edit/:id"
+      element={
+        <ProtectedRoute module="purchaseOrders" permission="update">
+          <MainLayout>
+            <PurchaseOrderView />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/orders/purchase/view/:id"
+      element={
+        <ProtectedRoute module="purchaseOrders" permission="read">
+          <MainLayout>
+            <PurchaseOrderView />
           </MainLayout>
         </ProtectedRoute>
       }

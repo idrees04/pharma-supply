@@ -1,178 +1,376 @@
-import { useState } from 'react';
-import { useStore, PurchaseOrder } from '@/hooks/useStore';
-import { useAuth } from '@/context/AuthContext';
-import { DataTable, Column } from '@/components/common/DataTable';
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Eye, Trash2, Plus, Filter, FileText, CheckCircle, Clock, XCircle, DollarSign, Package } from 'lucide-react';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+
+import { CommonTable } from '@/components/table/CommonTable';
+import { useTableState } from '@/components/table/hooks/useTableState';
+import { useTableQuery } from '@/components/table/hooks/useTableQuery';
+import { CommonTableColumn, RowAction, TableQueryParams } from '@/components/table/types';
 import { Button } from '@/components/ui/button';
-import { Plus, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import PurchaseOrderForm from './PurchaseOrderForm';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+import { PurchaseOrder } from '@/types/api/purchaseOrders';
+import { purchaseOrderService, usePurchaseOrderStatuses, useDeletePurchaseOrder, usePurchaseOrderList as useAllPurchaseOrders } from '@/api/services/purchaseOrders';
 import { formatCurrency } from '@/lib/utils';
 
 export default function PurchaseOrderList() {
-  const { purchaseOrders, deletePurchaseOrder } = useStore();
-  const { hasPermission } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const canCreate = hasPermission('purchaseOrders', 'create');
-  const canUpdate = hasPermission('purchaseOrders', 'update');
-  const canDelete = hasPermission('purchaseOrders', 'delete');
+  // 1. Manage table state
+  const tableState = useTableState({
+    initialPagination: { pageIndex: 1, pageSize: 10 },
+  });
 
-  const filteredPOs = purchaseOrders.filter(
-    (po) =>
-      po.refNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      po.supplierName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 2. Fetch statuses for filter
+  const { data: statuses = [] } = usePurchaseOrderStatuses();
 
-  const columns: Column<PurchaseOrder>[] = [
+  // 3. Fetch all POs for summary (large batch)
+  const { data: allPOsData } = useAllPurchaseOrders({ pageSize: 1000 });
+  const allPOs = allPOsData?.items || [];
+
+  const stats = useMemo(() => {
+    const totals = {
+      count: allPOs.length,
+      amount: 0,
+      cash: 0,
+      credit: 0,
+      pending: 0,
+      confirmed: 0,
+      completed: 0,
+      cancelled: 0,
+      receivedAmount: 0,
+      remainingAmount: 0,
+    };
+
+    allPOs.forEach((po) => {
+      totals.amount += po.totalAmount || 0;
+      if (po.paymentMethod === 'Cash') totals.cash++;
+      else totals.credit++;
+
+      if (po.status === 1) totals.pending++;
+      else if (po.status === 2) totals.confirmed++;
+      else if (po.status === 3) totals.completed++;
+      else if (po.status === 4) totals.cancelled++;
+
+      po.items?.forEach((item) => {
+        totals.receivedAmount += (item.receivedQuantity || 0) * (item.unitPrice || 0);
+        totals.remainingAmount += (item.remainingQuantity || 0) * (item.unitPrice || 0);
+      });
+    });
+
+    return totals;
+  }, [allPOs]);
+
+  // 4. Fetch data from server for the table
+  const tableQuery = useTableQuery({
+    queryKey: ['purchaseOrders', 'table', statusFilter],
+    queryFn: async (params: TableQueryParams) => {
+      // If a specific status is selected, we might need to handle it differently 
+      // based on whether getPurchaseOrders supports status param or we use by-status endpoint.
+      // The prompt suggests using GET /api/PurchaseOrders/by-status/:status for filtering.
+      // However, by-status doesn't seem to support pagination in the example.
+      // Let's check if we can pass status to getPurchaseOrders or if we must use by-status.
+
+      if (statusFilter !== 'all') {
+        const results = await purchaseOrderService.getPurchaseOrdersByStatus(Number(statusFilter));
+        // Map array to TableDataResponse
+        return {
+          items: results,
+          total: results.length,
+          page: 1,
+          pageSize: results.length,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        };
+      }
+
+      const response = await purchaseOrderService.getPurchaseOrders({
+        pageNumber: params.page,
+        pageSize: params.pageSize,
+        searchTerm: params.globalFilter,
+        sortBy: params.sorting?.[0]?.id,
+        sortDescending: params.sorting?.[0]?.desc,
+      });
+
+      return {
+        items: response.items,
+        total: response.totalCount,
+        page: response.pageNumber,
+        pageSize: response.pageSize,
+        hasNextPage: response.hasNext,
+        hasPreviousPage: response.hasPrevious,
+      };
+    },
+    pagination: tableState.pagination,
+    sorting: tableState.sorting,
+    globalFilter: tableState.globalFilter,
+  });
+
+  // 4. Mutations
+  const { mutate: deletePO, isPending: isDeleting } = useDeletePurchaseOrder();
+
+  const handleDelete = async () => {
+    if (!poToDelete) return;
+    deletePO(poToDelete.id, {
+      onSuccess: () => {
+        toast.success('Purchase order deleted successfully');
+        setIsDeleteDialogOpen(false);
+        setPoToDelete(null);
+      },
+      onError: (error: any) => {
+        toast.error(error?.userMessage || 'Failed to delete purchase order');
+      },
+    });
+  };
+
+  // 5. Define Columns
+  const columns = useMemo((): CommonTableColumn<PurchaseOrder>[] => [
     {
-      header: 'Ref No',
-      accessor: 'refNo',
+      accessorKey: 'purchaseOrderNumber',
+      header: 'PO Number',
+      label: 'PO Number',
+      sortable: true,
+      cell: (info) => <span className="font-medium text-primary">{info.getValue() as string}</span>,
     },
     {
+      accessorKey: 'supplierName',
       header: 'Supplier',
-      accessor: 'supplierName',
+      label: 'Supplier',
+      sortable: true,
     },
     {
-      header: 'PO Date',
-      accessor: 'poDate',
-      className: 'hidden sm:table-cell',
+      accessorKey: 'orderDate',
+      header: 'Order Date',
+      label: 'Order Date',
+      sortable: true,
+      cell: (info) => new Date(info.getValue() as string).toLocaleDateString(),
     },
     {
-      header: 'Items',
-      accessor: (row) => row.items.length,
-      className: 'hidden md:table-cell',
+      accessorKey: 'expectedDeliveryDate',
+      header: 'Expected Delivery',
+      label: 'Expected Delivery',
+      sortable: true,
+      cell: (info) => new Date(info.getValue() as string).toLocaleDateString(),
     },
     {
-      header: 'Net Amount',
-      accessor: (row) => formatCurrency(row.netPayableAmount),
+      accessorKey: 'totalAmount',
+      header: 'Total Amount',
+      label: 'Total Amount',
+      sortable: true,
+      cell: (info) => formatCurrency(info.getValue() as number),
     },
     {
-      header: 'Payment',
-      accessor: 'paymentMethod',
-      className: 'hidden sm:table-cell',
+      accessorKey: 'status',
+      header: 'Status',
+      label: 'Status',
+      sortable: true,
+      cell: (info) => {
+        const status = info.getValue() as number;
+        const statusName = statuses.find(s => s.value === status)?.name || `Status ${status}`;
+
+        let variant: 'default' | 'secondary' | 'outline' | 'destructive' = 'outline';
+        if (status === 1) variant = 'secondary'; // Pending/Draft
+        if (status === 2) variant = 'default';   // Confirmed
+        if (status === 3) variant = 'outline';   // Completed/Received
+
+        return <Badge variant={variant}>{statusName}</Badge>;
+      },
     },
-  ];
+  ], [statuses]);
+
+  // 6. Row Actions
+  const rowActions = useMemo((): RowAction<PurchaseOrder>[] => [
+    {
+      id: 'view',
+      label: 'View',
+      icon: <Eye className="h-4 w-4 text-blue-600" />,
+      onClick: ({ row }) => {
+        navigate(`/orders/purchase/view/${row.id}`);
+      },
+    },
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <Trash2 className="h-4 w-4 text-red-600" />,
+      variant: 'ghost',
+      onClick: ({ row }) => {
+        setPoToDelete(row);
+        setIsDeleteDialogOpen(true);
+      },
+    },
+  ], [navigate]);
 
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Purchase Orders</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage supplier purchase orders</p>
+          <h1 className="text-3xl font-bold tracking-tight">Purchase Orders</h1>
+          <p className="text-muted-foreground">Manage and track your supplier purchase orders</p>
         </div>
-        {canCreate && (
-          <Button
-            onClick={() => {
-              setSelectedPO(null);
-              setIsFormOpen(true);
-            }}
-            className="gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            New PO
-          </Button>
-        )}
+        <Button onClick={() => navigate('/orders/purchase/create')} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Create Purchase Order
+        </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by reference number or supplier name..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <KPIBox
+          label="Total POs"
+          value={stats.count}
+          icon={<FileText className="w-5 h-5" />}
+          color="bg-blue-500"
+        />
+        <KPIBox
+          label="Total Amount"
+          value={formatCurrency(stats.amount)}
+          icon={<DollarSign className="w-5 h-5" />}
+          color="bg-green-500"
+        />
+        <KPIBox
+          label="Pending / Confirmed"
+          value={`${stats.pending} / ${stats.confirmed}`}
+          icon={<Clock className="w-5 h-5" />}
+          color="bg-amber-500"
+        />
+        <KPIBox
+          label="Completed"
+          value={stats.completed}
+          icon={<CheckCircle className="w-5 h-5" />}
+          color="bg-emerald-500"
+        />
+        <KPIBox
+          label="Cancelled"
+          value={stats.cancelled}
+          icon={<XCircle className="w-5 h-5" />}
+          color="bg-red-500"
+        />
+        <KPIBox
+          label="Cash POs"
+          value={stats.cash}
+          icon={<Package className="w-5 h-5" />}
+          color="bg-indigo-500"
+        />
+        <KPIBox
+          label="Credit POs"
+          value={stats.credit}
+          icon={<FileText className="w-5 h-5" />}
+          color="bg-purple-500"
+        />
+        <KPIBox
+          label="Received Amount"
+          value={formatCurrency(stats.receivedAmount)}
+          icon={<CheckCircle className="w-5 h-5" />}
+          color="bg-teal-500"
+        />
+        <KPIBox
+          label="Remaining Amount"
+          value={formatCurrency(stats.remainingAmount)}
+          icon={<Clock className="w-5 h-5" />}
+          color="bg-orange-500"
         />
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard label="Total POs" value={purchaseOrders.length.toString()} />
-        <StatCard label="Total Amount" value={formatCurrency(
-          purchaseOrders.reduce((sum, po) => sum + po.netPayableAmount, 0)
-        )} />
-        <StatCard label="Cash POs" value={purchaseOrders.filter(po => po.paymentMethod === 'Cash').length.toString()} />
+      {/* Filters Area */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Filter by Status:</span>
+        </div>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(value);
+            tableState.resetPagination();
+          }}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Select Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            {statuses.map((status) => (
+              <SelectItem key={status.value} value={status.value.toString()}>
+                {status.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-lg border border-border">
-        <DataTable
-          columns={columns}
-          data={filteredPOs}
-          onEdit={canUpdate ? (po) => {
-            setSelectedPO(po);
-            setIsFormOpen(true);
-          } : undefined}
-          onDelete={canDelete ? (po) => setIsDeleteConfirming(po.id) : undefined}
-          emptyMessage="No purchase orders found. Create your first PO to get started."
-        />
-      </div>
+      <CommonTable<PurchaseOrder>
+        columns={columns}
+        data={tableQuery.data}
+        totalCount={tableQuery.totalCount}
+        isLoading={tableQuery.isPending}
+        error={tableQuery.error as Error}
+        onRetry={() => tableQuery.refetch()}
 
-      {/* Form Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{selectedPO ? 'Edit Purchase Order' : 'Create New Purchase Order'}</DialogTitle>
-            <DialogDescription>
-              {selectedPO ? 'Update purchase order details' : 'Add a new purchase order for suppliers'}
-            </DialogDescription>
-          </DialogHeader>
-          <PurchaseOrderForm
-            initialData={selectedPO || undefined}
-            onSuccess={() => {
-              setIsFormOpen(false);
-              setSelectedPO(null);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+        pagination={tableState.pagination}
+        onPaginationChange={tableState.setPagination}
+
+        sorting={tableState.sorting}
+        onSortingChange={tableState.setSorting}
+
+        globalFilter={tableState.globalFilter}
+        onGlobalFilterChange={tableState.setGlobalFilter}
+
+        rowActions={rowActions}
+        showToolbar={true}
+        emptyStateMessage="No purchase orders found."
+      />
 
       {/* Delete Confirmation */}
-      {isDeleteConfirming && (
-        <Dialog open={!!isDeleteConfirming} onOpenChange={() => setIsDeleteConfirming(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Purchase Order</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this purchase order? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => setIsDeleteConfirming(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  deletePurchaseOrder(isDeleteConfirming);
-                  setIsDeleteConfirming(null);
-                }}
-              >
-                Delete
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Purchase Order"
+        description={
+          <span>
+            Are you sure you want to delete purchase order
+            <span className="font-semibold text-foreground"> {poToDelete?.purchaseOrderNumber} </span>?
+            This action cannot be undone.
+          </span>
+        }
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
+        confirmText="Delete"
+        variant="destructive"
+      />
     </div>
   );
 }
 
-interface StatCardProps {
-  label: string;
-  value: string;
-}
-
-function StatCard({ label, value }: StatCardProps) {
+function KPIBox({ label, value, icon, color }: { label: string; value: string | number; icon: React.ReactNode; color: string }) {
   return (
-    <div className="bg-card border border-border rounded-lg p-4">
-      <div className="text-sm text-muted-foreground">{label}</div>
-      <div className="text-2xl font-bold mt-1">{value}</div>
-    </div>
+    <Card className="p-4 relative overflow-hidden group hover:shadow-md transition-all duration-300">
+      <div className={`absolute top-0 right-0 w-16 h-16 ${color} opacity-5 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500`} />
+      <div className="flex items-center gap-4">
+        <div className={`p-3 rounded-xl ${color} bg-opacity-10 text-primary flex items-center justify-center`}>
+          {icon}
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+          <p className="text-lg font-bold tracking-tight mt-0.5">{value}</p>
+        </div>
+      </div>
+    </Card>
   );
 }

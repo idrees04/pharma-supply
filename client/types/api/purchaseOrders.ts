@@ -40,6 +40,7 @@ export interface PurchaseOrder {
   status: number;
   totalAmount: number;
   deliveryAddress: string;
+  paymentMethod?: 'Cash' | 'Cheque' | 'Bank';
   notes: string;
   isActive: boolean;
   items: PurchaseOrderItem[];

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Trash2, Plus, Filter } from 'lucide-react';
+import { Eye, Trash2, Plus, Filter, FileText, CheckCircle, Clock, XCircle, DollarSign, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -10,6 +10,7 @@ import { useTableQuery } from '@/components/table/hooks/useTableQuery';
 import { CommonTableColumn, RowAction, TableQueryParams } from '@/components/table/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import {
   Select,
@@ -20,7 +21,7 @@ import {
 } from '@/components/ui/select';
 
 import { PurchaseOrder } from '@/types/api/purchaseOrders';
-import { purchaseOrderService, usePurchaseOrderStatuses, useDeletePurchaseOrder } from '@/api/services/purchaseOrders';
+import { purchaseOrderService, usePurchaseOrderStatuses, useDeletePurchaseOrder, usePurchaseOrderList as useAllPurchaseOrders } from '@/api/services/purchaseOrders';
 import { formatCurrency } from '@/lib/utils';
 
 export default function PurchaseOrderList() {
@@ -38,7 +39,44 @@ export default function PurchaseOrderList() {
   // 2. Fetch statuses for filter
   const { data: statuses = [] } = usePurchaseOrderStatuses();
 
-  // 3. Fetch data from server
+  // 3. Fetch all POs for summary (large batch)
+  const { data: allPOsData } = useAllPurchaseOrders({ pageSize: 1000 });
+  const allPOs = allPOsData?.items || [];
+
+  const stats = useMemo(() => {
+    const totals = {
+      count: allPOs.length,
+      amount: 0,
+      cash: 0,
+      credit: 0,
+      pending: 0,
+      confirmed: 0,
+      completed: 0,
+      cancelled: 0,
+      receivedAmount: 0,
+      remainingAmount: 0,
+    };
+
+    allPOs.forEach((po) => {
+      totals.amount += po.totalAmount || 0;
+      if (po.paymentMethod === 'Cash') totals.cash++;
+      else totals.credit++;
+
+      if (po.status === 1) totals.pending++;
+      else if (po.status === 2) totals.confirmed++;
+      else if (po.status === 3) totals.completed++;
+      else if (po.status === 4) totals.cancelled++;
+
+      po.items?.forEach((item) => {
+        totals.receivedAmount += (item.receivedQuantity || 0) * (item.unitPrice || 0);
+        totals.remainingAmount += (item.remainingQuantity || 0) * (item.unitPrice || 0);
+      });
+    });
+
+    return totals;
+  }, [allPOs]);
+
+  // 4. Fetch data from server for the table
   const tableQuery = useTableQuery({
     queryKey: ['purchaseOrders', 'table', statusFilter],
     queryFn: async (params: TableQueryParams) => {
@@ -158,11 +196,11 @@ export default function PurchaseOrderList() {
   // 6. Row Actions
   const rowActions = useMemo((): RowAction<PurchaseOrder>[] => [
     {
-      id: 'edit',
-      label: 'Edit',
-      icon: <Edit2 className="h-4 w-4 text-blue-600" />,
+      id: 'view',
+      label: 'View',
+      icon: <Eye className="h-4 w-4 text-blue-600" />,
       onClick: ({ row }) => {
-        navigate(`/orders/purchase/edit/${row.id}`);
+        navigate(`/orders/purchase/view/${row.id}`);
       },
     },
     {
@@ -189,6 +227,64 @@ export default function PurchaseOrderList() {
           <Plus className="h-4 w-4" />
           Create Purchase Order
         </Button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <KPIBox
+          label="Total POs"
+          value={stats.count}
+          icon={<FileText className="w-5 h-5" />}
+          color="bg-blue-500"
+        />
+        <KPIBox
+          label="Total Amount"
+          value={formatCurrency(stats.amount)}
+          icon={<DollarSign className="w-5 h-5" />}
+          color="bg-green-500"
+        />
+        <KPIBox
+          label="Pending / Confirmed"
+          value={`${stats.pending} / ${stats.confirmed}`}
+          icon={<Clock className="w-5 h-5" />}
+          color="bg-amber-500"
+        />
+        <KPIBox
+          label="Completed"
+          value={stats.completed}
+          icon={<CheckCircle className="w-5 h-5" />}
+          color="bg-emerald-500"
+        />
+        <KPIBox
+          label="Cancelled"
+          value={stats.cancelled}
+          icon={<XCircle className="w-5 h-5" />}
+          color="bg-red-500"
+        />
+        <KPIBox
+          label="Cash POs"
+          value={stats.cash}
+          icon={<Package className="w-5 h-5" />}
+          color="bg-indigo-500"
+        />
+        <KPIBox
+          label="Credit POs"
+          value={stats.credit}
+          icon={<FileText className="w-5 h-5" />}
+          color="bg-purple-500"
+        />
+        <KPIBox
+          label="Received Amount"
+          value={formatCurrency(stats.receivedAmount)}
+          icon={<CheckCircle className="w-5 h-5" />}
+          color="bg-teal-500"
+        />
+        <KPIBox
+          label="Remaining Amount"
+          value={formatCurrency(stats.remainingAmount)}
+          icon={<Clock className="w-5 h-5" />}
+          color="bg-orange-500"
+        />
       </div>
 
       {/* Filters Area */}
@@ -259,5 +355,22 @@ export default function PurchaseOrderList() {
         variant="destructive"
       />
     </div>
+  );
+}
+
+function KPIBox({ label, value, icon, color }: { label: string; value: string | number; icon: React.ReactNode; color: string }) {
+  return (
+    <Card className="p-4 relative overflow-hidden group hover:shadow-md transition-all duration-300">
+      <div className={`absolute top-0 right-0 w-16 h-16 ${color} opacity-5 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500`} />
+      <div className="flex items-center gap-4">
+        <div className={`p-3 rounded-xl ${color} bg-opacity-10 text-primary flex items-center justify-center`}>
+          {icon}
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+          <p className="text-lg font-bold tracking-tight mt-0.5">{value}</p>
+        </div>
+      </div>
+    </Card>
   );
 }

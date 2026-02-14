@@ -181,6 +181,16 @@ const AppRoutes = () => (
       }
     />
     <Route
+      path="/orders/purchase/view/:id"
+      element={
+        <ProtectedRoute module="purchaseOrders" permission="read">
+          <MainLayout>
+            <PurchaseOrderForm />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
       path="/orders/sales"
       element={
         <ProtectedRoute module="salesOrders" permission="read">

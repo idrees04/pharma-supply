@@ -19,6 +19,7 @@ import LoginPage from "./pages/Login";
 import TenderList from "./pages/tender/TenderList";
 import PurchaseOrderList from "./pages/orders/PurchaseOrderList";
 import PurchaseOrderForm from "./pages/orders/PurchaseOrderForm";
+import PurchaseOrderView from "./pages/orders/PurchaseOrderView";
 import SalesOrderList from "./pages/orders/SalesOrderList";
 import DeliveryChallanList from "./pages/delivery/DeliveryChallanList";
 import SalesTaxInvoiceList from "./pages/invoices/SalesTaxInvoiceList";
@@ -175,7 +176,7 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute module="purchaseOrders" permission="update">
           <MainLayout>
-            <PurchaseOrderForm />
+            <PurchaseOrderView />
           </MainLayout>
         </ProtectedRoute>
       }
@@ -185,7 +186,7 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute module="purchaseOrders" permission="read">
           <MainLayout>
-            <PurchaseOrderForm />
+            <PurchaseOrderView />
           </MainLayout>
         </ProtectedRoute>
       }

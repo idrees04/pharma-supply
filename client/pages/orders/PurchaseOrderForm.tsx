@@ -231,10 +231,7 @@ export default function PurchaseOrderForm() {
         </div>
         
         {isViewMode && (
-             <Button variant="default" onClick={() => navigate(`/orders/purchase/edit/${poId}`)} className="gap-2">
-                <Save className="h-4 w-4" />
-                Edit Order
-             </Button>
+             <div />
         )}
       </div>
 
@@ -620,14 +617,7 @@ export default function PurchaseOrderForm() {
                     </Button>
                   )}
                   {isReadOnly && (
-                    <Button 
-                        type="button"
-                        onClick={() => navigate(`/orders/purchase/edit/${poId}`)}
-                        className="w-full gap-2 h-12 text-md font-bold"
-                    >
-                        <Save className="h-5 w-5" />
-                        Enter Edit Mode
-                    </Button>
+                    <div />
                   )}
                   <Button 
                     type="button" 

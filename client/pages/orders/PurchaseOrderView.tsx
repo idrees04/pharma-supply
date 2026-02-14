@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePurchaseOrder, usePurchaseOrderStatuses } from '@/api/services/purchaseOrders';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { 
   ArrowLeft, 
   Loader2, 
@@ -11,13 +11,14 @@ import {
   MapPin, 
   Package, 
   FileText, 
-  User, 
-  StickyNote, 
+  User,
+  StickyNote,
   DollarSign,
   CheckCircle2,
   Clock,
   XCircle,
-  Truck
+  Truck,
+  Mail
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';

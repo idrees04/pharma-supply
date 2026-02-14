@@ -1,11 +1,13 @@
-import { useForm, useFieldArray } from 'react-hook-form';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { purchaseOrderSchema, PurchaseOrderFormData } from '@/lib/schemas';
-import { useStore, PurchaseOrder } from '@/hooks/useStore';
+import { toast } from 'sonner';
+import { Plus, Trash2, ArrowLeft, Loader2, Save, ShoppingCart, Calculator, Calendar, MapPin, StickyNote, Package } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Plus } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -14,316 +16,635 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-interface PurchaseOrderFormProps {
-  initialData?: PurchaseOrder;
-  onSuccess?: () => void;
-}
+import { purchaseOrderSchema, PurchaseOrderFormData } from '@/lib/schemas';
+import {
+  useCreatePurchaseOrder,
+  useUpdatePurchaseOrder,
+  usePurchaseOrder,
+  usePurchaseOrdersBySupplier
+} from '@/api/services/purchaseOrders';
+import { useActiveSuppliers } from '@/api/services/suppliers';
+import { productService } from '@/api/services/products';
+import { formatCurrency, cn } from '@/lib/utils';
+import { CreatePurchaseOrderRequest, UpdatePurchaseOrderRequest } from '@/types/api/purchaseOrders';
 
-export default function PurchaseOrderForm({ initialData, onSuccess }: PurchaseOrderFormProps) {
-  const { addPurchaseOrder, updatePurchaseOrder } = useStore();
+export default function PurchaseOrderForm() {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const isEditMode = !!id && !location.pathname.includes('/view/');
+  const isViewMode = !!id && location.pathname.includes('/view/');
+  const isReadOnly = isViewMode;
+  const poId = id ? parseInt(id) : null;
+  const previousSupplierIdRef = useRef<number | null>(null);
+
+  // 1. Fetch Data
+  const { data: existingPO, isPending: isLoadingPO } = usePurchaseOrder(poId);
+  const { data: suppliers = [], isPending: isLoadingSuppliers } = useActiveSuppliers();
+
+  // 2. Form Setup
   const form = useForm<PurchaseOrderFormData>({
     resolver: zodResolver(purchaseOrderSchema),
-    defaultValues: initialData ? {
-      refNo: initialData.refNo,
-      supplierName: initialData.supplierName,
-      poDate: initialData.poDate,
-      deliveryAddress: initialData.deliveryAddress,
-      items: initialData.items.map(item => ({
-        nomenclature: item.nomenclature,
-        unit: item.unit,
-        quantity: item.quantity,
-        rate: item.rate,
-      })),
-      distributorDiscount: initialData.distributorDiscount,
-      paymentMethod: initialData.paymentMethod,
-      notes: initialData.notes,
-    } : {
-      items: [{ nomenclature: '', unit: 'Pack', quantity: 0, rate: 0 }],
-      distributorDiscount: 0,
-      paymentMethod: 'Bank',
+    defaultValues: {
+      supplierId: 0,
+      orderDate: new Date().toISOString().split('T')[0],
+      expectedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      deliveryAddress: '',
+      notes: '',
+      items: [],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: 'items',
   });
 
-  const calculateSubtotal = () => {
-    return form.getValues('items').reduce((sum, item) => sum + (item.quantity * item.rate), 0);
-  };
+  // 3. Sync existing data in edit/view mode
+  useEffect(() => {
+    if (existingPO && (isEditMode || isViewMode)) {
+      form.reset({
+        supplierId: existingPO.supplierId,
+        orderDate: existingPO.orderDate.split('T')[0],
+        expectedDeliveryDate: existingPO.expectedDeliveryDate.split('T')[0],
+        deliveryAddress: existingPO.deliveryAddress,
+        notes: existingPO.notes || '',
+        items: existingPO.items.map(item => ({
+          productId: item.productId,
+          orderedQuantity: item.orderedQuantity,
+          unitPrice: item.unitPrice,
+          taxPercentage: item.taxPercentage,
+          discountPercentage: item.discountPercentage,
+          supplyOrderIds: item.supplyOrderIds || [],
+        })),
+      });
+      previousSupplierIdRef.current = existingPO.supplierId;
+    }
+  }, [existingPO, isEditMode, isViewMode, form]);
 
-  const subtotal = calculateSubtotal();
-  const discount = subtotal * (form.watch('distributorDiscount') / 100);
-  const total = subtotal - discount;
+  // 4. Supplier Selection & Dependent Queries
+  const selectedSupplierId = useWatch({ control: form.control, name: 'supplierId' });
+  
+  // Fetch POs by supplier to get "supplier-specific products"
+  const { data: supplierPOs, isPending: isLoadingSupplierPOs } = usePurchaseOrdersBySupplier(selectedSupplierId || null);
+
+  // Extract unique products from previous orders of this supplier
+  const supplierProducts = useMemo(() => {
+    if (!supplierPOs) return [];
+    const productsMap = new Map();
+    supplierPOs.forEach(order => {
+      order.items?.forEach(item => {
+        if (!productsMap.has(item.productId)) {
+          productsMap.set(item.productId, {
+            value: item.productId,
+            label: `${item.productName} (${item.productCode})`
+          });
+        }
+      });
+    });
+    return Array.from(productsMap.values());
+  }, [supplierPOs]);
+
+  // Handle Supplier Change: Clear rows if supplier actually changes (prevent clearing on initial load)
+  useEffect(() => {
+    if (selectedSupplierId !== 0 && previousSupplierIdRef.current !== null && selectedSupplierId !== previousSupplierIdRef.current) {
+        if (!isReadOnly) {
+            replace([]); // Clear all rows
+            toast.info('Supplier changed. Product items have been cleared.');
+        }
+    }
+    previousSupplierIdRef.current = selectedSupplierId;
+  }, [selectedSupplierId, replace, isReadOnly]);
+
+  // 5. Mutations
+  const { mutate: createPO, isPending: isCreating } = useCreatePurchaseOrder();
+  const { mutate: updatePO, isPending: isUpdating } = useUpdatePurchaseOrder(poId || 0);
 
   const onSubmit = (data: PurchaseOrderFormData) => {
-    const subtotal = data.items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
-    const discount = subtotal * (data.distributorDiscount / 100);
-    const netPayableAmount = subtotal - discount;
+    if (isReadOnly) return;
 
-    const poData: Omit<PurchaseOrder, 'id' | 'createdAt'> = {
-      refNo: data.refNo,
-      supplierName: data.supplierName,
-      poDate: data.poDate,
-      deliveryAddress: data.deliveryAddress,
-      items: data.items.map((item, idx) => ({
-        id: `item-${idx}`,
-        nomenclature: item.nomenclature,
-        unit: item.unit,
-        quantity: item.quantity,
-        rate: item.rate,
-        amount: item.quantity * item.rate,
-      })),
-      totalAmount: subtotal,
-      distributorDiscount: data.distributorDiscount,
-      netPayableAmount,
-      paymentMethod: data.paymentMethod,
-      notes: data.notes || '',
-    };
-
-    if (initialData) {
-      updatePurchaseOrder(initialData.id, poData);
+    if (isEditMode && poId) {
+      const updateData: UpdatePurchaseOrderRequest = {
+        expectedDeliveryDate: data.expectedDeliveryDate,
+        status: existingPO?.status || 1,
+        deliveryAddress: data.deliveryAddress,
+        notes: data.notes || '',
+      };
+      updatePO(updateData, {
+        onSuccess: () => {
+          toast.success('Purchase order updated successfully');
+          navigate('/orders/purchase');
+        },
+        onError: (error: any) => {
+          toast.error(error?.userMessage || 'Failed to update purchase order');
+        },
+      });
     } else {
-      addPurchaseOrder(poData);
+      const createData: CreatePurchaseOrderRequest = {
+        ...data,
+        items: data.items.map(item => ({
+            ...item,
+            supplyOrderIds: item.supplyOrderIds || []
+        }))
+      };
+      createPO(createData, {
+        onSuccess: () => {
+          toast.success('Purchase order created successfully');
+          navigate('/orders/purchase');
+        },
+        onError: (error: any) => {
+          toast.error(error?.userMessage || 'Failed to create purchase order');
+        },
+      });
     }
-    form.reset();
-    onSuccess?.();
   };
 
+  // 6. Calculations
+  const watchedItems = useWatch({ control: form.control, name: 'items' });
+
+  const calculations = useMemo(() => {
+    const rowTotals = (watchedItems || []).map((item) => {
+      const subtotal = (item.orderedQuantity || 0) * (item.unitPrice || 0);
+      const taxAmount = subtotal * ((item.taxPercentage || 0) / 100);
+      const discountAmount = subtotal * ((item.discountPercentage || 0) / 100);
+      const total = subtotal + taxAmount - discountAmount;
+      return { subtotal, taxAmount, discountAmount, total };
+    });
+
+    const grandTotal = rowTotals.reduce((sum, row) => sum + row.total, 0);
+
+    return { rowTotals, grandTotal };
+  }, [watchedItems]);
+
+  // 7. Product Selection Logic
+  const handleProductChange = async (index: number, productId: number) => {
+    try {
+      const product = await productService.getProduct(productId);
+      if (product) {
+        form.setValue(`items.${index}.unitPrice`, product.standardPurchaseRate);
+        form.setValue(`items.${index}.taxPercentage`, product.taxPercentage);
+        form.setValue(`items.${index}.discountPercentage`, 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch product details', error);
+    }
+  };
+
+  // Prevent duplicate products in dropdown
+  const getAvailableProducts = (currentIndex: number) => {
+    const selectedProductIds = (watchedItems || [])
+      .map((item, idx) => (idx !== currentIndex ? item.productId : null))
+      .filter(Boolean);
+
+    return supplierProducts.filter((p) => !selectedProductIds.includes(p.value));
+  };
+
+  if ((isEditMode || isViewMode) && isLoadingPO) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground font-medium animate-pulse">Loading purchase order details...</p>
+      </div>
+    );
+  }
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Basic Information */}
-        <div className="bg-muted/30 p-4 rounded-lg space-y-4">
-          <h3 className="font-semibold">Basic Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="refNo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Reference Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., DD/24-25/3890" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="poDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>PO Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <FormField
-            control={form.control}
-            name="supplierName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Supplier Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Next Pharma Pvt Ltd" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="deliveryAddress"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Delivery Address</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., E-64, Block-E Near Jamia Masjid..." {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* Line Items */}
-        <div className="bg-muted/30 p-4 rounded-lg space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Items</h3>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append({ nomenclature: '', unit: 'Pack', quantity: 0, rate: 0 })}
-              className="gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Item
-            </Button>
-          </div>
-
-          <div className="space-y-3">
-            {fields.map((field, index) => (
-              <div key={field.id} className="flex gap-3 items-end p-3 bg-card border border-border rounded-lg">
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.nomenclature`}
-                  render={({ field }) => (
-                    <FormItem className="flex-1 min-w-[200px]">
-                      <FormLabel className="text-xs">Nomenclature</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Item name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.unit`}
-                  render={({ field }) => (
-                    <FormItem className="min-w-[100px]">
-                      <FormLabel className="text-xs">Unit</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger className="h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Pack">Pack</SelectItem>
-                          <SelectItem value="Box">Box</SelectItem>
-                          <SelectItem value="Unit">Unit</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.quantity`}
-                  render={({ field }) => (
-                    <FormItem className="min-w-[100px]">
-                      <FormLabel className="text-xs">Qty</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.rate`}
-                  render={({ field }) => (
-                    <FormItem className="min-w-[100px]">
-                      <FormLabel className="text-xs">Rate</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => remove(index)}
-                  className="h-9 w-9 p-0 text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
+    <div className="space-y-6 animate-slide-up pb-10 max-w-[1400px] mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" onClick={() => navigate('/orders/purchase')} className="rounded-full hover:bg-muted transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+              <Package className="h-8 w-8 text-primary" />
+              {isViewMode ? `View Purchase Order #${existingPO?.purchaseOrderNumber}` : isEditMode ? 'Edit Purchase Order' : 'Create Purchase Order'}
+            </h1>
+            <p className="text-muted-foreground">
+              {isViewMode ? 'Detailed view of the purchase order' : isEditMode ? 'Update existing order details and items' : 'Fill in the details to create a new purchase order'}
+            </p>
           </div>
         </div>
+        
+        {isViewMode && (
+             <div />
+        )}
+      </div>
 
-        {/* Pricing */}
-        <div className="bg-muted/30 p-4 rounded-lg space-y-3">
-          <div className="flex justify-between items-center">
-            <span>Subtotal:</span>
-            <span className="font-semibold">PKR {subtotal.toFixed(2)}</span>
-          </div>
-          <FormField
-            control={form.control}
-            name="distributorDiscount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Distributor Discount (%)</FormLabel>
-                <FormControl>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Left Column: Basic Info */}
+            <div className="lg:col-span-3 space-y-6">
+              <Card className="border-t-4 border-t-primary shadow-sm overflow-hidden">
+                <CardHeader className="bg-muted/30 pb-4">
                   <div className="flex items-center gap-2">
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                    <span className="text-sm text-muted-foreground">PKR {discount.toFixed(2)}</span>
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-xl">Basic Information</CardTitle>
                   </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="border-t border-border pt-3">
-            <div className="flex justify-between items-center">
-              <span className="font-semibold">Net Payable Amount:</span>
-              <span className="text-lg font-bold text-primary">PKR {total.toFixed(2)}</span>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="supplierId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                            <Package className="h-3 w-3" /> Supplier
+                          </FormLabel>
+                          <FormControl>
+                            <SearchableSelect
+                              items={suppliers.map(s => ({ value: s.id, label: s.supplierName }))}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder="Choose Supplier"
+                              isLoading={isLoadingSuppliers}
+                              className={cn(
+                                "h-11 border-muted-foreground/20",
+                                (isEditMode || isViewMode) && "bg-muted cursor-not-allowed border-none opacity-80"
+                              )}
+                              disabled={isEditMode || isViewMode}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="orderDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Order Date</FormLabel>
+                          <FormControl>
+                            <Input 
+                                type="date" 
+                                {...field} 
+                                disabled={isEditMode || isViewMode} 
+                                className="h-11 border-muted-foreground/20 bg-muted/5 focus-visible:ring-primary"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="expectedDeliveryDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Expected Delivery</FormLabel>
+                          <FormControl>
+                            <Input 
+                                type="date" 
+                                {...field} 
+                                disabled={isReadOnly}
+                                className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="deliveryAddress"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                            <MapPin className="h-3 w-3" /> Delivery Address
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                                placeholder="Enter full delivery destination" 
+                                {...field} 
+                                disabled={isReadOnly}
+                                className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="notes"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                                <StickyNote className="h-3 w-3" /> Special Instructions
+                            </FormLabel>
+                            <FormControl>
+                            <Input 
+                                placeholder="Any specific requirements or notes for the supplier..." 
+                                {...field} 
+                                disabled={isReadOnly}
+                                className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                            />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Items Table */}
+              <Card className="shadow-sm border-muted/60">
+                <CardHeader className="flex flex-row items-center justify-between pb-4">
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl flex items-center gap-2">
+                        <ShoppingCart className="h-5 w-5 text-primary" />
+                        Products & Items
+                    </CardTitle>
+                    <CardDescription>Select products and specify quantities for this order</CardDescription>
+                  </div>
+                  {!isReadOnly && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => append({
+                        productId: 0,
+                        orderedQuantity: 1,
+                        unitPrice: 0,
+                        taxPercentage: 0,
+                        discountPercentage: 0,
+                        supplyOrderIds: []
+                      })}
+                      className="gap-2 shadow-sm border border-primary/20 hover:bg-primary/10 transition-colors"
+                      disabled={selectedSupplierId === 0 || isLoadingSupplierPOs}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Row
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent className="p-0 border-t">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader className="bg-muted/40 sticky top-0 z-10">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="w-[60px] text-center font-bold text-muted-foreground border-r">#</TableHead>
+                          <TableHead className="min-w-[300px] pl-4 font-bold">Product / Description</TableHead>
+                          <TableHead className="w-[120px] font-bold text-center">Quantity</TableHead>
+                          <TableHead className="w-[140px] font-bold">Unit Price</TableHead>
+                          <TableHead className="w-[100px] font-bold text-center bg-blue-50/30">Tax %</TableHead>
+                          <TableHead className="w-[100px] font-bold text-center bg-red-50/30">Disc %</TableHead>
+                          <TableHead className="w-[160px] font-bold text-right pr-6 bg-primary/5">Total Amount</TableHead>
+                          {!isReadOnly && <TableHead className="w-[60px] pr-4"></TableHead>}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {fields.map((field, index) => (
+                          <TableRow key={field.id} className="group hover:bg-muted/20 transition-colors">
+                            <TableCell className="text-center font-medium text-muted-foreground border-r bg-muted/5">
+                              {index + 1}
+                            </TableCell>
+                            <TableCell className="pl-4">
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.productId`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <SearchableSelect
+                                        items={getAvailableProducts(index)}
+                                        value={field.value}
+                                        onValueChange={(val) => {
+                                          field.onChange(val);
+                                          handleProductChange(index, Number(val));
+                                        }}
+                                        placeholder="Find Product..."
+                                        isLoading={isLoadingSupplierPOs}
+                                        className={cn(
+                                            "w-full transition-all duration-200 border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
+                                            isReadOnly && "border-none bg-transparent cursor-default pointer-events-none p-0 text-foreground font-semibold"
+                                        )}
+                                        disabled={isReadOnly}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell className="px-2">
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.orderedQuantity`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Input 
+                                          type="number" 
+                                          min="1" 
+                                          {...field} 
+                                          disabled={isReadOnly}
+                                          className={cn(
+                                              "text-center font-semibold border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
+                                              isReadOnly && "border-none"
+                                          )}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell className="px-2">
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.unitPrice`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Input 
+                                          type="number" 
+                                          step="0.01" 
+                                          {...field} 
+                                          disabled={isReadOnly}
+                                          className={cn(
+                                              "font-semibold border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
+                                              isReadOnly && "border-none"
+                                          )}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell className="px-2 bg-blue-50/10">
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.taxPercentage`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Input 
+                                          type="number" 
+                                          step="0.01" 
+                                          {...field} 
+                                          disabled={isReadOnly}
+                                          className={cn(
+                                            "text-center font-bold text-blue-700 border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
+                                            isReadOnly && "border-none"
+                                          )}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell className="px-2 bg-red-50/10">
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.discountPercentage`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Input 
+                                          type="number" 
+                                          step="0.01" 
+                                          {...field} 
+                                          disabled={isReadOnly}
+                                          className={cn(
+                                            "text-center font-bold text-red-700 border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
+                                            isReadOnly && "border-none"
+                                          )}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell className="text-right pr-6 font-black text-primary bg-primary/5 text-lg">
+                              {formatCurrency(calculations.rowTotals[index]?.total || 0)}
+                            </TableCell>
+                            {!isReadOnly && (
+                              <TableCell className="pr-4 text-center">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => remove(index)}
+                                  className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))}
+                        {fields.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={isReadOnly ? 7 : 8} className="h-32 text-center text-muted-foreground">
+                              <div className="flex flex-col items-center gap-2">
+                                <Package className="h-8 w-8 opacity-20" />
+                                <p className="italic font-medium">No items found for this order.</p>
+                                {!isReadOnly && <p className="text-xs">Click "Add Row" to start adding products.</p>}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column: Summary Box */}
+            <div className="space-y-6">
+              <Card className="sticky top-6 shadow-lg border-primary/20 overflow-hidden">
+                <div className="h-2 bg-primary" />
+                <CardHeader className="bg-muted/20 border-b">
+                  <div className="flex items-center gap-2">
+                    <Calculator className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-lg">Order Summary</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-sm font-medium">
+                      <span className="text-muted-foreground uppercase tracking-tight text-xs">Gross Subtotal</span>
+                      <span className="font-bold">{formatCurrency(calculations.rowTotals.reduce((sum, r) => sum + r.subtotal, 0))}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm font-medium">
+                      <span className="text-muted-foreground uppercase tracking-tight text-xs">Taxes Accrued</span>
+                      <span className="text-blue-600 font-bold">+{formatCurrency(calculations.rowTotals.reduce((sum, r) => sum + r.taxAmount, 0))}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm font-medium">
+                      <span className="text-muted-foreground uppercase tracking-tight text-xs">Total Discounts</span>
+                      <span className="text-red-600 font-bold">-{formatCurrency(calculations.rowTotals.reduce((sum, r) => sum + r.discountAmount, 0))}</span>
+                    </div>
+                    
+                    <div className="border-t border-dashed pt-4 mt-6">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Grand Net Total</span>
+                        <div className="text-3xl font-black text-primary tracking-tighter drop-shadow-sm">
+                            {formatCurrency(calculations.grandTotal)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex flex-col gap-3 bg-muted/10 pt-4 border-t">
+                  {!isReadOnly && (
+                    <Button 
+                        type="submit" 
+                        className="w-full gap-2 h-12 text-md font-bold shadow-md hover:shadow-lg transition-all" 
+                        disabled={isCreating || isUpdating}
+                    >
+                        {(isCreating || isUpdating) ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                        <Save className="h-5 w-5" />
+                        )}
+                        {isEditMode ? 'Update Purchase Order' : 'Submit Final Order'}
+                    </Button>
+                  )}
+                  {isReadOnly && (
+                    <div />
+                  )}
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    className="w-full text-muted-foreground hover:text-foreground"
+                    onClick={() => navigate('/orders/purchase')}
+                  >
+                    Return to List
+                  </Button>
+                </CardFooter>
+              </Card>
+
+              {/* Related Info */}
+              {selectedSupplierId > 0 && !isReadOnly && (
+                  <Card className="border-none shadow-none bg-muted/30">
+                     <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-black uppercase text-muted-foreground tracking-widest">Supplier Inventory Hints</CardTitle>
+                     </CardHeader>
+                     <CardContent className="text-xs text-muted-foreground leading-relaxed">
+                        This supplier has {supplierProducts.length} items cataloged based on historical purchase orders.
+                     </CardContent>
+                  </Card>
+              )}
             </div>
           </div>
-        </div>
-
-        {/* Payment & Notes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="paymentMethod"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payment Method</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Cash">Cash</SelectItem>
-                    <SelectItem value="Cheque">Cheque</SelectItem>
-                    <SelectItem value="Bank">Bank Transfer</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Special Notes</FormLabel>
-                <FormControl>
-                  <Input placeholder="Any special instructions..." {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* Submit Button */}
-        <div className="flex gap-3 justify-end pt-4">
-          <Button type="submit" className="gap-2">
-            {initialData ? 'Update PO' : 'Create PO'}
-          </Button>
-        </div>
-      </form>
-    </Form>
+        </form>
+      </Form>
+    </div>
   );
 }

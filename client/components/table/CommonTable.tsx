@@ -37,12 +37,14 @@ import {
   Row as TanstackRow,
 } from '@tanstack/react-table';
 import { CommonTableProps, CommonTableColumn } from './types';
-import { TableToolbar } from './subcomponents/TableToolbar';
-import { TableContent } from './subcomponents/TableContent';
-import { TablePagination } from './subcomponents/TablePagination';
-import { TableLoadingState } from './subcomponents/TableLoadingState';
-import { TableEmptyState } from './subcomponents/TableEmptyState';
-import { TableErrorState } from './subcomponents/TableErrorState';
+import {
+  TableToolbar,
+  TableContent,
+  TablePagination,
+  TableLoadingState,
+  TableEmptyState,
+  TableErrorState,
+} from './subcomponents';
 import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

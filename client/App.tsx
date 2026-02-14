@@ -162,36 +162,6 @@ const AppRoutes = () => (
       }
     />
     <Route
-      path="/orders/purchase/create"
-      element={
-        <ProtectedRoute module="purchaseOrders" permission="create">
-          <MainLayout>
-            <PurchaseOrderForm />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/orders/purchase/edit/:id"
-      element={
-        <ProtectedRoute module="purchaseOrders" permission="update">
-          <MainLayout>
-            <PurchaseOrderView />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/orders/purchase/view/:id"
-      element={
-        <ProtectedRoute module="purchaseOrders" permission="read">
-          <MainLayout>
-            <PurchaseOrderView />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
-    <Route
       path="/orders/sales"
       element={
         <ProtectedRoute module="salesOrders" permission="read">

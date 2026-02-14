@@ -1,13 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Eye, Trash2, Plus, Filter, FileText, CheckCircle, Clock, XCircle, DollarSign, Package } from 'lucide-react';
-import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
-
-import { CommonTable } from '@/components/table/CommonTable';
-import { useTableState } from '@/components/table/hooks/useTableState';
-import { useTableQuery } from '@/components/table/hooks/useTableQuery';
-import { CommonTableColumn, RowAction, TableQueryParams } from '@/components/table/types';
+import { useState } from 'react';
+import { useStore, PurchaseOrder } from '@/hooks/useStore';
+import { useAuth } from '@/context/AuthContext';
+import { DataTable, Column } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -25,16 +19,22 @@ import { purchaseOrderService, usePurchaseOrderStatuses, useDeletePurchaseOrder,
 import { formatCurrency } from '@/lib/utils';
 
 export default function PurchaseOrderList() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { purchaseOrders, deletePurchaseOrder } = useStore();
+  const { hasPermission } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(null);
 
-  // 1. Manage table state
-  const tableState = useTableState({
-    initialPagination: { pageIndex: 1, pageSize: 10 },
-  });
+  const canCreate = hasPermission('purchaseOrders', 'create');
+  const canUpdate = hasPermission('purchaseOrders', 'update');
+  const canDelete = hasPermission('purchaseOrders', 'delete');
+
+  const filteredPOs = purchaseOrders.filter(
+    (po) =>
+      po.refNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      po.supplierName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // 2. Fetch statuses for filter
   const { data: statuses = [] } = usePurchaseOrderStatuses();
@@ -223,10 +223,18 @@ export default function PurchaseOrderList() {
           <h1 className="text-3xl font-bold tracking-tight">Purchase Orders</h1>
           <p className="text-muted-foreground">Manage and track your supplier purchase orders</p>
         </div>
-        <Button onClick={() => navigate('/orders/purchase/create')} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Purchase Order
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={() => {
+              setSelectedPO(null);
+              setIsFormOpen(true);
+            }}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New PO
+          </Button>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -315,13 +323,18 @@ export default function PurchaseOrderList() {
       </div>
 
       {/* Table */}
-      <CommonTable<PurchaseOrder>
-        columns={columns}
-        data={tableQuery.data}
-        totalCount={tableQuery.totalCount}
-        isLoading={tableQuery.isPending}
-        error={tableQuery.error as Error}
-        onRetry={() => tableQuery.refetch()}
+      <div className="bg-card rounded-lg border border-border">
+        <DataTable
+          columns={columns}
+          data={filteredPOs}
+          onEdit={canUpdate ? (po) => {
+            setSelectedPO(po);
+            setIsFormOpen(true);
+          } : undefined}
+          onDelete={canDelete ? (po) => setIsDeleteConfirming(po.id) : undefined}
+          emptyMessage="No purchase orders found. Create your first PO to get started."
+        />
+      </div>
 
         pagination={tableState.pagination}
       onPaginationChange={tableState.setPagination}

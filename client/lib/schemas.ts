@@ -172,28 +172,23 @@ export type TenderFormData = z.infer<typeof tenderSchema>;
 
 // Purchase Order Schema
 export const poItemSchema = z.object({
-  productId: z.coerce.number().int().min(1, "Product is required"),
-  orderedQuantity: z.coerce.number().positive("Quantity must be positive"),
-  unitPrice: z.coerce.number().positive("Unit Price must be positive"),
-  taxPercentage: z.coerce.number().min(0, "Tax % must be non-negative"),
-  discountPercentage: z.coerce.number().min(0, "Discount % must be non-negative"),
-  supplyOrderIds: z.array(z.coerce.number().int()).default([]),
+  nomenclature: z.string().min(1, "Nomenclature is required"),
+  unit: z.string().min(1, "Unit is required"),
+  quantity: z.coerce.number().positive("Quantity must be positive"),
+  rate: z.coerce.number().positive("Rate must be positive"),
 });
 
 export const purchaseOrderSchema = z.object({
-  supplierId: z.coerce.number().int().min(1, "Supplier is required"),
-  orderDate: z.string().min(1, "Order Date is required"),
-  expectedDeliveryDate: z.string().min(1, "Expected Delivery Date is required"),
+  refNo: z.string().min(1, "Reference No is required"),
+  supplierName: z.string().min(1, "Supplier Name is required"),
+  poDate: z.string().min(1, "PO Date is required"),
   deliveryAddress: z.string().min(1, "Delivery Address is required"),
-  notes: z.string().optional().default(""),
   items: z.array(poItemSchema).min(1, "At least one item is required"),
-});
-
-export const updatePurchaseOrderSchema = z.object({
-  expectedDeliveryDate: z.string().min(1, "Expected Delivery Date is required"),
-  status: z.coerce.number().int().min(0, "Status is required"),
-  deliveryAddress: z.string().min(1, "Delivery Address is required"),
-  notes: z.string().optional().default(""),
+  distributorDiscount: z.coerce
+    .number()
+    .min(0, "Discount must be non-negative"),
+  paymentMethod: z.enum(["Cash", "Cheque", "Bank"]),
+  notes: z.string().optional(),
 });
 
 export type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;

@@ -237,6 +237,7 @@ export function useTableState(options: UseTableStateOptions = {}) {
     // Pagination
     setPageIndex,
     setPageSize,
+    setPagination,
 
     // Sorting
     setSorting: handleSortingChange,

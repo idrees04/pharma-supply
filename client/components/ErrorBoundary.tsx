@@ -42,7 +42,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
-    return { hasError: true };
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -77,7 +77,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         return this.props.fallback(this.state.error!, this.retry);
       }
 
-      return <DefaultErrorFallback error={this.state.error!} retry={this.retry} />;
+      return <DefaultErrorFallback error={this.state.error} retry={this.retry} />;
     }
 
     return this.props.children;
@@ -88,7 +88,20 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
  * Default error fallback UI
  * Shows different messages based on error type
  */
-function DefaultErrorFallback({ error, retry }: { error: Error; retry: () => void }) {
+function DefaultErrorFallback({ error, retry }: { error: Error | null; retry: () => void }) {
+  if (!error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+        <Card className="w-full max-w-md shadow-lg">
+          <div className="p-8 text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">An unknown error occurred</h1>
+            <Button onClick={retry} className="mt-6">Try Again</Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   const isApiError = error instanceof ApiError;
 
   return (

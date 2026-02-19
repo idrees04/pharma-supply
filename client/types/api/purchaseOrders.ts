@@ -57,6 +57,7 @@ export interface CreatePurchaseOrderRequest {
   notes: string;
   items: {
     productId: number;
+    productName?: string;
     orderedQuantity: number;
     unitPrice: number;
     taxPercentage: number;

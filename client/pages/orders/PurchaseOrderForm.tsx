@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Plus, Trash2, ArrowLeft, Loader2, Save, ShoppingCart, Calculator, Calendar, MapPin, StickyNote, Package } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Loader2, Save, ShoppingCart, Calculator, Calendar, MapPin, StickyNote, Package, Type, Search } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,7 @@ import { useActiveSuppliers } from '@/api/services/suppliers';
 import { productService } from '@/api/services/products';
 import { formatCurrency, cn } from '@/lib/utils';
 import { CreatePurchaseOrderRequest, UpdatePurchaseOrderRequest } from '@/types/api/purchaseOrders';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 export default function PurchaseOrderForm() {
   const navigate = useNavigate();
@@ -40,6 +41,9 @@ export default function PurchaseOrderForm() {
   const isReadOnly = isViewMode;
   const poId = id ? parseInt(id) : null;
   const previousSupplierIdRef = useRef<number | null>(null);
+  const [isSupplierConfirmOpen, setIsSupplierConfirmOpen] = React.useState(false);
+  const [pendingSupplierId, setPendingSupplierId] = React.useState<number | null>(null);
+  const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = React.useState(false);
 
   // 1. Fetch Data
   const { data: existingPO, isPending: isLoadingPO } = usePurchaseOrder(poId);
@@ -87,7 +91,7 @@ export default function PurchaseOrderForm() {
 
   // 4. Supplier Selection & Dependent Queries
   const selectedSupplierId = useWatch({ control: form.control, name: 'supplierId' });
-  
+
   // Fetch POs by supplier to get "supplier-specific products"
   const { data: supplierPOs, isPending: isLoadingSupplierPOs } = usePurchaseOrdersBySupplier(selectedSupplierId || null);
 
@@ -108,16 +112,54 @@ export default function PurchaseOrderForm() {
     return Array.from(productsMap.values());
   }, [supplierPOs]);
 
-  // Handle Supplier Change: Clear rows if supplier actually changes (prevent clearing on initial load)
-  useEffect(() => {
-    if (selectedSupplierId !== 0 && previousSupplierIdRef.current !== null && selectedSupplierId !== previousSupplierIdRef.current) {
-        if (!isReadOnly) {
-            replace([]); // Clear all rows
-            toast.info('Supplier changed. Product items have been cleared.');
-        }
+  // Handle Supplier Change with Confirmation
+  const handleSupplierChange = (newSupplierId: number) => {
+    if (isReadOnly) return;
+
+    // If no items, change immediately
+    if (fields.length === 0) {
+      form.setValue('supplierId', newSupplierId);
+      previousSupplierIdRef.current = newSupplierId;
+      return;
     }
-    previousSupplierIdRef.current = selectedSupplierId;
-  }, [selectedSupplierId, replace, isReadOnly]);
+
+    // If items exist and supplier actually changes, ask for confirmation
+    if (selectedSupplierId !== 0 && newSupplierId !== selectedSupplierId) {
+      setPendingSupplierId(newSupplierId);
+      setIsSupplierConfirmOpen(true);
+    } else {
+      form.setValue('supplierId', newSupplierId);
+    }
+  };
+
+  const confirmSupplierChange = () => {
+    if (pendingSupplierId !== null) {
+      replace([]); // Clear all rows
+      form.setValue('supplierId', pendingSupplierId);
+      previousSupplierIdRef.current = pendingSupplierId;
+      toast.info('Supplier changed. Product items have been cleared.');
+    }
+    setIsSupplierConfirmOpen(false);
+    setPendingSupplierId(null);
+  };
+
+  const cancelSupplierChange = () => {
+    // Keep existing supplier by doing nothing to the form
+    setIsSupplierConfirmOpen(false);
+    setPendingSupplierId(null);
+  };
+
+  const handleClearTable = () => {
+    if (fields.length > 0) {
+      setIsClearAllConfirmOpen(true);
+    }
+  };
+
+  const confirmClearTable = () => {
+    replace([]);
+    toast.success('All items cleared');
+    setIsClearAllConfirmOpen(false);
+  };
 
   // 5. Mutations
   const { mutate: createPO, isPending: isCreating } = useCreatePurchaseOrder();
@@ -144,10 +186,19 @@ export default function PurchaseOrderForm() {
       });
     } else {
       const createData: CreatePurchaseOrderRequest = {
-        ...data,
+        supplierId: data.supplierId,
+        orderDate: data.orderDate,
+        expectedDeliveryDate: data.expectedDeliveryDate,
+        deliveryAddress: data.deliveryAddress,
+        notes: data.notes || '',
         items: data.items.map(item => ({
-            ...item,
-            supplyOrderIds: item.supplyOrderIds || []
+          productId: item.productId,
+          productName: item.isManual ? item.productName : undefined,
+          orderedQuantity: item.orderedQuantity,
+          unitPrice: item.unitPrice,
+          taxPercentage: item.taxPercentage,
+          discountPercentage: item.discountPercentage,
+          supplyOrderIds: item.supplyOrderIds || []
         }))
       };
       createPO(createData, {
@@ -229,9 +280,9 @@ export default function PurchaseOrderForm() {
             </p>
           </div>
         </div>
-        
+
         {isViewMode && (
-             <div />
+          <div />
         )}
       </div>
 
@@ -261,7 +312,7 @@ export default function PurchaseOrderForm() {
                             <SearchableSelect
                               items={suppliers.map(s => ({ value: s.id, label: s.supplierName }))}
                               value={field.value}
-                              onValueChange={field.onChange}
+                              onValueChange={(val) => handleSupplierChange(Number(val))}
                               placeholder="Choose Supplier"
                               isLoading={isLoadingSuppliers}
                               className={cn(
@@ -282,29 +333,29 @@ export default function PurchaseOrderForm() {
                         <FormItem>
                           <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Order Date</FormLabel>
                           <FormControl>
-                            <Input 
-                                type="date" 
-                                {...field} 
-                                disabled={isEditMode || isViewMode} 
-                                className="h-11 border-muted-foreground/20 bg-muted/5 focus-visible:ring-primary"
+                            <Input
+                              type="date"
+                              {...field}
+                              disabled={isEditMode || isViewMode}
+                              className="h-11 border-muted-foreground/20 bg-muted/5 focus-visible:ring-primary"
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                     <FormField
+                    <FormField
                       control={form.control}
                       name="expectedDeliveryDate"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Expected Delivery</FormLabel>
                           <FormControl>
-                            <Input 
-                                type="date" 
-                                {...field} 
-                                disabled={isReadOnly}
-                                className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                            <Input
+                              type="date"
+                              {...field}
+                              disabled={isReadOnly}
+                              className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
                             />
                           </FormControl>
                           <FormMessage />
@@ -323,36 +374,36 @@ export default function PurchaseOrderForm() {
                             <MapPin className="h-3 w-3" /> Delivery Address
                           </FormLabel>
                           <FormControl>
-                            <Input 
-                                placeholder="Enter full delivery destination" 
-                                {...field} 
-                                disabled={isReadOnly}
-                                className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                            <Input
+                              placeholder="Enter full delivery destination"
+                              {...field}
+                              disabled={isReadOnly}
+                              className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                     <FormField
-                        control={form.control}
-                        name="notes"
-                        render={({ field }) => (
+                    <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                                <StickyNote className="h-3 w-3" /> Special Instructions
-                            </FormLabel>
-                            <FormControl>
-                            <Input 
-                                placeholder="Any specific requirements or notes for the supplier..." 
-                                {...field} 
-                                disabled={isReadOnly}
-                                className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                          <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                            <StickyNote className="h-3 w-3" /> Special Instructions
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Any specific requirements or notes for the supplier..."
+                              {...field}
+                              disabled={isReadOnly}
+                              className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
                             />
-                            </FormControl>
-                            <FormMessage />
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
-                        )}
+                      )}
                     />
                   </div>
                 </CardContent>
@@ -363,30 +414,43 @@ export default function PurchaseOrderForm() {
                 <CardHeader className="flex flex-row items-center justify-between pb-4">
                   <div className="space-y-1">
                     <CardTitle className="text-xl flex items-center gap-2">
-                        <ShoppingCart className="h-5 w-5 text-primary" />
-                        Products & Items
+                      <ShoppingCart className="h-5 w-5 text-primary" />
+                      Products & Items
                     </CardTitle>
                     <CardDescription>Select products and specify quantities for this order</CardDescription>
                   </div>
                   {!isReadOnly && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => append({
-                        productId: 0,
-                        orderedQuantity: 1,
-                        unitPrice: 0,
-                        taxPercentage: 0,
-                        discountPercentage: 0,
-                        supplyOrderIds: []
-                      })}
-                      className="gap-2 shadow-sm border border-primary/20 hover:bg-primary/10 transition-colors"
-                      disabled={selectedSupplierId === 0 || isLoadingSupplierPOs}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add Row
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearTable}
+                        className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        disabled={fields.length === 0}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Clear Table
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => append({
+                          productId: 0,
+                          orderedQuantity: 1,
+                          unitPrice: 0,
+                          taxPercentage: 0,
+                          discountPercentage: 0,
+                          supplyOrderIds: []
+                        })}
+                        className="gap-2 shadow-sm border border-primary/20 hover:bg-primary/10 transition-colors"
+                        disabled={selectedSupplierId === 0 || isLoadingSupplierPOs}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Row
+                      </Button>
+                    </div>
                   )}
                 </CardHeader>
                 <CardContent className="p-0 border-t">
@@ -417,21 +481,62 @@ export default function PurchaseOrderForm() {
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormControl>
-                                      <SearchableSelect
-                                        items={getAvailableProducts(index)}
-                                        value={field.value}
-                                        onValueChange={(val) => {
-                                          field.onChange(val);
-                                          handleProductChange(index, Number(val));
-                                        }}
-                                        placeholder="Find Product..."
-                                        isLoading={isLoadingSupplierPOs}
-                                        className={cn(
-                                            "w-full transition-all duration-200 border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
-                                            isReadOnly && "border-none bg-transparent cursor-default pointer-events-none p-0 text-foreground font-semibold"
+                                      <div className="flex gap-1 items-center">
+                                        {form.getValues(`items.${index}.isManual`) ? (
+                                          <div className="flex-1 flex gap-1">
+                                            <FormField
+                                              control={form.control}
+                                              name={`items.${index}.productName`}
+                                              render={({ field: nameField }) => (
+                                                <Input
+                                                  {...nameField}
+                                                  placeholder="Enter product description..."
+                                                  className="h-9 text-sm"
+                                                  disabled={isReadOnly}
+                                                />
+                                              )}
+                                            />
+                                          </div>
+                                        ) : (
+                                          <SearchableSelect
+                                            items={getAvailableProducts(index)}
+                                            value={field.value}
+                                            onValueChange={(val) => {
+                                              field.onChange(val);
+                                              handleProductChange(index, Number(val));
+                                            }}
+                                            placeholder="Find Product..."
+                                            isLoading={isLoadingSupplierPOs}
+                                            className={cn(
+                                              "w-full transition-all duration-200 border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
+                                              isReadOnly && "border-none bg-transparent cursor-default pointer-events-none p-0 text-foreground font-semibold"
+                                            )}
+                                            disabled={isReadOnly}
+                                          />
                                         )}
-                                        disabled={isReadOnly}
-                                      />
+                                        {!isReadOnly && (
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 hover:bg-muted text-muted-foreground"
+                                            title={form.getValues(`items.${index}.isManual`) ? "Switch to Search" : "Manual Entry"}
+                                            onClick={() => {
+                                              const currentIsManual = !!form.getValues(`items.${index}.isManual`);
+                                              form.setValue(`items.${index}.isManual`, !currentIsManual);
+                                              if (!currentIsManual) {
+                                                form.setValue(`items.${index}.productId`, 0);
+                                              }
+                                            }}
+                                          >
+                                            {form.getValues(`items.${index}.isManual`) ? (
+                                              <Search className="h-3 w-3" />
+                                            ) : (
+                                              <Type className="h-3 w-3" />
+                                            )}
+                                          </Button>
+                                        )}
+                                      </div>
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -445,15 +550,15 @@ export default function PurchaseOrderForm() {
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormControl>
-                                      <Input 
-                                          type="number" 
-                                          min="1" 
-                                          {...field} 
-                                          disabled={isReadOnly}
-                                          className={cn(
-                                              "text-center font-semibold border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
-                                              isReadOnly && "border-none"
-                                          )}
+                                      <Input
+                                        type="number"
+                                        min="1"
+                                        {...field}
+                                        disabled={isReadOnly}
+                                        className={cn(
+                                          "text-center font-semibold border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
+                                          isReadOnly && "border-none"
+                                        )}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -468,15 +573,15 @@ export default function PurchaseOrderForm() {
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormControl>
-                                      <Input 
-                                          type="number" 
-                                          step="0.01" 
-                                          {...field} 
-                                          disabled={isReadOnly}
-                                          className={cn(
-                                              "font-semibold border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
-                                              isReadOnly && "border-none"
-                                          )}
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        {...field}
+                                        disabled={isReadOnly}
+                                        className={cn(
+                                          "font-semibold border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
+                                          isReadOnly && "border-none"
+                                        )}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -491,15 +596,15 @@ export default function PurchaseOrderForm() {
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormControl>
-                                      <Input 
-                                          type="number" 
-                                          step="0.01" 
-                                          {...field} 
-                                          disabled={isReadOnly}
-                                          className={cn(
-                                            "text-center font-bold text-blue-700 border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
-                                            isReadOnly && "border-none"
-                                          )}
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        {...field}
+                                        disabled={isReadOnly}
+                                        className={cn(
+                                          "text-center font-bold text-blue-700 border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
+                                          isReadOnly && "border-none"
+                                        )}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -514,15 +619,15 @@ export default function PurchaseOrderForm() {
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormControl>
-                                      <Input 
-                                          type="number" 
-                                          step="0.01" 
-                                          {...field} 
-                                          disabled={isReadOnly}
-                                          className={cn(
-                                            "text-center font-bold text-red-700 border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
-                                            isReadOnly && "border-none"
-                                          )}
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        {...field}
+                                        disabled={isReadOnly}
+                                        className={cn(
+                                          "text-center font-bold text-red-700 border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
+                                          isReadOnly && "border-none"
+                                        )}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -590,12 +695,12 @@ export default function PurchaseOrderForm() {
                       <span className="text-muted-foreground uppercase tracking-tight text-xs">Total Discounts</span>
                       <span className="text-red-600 font-bold">-{formatCurrency(calculations.rowTotals.reduce((sum, r) => sum + r.discountAmount, 0))}</span>
                     </div>
-                    
+
                     <div className="border-t border-dashed pt-4 mt-6">
                       <div className="flex flex-col gap-1">
                         <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Grand Net Total</span>
                         <div className="text-3xl font-black text-primary tracking-tighter drop-shadow-sm">
-                            {formatCurrency(calculations.grandTotal)}
+                          {formatCurrency(calculations.grandTotal)}
                         </div>
                       </div>
                     </div>
@@ -603,25 +708,25 @@ export default function PurchaseOrderForm() {
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3 bg-muted/10 pt-4 border-t">
                   {!isReadOnly && (
-                    <Button 
-                        type="submit" 
-                        className="w-full gap-2 h-12 text-md font-bold shadow-md hover:shadow-lg transition-all" 
-                        disabled={isCreating || isUpdating}
+                    <Button
+                      type="submit"
+                      className="w-full gap-2 h-12 text-md font-bold shadow-md hover:shadow-lg transition-all"
+                      disabled={isCreating || isUpdating}
                     >
-                        {(isCreating || isUpdating) ? (
+                      {(isCreating || isUpdating) ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
+                      ) : (
                         <Save className="h-5 w-5" />
-                        )}
-                        {isEditMode ? 'Update Purchase Order' : 'Submit Final Order'}
+                      )}
+                      {isEditMode ? 'Update Purchase Order' : 'Submit Final Order'}
                     </Button>
                   )}
                   {isReadOnly && (
                     <div />
                   )}
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
+                  <Button
+                    type="button"
+                    variant="ghost"
                     className="w-full text-muted-foreground hover:text-foreground"
                     onClick={() => navigate('/orders/purchase')}
                   >
@@ -632,19 +737,46 @@ export default function PurchaseOrderForm() {
 
               {/* Related Info */}
               {selectedSupplierId > 0 && !isReadOnly && (
-                  <Card className="border-none shadow-none bg-muted/30">
-                     <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-black uppercase text-muted-foreground tracking-widest">Supplier Inventory Hints</CardTitle>
-                     </CardHeader>
-                     <CardContent className="text-xs text-muted-foreground leading-relaxed">
-                        This supplier has {supplierProducts.length} items cataloged based on historical purchase orders.
-                     </CardContent>
-                  </Card>
+                <Card className="border-none shadow-none bg-muted/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-black uppercase text-muted-foreground tracking-widest">Supplier Inventory Hints</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-xs text-muted-foreground leading-relaxed">
+                    This supplier has {supplierProducts.length} items cataloged based on historical purchase orders.
+                  </CardContent>
+                </Card>
               )}
             </div>
           </div>
         </form>
       </Form>
+
+      {/* Confirmation Dialogs */}
+      <ConfirmDialog
+        open={isSupplierConfirmOpen}
+        onOpenChange={setIsSupplierConfirmOpen}
+        title="Change Supplier?"
+        description={
+          <span>
+            Changing the supplier will <span className="font-bold text-destructive">clear all selected product rows</span>.
+            Are you sure you want to continue?
+          </span>
+        }
+        onConfirm={confirmSupplierChange}
+        confirmText="Yes, Change Supplier"
+        cancelText="No, Keep Current"
+        variant="destructive"
+      />
+
+      <ConfirmDialog
+        open={isClearAllConfirmOpen}
+        onOpenChange={setIsClearAllConfirmOpen}
+        title="Clear All Items?"
+        description="This will remove all products from the table. This action cannot be undone."
+        onConfirm={confirmClearTable}
+        confirmText="Clear Everything"
+        variant="destructive"
+      />
     </div>
   );
 }

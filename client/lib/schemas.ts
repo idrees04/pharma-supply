@@ -172,12 +172,14 @@ export type TenderFormData = z.infer<typeof tenderSchema>;
 
 // Purchase Order Schema
 export const poItemSchema = z.object({
-  productId: z.coerce.number().int().min(1, "Product is required"),
+  productId: z.coerce.number().int().min(0, "Product is required"),
+  productName: z.string().optional(),
   orderedQuantity: z.coerce.number().positive("Quantity must be positive"),
   unitPrice: z.coerce.number().positive("Unit Price must be positive"),
   taxPercentage: z.coerce.number().min(0, "Tax % must be non-negative"),
   discountPercentage: z.coerce.number().min(0, "Discount % must be non-negative"),
   supplyOrderIds: z.array(z.coerce.number().int()).default([]),
+  isManual: z.boolean().default(false).optional(),
 });
 
 export const purchaseOrderSchema = z.object({

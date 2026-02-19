@@ -39,7 +39,10 @@ export const purchaseOrderService = {
     const queryParams = new URLSearchParams();
 
     if (params) {
-      if (params.pageNumber !== undefined) queryParams.append('PageNumber', params.pageNumber.toString());
+      if (params.pageNumber !== undefined) {
+        const pageNumber = params.pageNumber <= 0 ? 1 : params.pageNumber;
+        queryParams.append('PageNumber', pageNumber.toString());
+      }
       if (params.pageSize !== undefined) queryParams.append('PageSize', params.pageSize.toString());
       if (params.searchTerm) queryParams.append('SearchTerm', params.searchTerm);
       if (params.sortBy) queryParams.append('SortBy', params.sortBy);

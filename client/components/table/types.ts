@@ -75,7 +75,7 @@ export interface RowActionContext<TData> {
  * Column configuration for table
  * Extends @tanstack/react-table ColumnDef with custom properties
  */
-export interface CommonTableColumn<TData> extends ColumnDef<TData> {
+export type CommonTableColumn<TData> = ColumnDef<TData> & {
   /**
    * Column header label
    */
@@ -125,7 +125,7 @@ export interface CommonTableColumn<TData> extends ColumnDef<TData> {
    * Custom filter component
    */
   filterComponent?: (value: unknown, onChange: (value: unknown) => void) => ReactNode;
-}
+};
 
 /**
  * Row action definition
@@ -333,6 +333,12 @@ export interface CommonTableProps<TData> {
    * Row actions (edit, delete, etc.)
    */
   rowActions?: RowAction<TData>[];
+
+  /**
+   * Position of the row actions column
+   * @default 'end'
+   */
+  actionsPosition?: 'start' | 'end';
 
   /**
    * Toolbar actions (bulk operations)

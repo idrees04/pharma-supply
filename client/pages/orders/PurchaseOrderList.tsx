@@ -145,7 +145,14 @@ export default function PurchaseOrderList() {
       header: 'PO Number',
       label: 'PO Number',
       sortable: true,
-      cell: (info) => <span className="font-medium text-primary">{info.getValue() as string}</span>,
+      cell: (info) => (
+        <button
+          onClick={() => navigate(`/orders/purchase/view/${info.row.original.id}`)}
+          className="font-black text-primary hover:underline cursor-pointer text-left tracking-tight"
+        >
+          {info.getValue() as string}
+        </button>
+      ),
     },
     {
       accessorKey: 'supplierName',
@@ -191,7 +198,7 @@ export default function PurchaseOrderList() {
         return <Badge variant={variant}>{statusName}</Badge>;
       },
     },
-  ], [statuses]);
+  ] as any[], [statuses]);
 
   // 6. Row Actions
   const rowActions = useMemo((): RowAction<PurchaseOrder>[] => [
@@ -315,7 +322,7 @@ export default function PurchaseOrderList() {
       </div>
 
       {/* Table */}
-      <CommonTable<PurchaseOrder>
+      <CommonTable
         columns={columns}
         data={tableQuery.data}
         totalCount={tableQuery.totalCount}
@@ -333,6 +340,7 @@ export default function PurchaseOrderList() {
         onGlobalFilterChange={tableState.setGlobalFilter}
 
         rowActions={rowActions}
+        actionsPosition="start"
         showToolbar={true}
         emptyStateMessage="No purchase orders found."
       />

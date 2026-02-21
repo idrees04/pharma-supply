@@ -57,11 +57,8 @@ import { cn } from '@/lib/utils';
  *   const table = useReactTable<Product>({ ... });
  *   <CommonTable<Product> columns={columns} data={data} ... />
  */
-export const CommonTable = React.forwardRef<
-  HTMLDivElement,
-  CommonTableProps<any>
->(
-  (
+const CommonTableComponent = React.forwardRef(
+  <TData extends any>(
     {
       columns,
       data,
@@ -98,6 +95,7 @@ export const CommonTable = React.forwardRef<
 
       // Actions
       rowActions,
+      actionsPosition = 'end',
       toolbarActions,
       showToolbar = true,
 
@@ -129,8 +127,8 @@ export const CommonTable = React.forwardRef<
       // Events
       onRowClick,
       expandableRows,
-    },
-    ref
+    }: CommonTableProps<TData>,
+    ref: React.ForwardedRef<HTMLDivElement>
   ) => {
     // State for uncontrolled mode
     const [internalPagination, setInternalPagination] = React.useState({
@@ -209,22 +207,19 @@ export const CommonTable = React.forwardRef<
         cols.push({
           id: 'select',
           header: ({ table }) => (
-            <input
-              type="checkbox"
+            <IndeterminateCheckbox
               checked={table.getIsAllRowsSelected()}
               indeterminate={table.getIsSomeRowsSelected()}
               onChange={table.getToggleAllRowsSelectedHandler()}
               aria-label="Select all rows"
-              className="cursor-pointer"
             />
           ),
           cell: ({ row }) => (
-            <input
+            <IndeterminateCheckbox
               type={enableMultiSelect ? 'checkbox' : 'radio'}
               checked={row.getIsSelected()}
               onChange={row.getToggleSelectedHandler()}
               aria-label={`Select row ${row.index + 1}`}
-              className="cursor-pointer"
             />
           ),
           size: 40,
@@ -261,22 +256,28 @@ export const CommonTable = React.forwardRef<
 
       cols.push(...(columns as ColumnDef<any>[]));
 
+      const actionsCol: ColumnDef<any> = {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <TableRowActions
+            row={row}
+            rowActions={rowActions}
+            selectedRowCount={Object.values(rowSelectionState).filter(Boolean).length}
+          />
+        ),
+        size: 50,
+        enableHiding: false,
+        enableSorting: false,
+        enableColumnFilter: false,
+      };
+
       if (rowActions && rowActions.length > 0) {
-        cols.push({
-          id: 'actions',
-          header: 'Actions',
-          cell: ({ row }) => (
-            <TableRowActions
-              row={row}
-              rowActions={rowActions}
-              selectedRowCount={Object.values(rowSelectionState).filter(Boolean).length}
-            />
-          ),
-          size: 50,
-          enableHiding: false,
-          enableSorting: false,
-          enableColumnFilter: false,
-        });
+        if (actionsPosition === 'start') {
+          cols.splice(0, 0, actionsCol);
+        } else {
+          cols.push(actionsCol);
+        }
       }
 
       return cols;
@@ -387,7 +388,7 @@ export const CommonTable = React.forwardRef<
   }
 );
 
-CommonTable.displayName = 'CommonTable';
+CommonTableComponent.displayName = 'CommonTable';
 
 /**
  * TableRowActions Component
@@ -395,7 +396,7 @@ CommonTable.displayName = 'CommonTable';
  */
 const TableRowActions = React.memo(
   ({ row, rowActions, selectedRowCount }: any) => {
-    const visibleActions = rowActions.filter((action) => {
+    const visibleActions = rowActions.filter((action: any) => {
       if (action.isVisible) {
         return action.isVisible(row.original, selectedRowCount);
       }
@@ -408,7 +409,7 @@ const TableRowActions = React.memo(
 
     return (
       <div className="flex items-center gap-2">
-        {visibleActions.map((action) => {
+        {visibleActions.map((action: any) => {
           const isDisabled = action.isDisabled ? action.isDisabled(row.original, selectedRowCount) : false;
 
           return (
@@ -433,6 +434,33 @@ const TableRowActions = React.memo(
   }
 );
 
-TableRowActions.displayName = 'TableRowActions';
+/**
+ * Indeterminate Checkbox Component
+ */
+function IndeterminateCheckbox({
+  indeterminate,
+  className = '',
+  ...rest
+}: { indeterminate?: boolean } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const ref = React.useRef<HTMLInputElement>(null!);
+
+  React.useEffect(() => {
+    if (typeof indeterminate === 'boolean') {
+      ref.current.indeterminate = !rest.checked && indeterminate;
+    }
+  }, [ref, indeterminate, rest.checked]);
+
+  return (
+    <input
+      type="checkbox"
+      ref={ref}
+      className={className + ' cursor-pointer'}
+      {...rest}
+    />
+  );
+}
+
+// @ts-ignore - To support generic forwardRef
+export const CommonTable = CommonTableComponent as <TData>(props: CommonTableProps<TData> & { ref?: React.ForwardedRef<HTMLDivElement> }) => React.ReactElement;
 
 export default CommonTable;

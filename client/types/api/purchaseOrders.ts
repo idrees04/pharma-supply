@@ -43,6 +43,7 @@ export interface PurchaseOrder {
   paymentMethod?: 'Cash' | 'Cheque' | 'Bank';
   notes: string;
   isActive: boolean;
+  createdAt: string;
   items: PurchaseOrderItem[];
 }
 

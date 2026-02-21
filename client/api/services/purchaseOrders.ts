@@ -106,15 +106,8 @@ export const purchaseOrderService = {
    * Returns the list of possible status values and names
    */
   getStatuses: async (): Promise<PurchaseOrderStatus[]> => {
-    // Note: The API documentation for GET /api/PurchaseOrders/by-status/:status
-    // seems to be used for filtering orders. For the status list, we use
-    // a standard set of PO statuses consistent with the application logic.
-    return [
-      { value: 1, name: 'Pending' },
-      { value: 2, name: 'Confirmed' },
-      { value: 3, name: 'Completed' },
-      { value: 4, name: 'Cancelled' },
-    ];
+    const response = await get<GetPurchaseOrderStatusesResponse>('/api/PurchaseOrders/statuses');
+    return response.data;
   },
 
   /**

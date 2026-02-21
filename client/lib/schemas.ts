@@ -201,6 +201,28 @@ export const updatePurchaseOrderSchema = z.object({
 export type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;
 export type UpdatePurchaseOrderFormData = z.infer<typeof updatePurchaseOrderSchema>;
 
+// Receive Items Schema
+export const receiveItemLineSchema = z.object({
+  purchaseOrderItemId: z.coerce.number().int().min(1),
+  productName: z.string(), // For UI display only
+  orderedQuantity: z.coerce.number(), // For validation/UI display
+  previouslyReceived: z.coerce.number(), // For validation/UI display
+  receivedQuantity: z.coerce.number().min(0, "Must be at least 0"),
+  batchNumber: z.string().min(1, "Batch Number is required"),
+  manufactureDate: z.string().min(1, "Manufacture Date is required"),
+  expiryDate: z.string().min(1, "Expiry Date is required"),
+  notes: z.string().optional().default(""),
+});
+
+export const receiveItemsSchema = z.object({
+  purchaseOrderId: z.coerce.number().int().min(1),
+  actualDeliveryDate: z.string().min(1, "Actual Delivery Date is required"),
+  items: z.array(receiveItemLineSchema).min(1, "At least one item is required"),
+});
+
+export type ReceiveItemsFormData = z.infer<typeof receiveItemsSchema>;
+export type ReceiveItemLineFormData = z.infer<typeof receiveItemLineSchema>;
+
 // Sales Order Schema
 export const salesItemSchema = z.object({
   itemName: z.string().min(1, "Item Name is required"),

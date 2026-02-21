@@ -33,7 +33,9 @@ import {
   SheetDescription
 } from '@/components/ui/sheet';
 import { UpdatePurchaseOrderForm } from '@/components/purchase-orders/UpdatePurchaseOrderForm';
-import { Edit2 } from 'lucide-react';
+import { ReceiveItemsForm } from '@/components/purchase-orders/ReceiveItemsForm';
+import { Edit2, PackageCheck } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 import {
   Breadcrumb,
@@ -52,6 +54,7 @@ export default function PurchaseOrderView() {
   const { data: po, isPending, error, refetch } = usePurchaseOrder(poId);
   const { data: statuses = [] } = usePurchaseOrderStatuses();
   const [isEditSheetOpen, setIsEditSheetOpen] = React.useState(false);
+  const [isReceiveSheetOpen, setIsReceiveSheetOpen] = React.useState(false);
 
   const calculations = useMemo(() => {
     if (!po?.items) return { subtotal: 0, tax: 0, discount: 0, total: 0 };
@@ -134,11 +137,18 @@ export default function PurchaseOrderView() {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            className="gap-2 border-primary/20 hover:bg-primary/5 text-primary font-bold"
+            className="gap-2 border-primary/20 hover:bg-primary/5 text-primary font-bold transition-all hover:scale-105 active:scale-95"
             onClick={() => setIsEditSheetOpen(true)}
           >
             <Edit2 className="h-4 w-4" />
             Edit Order
+          </Button>
+          <Button
+            className="gap-2 font-bold transition-all hover:scale-105 active:scale-95 shadow-md hover:shadow-primary/20"
+            onClick={() => setIsReceiveSheetOpen(true)}
+          >
+            <PackageCheck className="h-4 w-4" />
+            Receive Goods
           </Button>
           <Button variant="outline" className="gap-2" onClick={() => window.print()}>
             <FileText className="h-4 w-4" />
@@ -296,42 +306,61 @@ export default function PurchaseOrderView() {
               </div>
             </CardHeader>
             <CardContent className="p-0 border-t">
-              <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead className="w-[60px] text-center">#</TableHead>
-                    <TableHead>Product Description</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Tax %</TableHead>
-                    <TableHead className="text-right">Disc %</TableHead>
-                    <TableHead className="text-right pr-6">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(po.items || []).map((item, index) => {
-                    const lineSubtotal = item.orderedQuantity * item.unitPrice;
-                    const lineTax = lineSubtotal * (item.taxPercentage / 100);
-                    const lineDiscount = lineSubtotal * (item.discountPercentage / 100);
-                    const lineTotal = lineSubtotal + lineTax - lineDiscount;
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest pl-6 whitespace-nowrap">Product</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest whitespace-nowrap">Code</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest whitespace-nowrap">Ordered</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest text-blue-600 whitespace-nowrap">Received</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest text-amber-600 whitespace-nowrap">Remaining</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest whitespace-nowrap">Unit Price</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest whitespace-nowrap">Tax %</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest whitespace-nowrap">Disc %</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest pr-6 whitespace-nowrap">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(po.items || []).map((item, index) => {
+                      const lineSubtotal = item.orderedQuantity * item.unitPrice;
+                      const lineTax = lineSubtotal * (item.taxPercentage / 100);
+                      const lineDiscount = lineSubtotal * (item.discountPercentage / 100);
+                      const lineTotal = lineSubtotal + lineTax - lineDiscount;
 
-                    return (
-                      <TableRow key={item.id} className="hover:bg-muted/10">
-                        <TableCell className="text-center font-medium text-muted-foreground">{index + 1}</TableCell>
-                        <TableCell>
-                          <p className="font-semibold">{item.productName}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.productCode}</p>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">{item.orderedQuantity}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(item.unitPrice)}</TableCell>
-                        <TableCell className="text-right text-blue-600 font-medium">{item.taxPercentage}%</TableCell>
-                        <TableCell className="text-right text-red-600 font-medium">{item.discountPercentage}%</TableCell>
-                        <TableCell className="text-right pr-6 font-bold">{formatCurrency(lineTotal)}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                      return (
+                        <motion.tr
+                          key={item.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.03 }}
+                          className="border-b transition-colors hover:bg-muted/10 group data-[state=selected]:bg-muted"
+                        >
+                          <TableCell className="pl-6 py-4 min-w-[200px] max-w-[300px]">
+                            <p className="font-bold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                              {item.productName}
+                            </p>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Badge variant="outline" className="font-mono text-[10px] py-0 h-5 px-1.5 bg-muted/50">
+                              {item.productCode}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-black text-sm whitespace-nowrap">{item.orderedQuantity.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-black text-sm text-blue-700 bg-blue-50/30 whitespace-nowrap">{item.receivedQuantity.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-black text-sm text-amber-700 bg-amber-50/30 whitespace-nowrap">
+                            {item.remainingQuantity.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-xs whitespace-nowrap">{formatCurrency(item.unitPrice)}</TableCell>
+                          <TableCell className="text-right font-bold text-xs text-blue-600/80 whitespace-nowrap">{item.taxPercentage}%</TableCell>
+                          <TableCell className="text-right font-bold text-xs text-red-600/80 whitespace-nowrap">{item.discountPercentage}%</TableCell>
+                          <TableCell className="text-right pr-6 font-black text-sm text-primary whitespace-nowrap">{formatCurrency(lineTotal)}</TableCell>
+                        </motion.tr>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -402,9 +431,37 @@ export default function PurchaseOrderView() {
                 purchaseOrder={po}
                 onSuccess={() => {
                   setIsEditSheetOpen(false);
-                  refetch();
                 }}
                 onCancel={() => setIsEditSheetOpen(false)}
+              />
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={isReceiveSheetOpen} onOpenChange={setIsReceiveSheetOpen}>
+        <SheetContent className="sm:max-w-[800px] p-0 border-l-0">
+          <div className="h-full flex flex-col focus-visible:outline-none">
+            <SheetHeader className="p-6 bg-primary/5 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <PackageCheck className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <SheetTitle className="text-2xl font-bold">Receive Goods</SheetTitle>
+                  <SheetDescription>
+                    Record quantity received and batch details for PO <span className="font-mono font-bold text-foreground">{po.purchaseOrderNumber}</span>
+                  </SheetDescription>
+                </div>
+              </div>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto p-6 bg-muted/5">
+              <ReceiveItemsForm
+                purchaseOrder={po}
+                onSuccess={() => {
+                  setIsReceiveSheetOpen(false);
+                }}
+                onCancel={() => setIsReceiveSheetOpen(false)}
               />
             </div>
           </div>

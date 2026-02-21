@@ -129,13 +129,12 @@ export const purchaseOrderService = {
   /**
    * Receive items for a purchase order
    */
-  receiveItems: async (data: ReceivePurchaseOrderRequest, config?: RequestConfig): Promise<PurchaseOrder> => {
-    const response = await post<ReceivePurchaseOrderResponse, ReceivePurchaseOrderRequest>(
+  receiveItems: async (data: ReceivePurchaseOrderRequest, config?: RequestConfig): Promise<ReceivePurchaseOrderResponse> => {
+    return post<ReceivePurchaseOrderResponse, ReceivePurchaseOrderRequest>(
       '/api/PurchaseOrders/receive',
       data,
       config
     );
-    return response.data;
   },
 
   /**
@@ -242,6 +241,24 @@ export function usePurchaseOrdersBySupplier(supplierId: number | null) {
     () => purchaseOrderService.getPurchaseOrdersBySupplier(supplierId!),
     {
       enabled: supplierId !== null,
+    }
+  );
+}
+
+export function useReceiveItems() {
+  const queryClient = useQueryClient();
+
+  return usePostMutation<ReceivePurchaseOrderResponse, ReceivePurchaseOrderRequest>(
+    (data) => purchaseOrderService.receiveItems(data),
+    {
+      onSuccess: (response, variables) => {
+        const updated = response.data;
+        if (updated) {
+          queryClient.setQueryData(['purchaseOrders', updated.id], updated);
+        }
+        queryClient.invalidateQueries({ queryKey: ['purchaseOrders', variables.purchaseOrderId] });
+        queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+      },
     }
   );
 }

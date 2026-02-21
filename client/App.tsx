@@ -37,6 +37,8 @@ import HospitalList from "./pages/hospitals/HospitalList";
 import HospitalDetails from "./pages/hospitals/HospitalDetails";
 import ProductDetails from "./pages/inventory/ProductDetails";
 import SupplyOrderList from "./pages/supply/SupplyOrderList";
+import SupplyOrderForm from "./pages/supply/SupplyOrderForm";
+import SupplyOrderView from "./pages/supply/SupplyOrderView";
 import UsersPage from "./pages/users/UsersPage";
 import ProductTypesList from "./pages/settings/ProductTypesList";
 import UnitsList from "./pages/settings/UnitsList";
@@ -161,16 +163,48 @@ const AppRoutes = () => (
         }
       />
     </Route>
-    <Route
-      path="/supply-orders"
-      element={
-        <ProtectedRoute module="supplyOrders" permission="read">
-          <MainLayout>
-            <SupplyOrderList />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
+    <Route path="/supply-orders">
+      <Route
+        index
+        element={
+          <ProtectedRoute module="supplyOrders" permission="read">
+            <MainLayout>
+              <SupplyOrderList />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="create"
+        element={
+          <ProtectedRoute module="supplyOrders" permission="create">
+            <MainLayout>
+              <SupplyOrderForm />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="view/:id"
+        element={
+          <ProtectedRoute module="supplyOrders" permission="read">
+            <MainLayout>
+              <SupplyOrderView />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="edit/:id"
+        element={
+          <ProtectedRoute module="supplyOrders" permission="update">
+            <MainLayout>
+              <SupplyOrderForm />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+    </Route>
     <Route
       path="/tender"
       element={
@@ -181,16 +215,48 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     />
-    <Route
-      path="/orders/purchase"
-      element={
-        <ProtectedRoute module="purchaseOrders" permission="read">
-          <MainLayout>
-            <PurchaseOrderList />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
+    <Route path="/orders/purchase">
+      <Route
+        index
+        element={
+          <ProtectedRoute module="purchaseOrders" permission="read">
+            <MainLayout>
+              <PurchaseOrderList />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="create"
+        element={
+          <ProtectedRoute module="purchaseOrders" permission="create">
+            <MainLayout>
+              <PurchaseOrderForm />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="view/:id"
+        element={
+          <ProtectedRoute module="purchaseOrders" permission="read">
+            <MainLayout>
+              <PurchaseOrderView />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="edit/:id"
+        element={
+          <ProtectedRoute module="purchaseOrders" permission="update">
+            <MainLayout>
+              <PurchaseOrderForm />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+    </Route>
     <Route
       path="/orders/sales"
       element={

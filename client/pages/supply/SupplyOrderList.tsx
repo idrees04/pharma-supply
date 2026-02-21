@@ -1,164 +1,249 @@
-import { useState } from 'react';
-import { useStore } from '@/hooks/useStore';
-import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Plus, Edit2, Trash2, AlertCircle, Zap } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Trash2, Plus, Filter, FileText, CheckCircle, Clock, XCircle, DollarSign, Search, PackageCheck, Zap, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
-import SupplyOrderForm from './SupplyOrderForm';
-import { DataTable } from '@/components/common/DataTable';
+import { useQueryClient } from '@tanstack/react-query';
+
+import { DataTable, Column } from '@/components/common/DataTable';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+import { SupplyOrder } from '@/types/api/supplyOrders';
+import { useSupplyOrderList, useSupplyOrderStatuses, useDeleteSupplyOrder } from '@/api/services/supplyOrders.service';
+import { formatCurrency } from '@/lib/utils';
 
 export default function SupplyOrderList() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<typeof supplyOrders[0] | null>(null);
-  const { hasPermission } = useAuth();
-  const supplyOrders = useStore((state) => state.supplyOrders);
-  const updateSupplyOrder = useStore((state) => state.updateSupplyOrder);
-  const deleteSupplyOrder = useStore((state) => state.deleteSupplyOrder);
-  const addPurchaseOrder = useStore((state) => state.addPurchaseOrder);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [soToDelete, setSoToDelete] = useState<SupplyOrder | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const canCreate = hasPermission('supplyOrders', 'create');
-  const canUpdate = hasPermission('supplyOrders', 'update');
-  const canDelete = hasPermission('supplyOrders', 'delete');
+  // 1. Fetch data
+  const { data: soData, isLoading } = useSupplyOrderList({
+    pageSize: 1000,
+    pageNumber: 1,
+    searchTerm: searchTerm || undefined
+  });
+  const allSOs = soData?.items || [];
 
-  const handleEdit = (order: typeof supplyOrders[0]) => {
-    if (!canUpdate) {
-      toast.error('You do not have permission to edit supply orders');
-      return;
-    }
-    setSelectedOrder(order);
-    setIsDialogOpen(true);
+  // 2. Fetch statuses for filter
+  const { data: statuses = [] } = useSupplyOrderStatuses();
+
+  // 3. Filter data (local filter for now as per PO pattern, but can be server-side if needed)
+  const filteredSOs = useMemo(() => {
+    return allSOs.filter((so) => {
+      const matchesStatus = statusFilter === 'all' || so.status.toString() === statusFilter;
+      // Search is already done via API if searchTerm is provided, but local filtering as backup
+      const matchesSearch =
+        so.supplyOrderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        so.hospitalName.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesStatus && matchesSearch;
+    });
+  }, [allSOs, statusFilter, searchTerm]);
+
+  const stats = useMemo(() => {
+    const totals = {
+      count: allSOs.length,
+      amount: 0,
+      tax: 0,
+      discount: 0,
+      pending: 0,
+      approved: 0,
+      fulfilled: 0,
+      cancelled: 0,
+    };
+
+    allSOs.forEach((so) => {
+      totals.amount += so.totalAmount || 0;
+      totals.tax += so.taxAmount || 0;
+      totals.discount += so.discountAmount || 0;
+
+      // Status values mapped from API: 1=Pending, 2=Approved, 3=Fulfilled, 4=Cancelled (assuming based on PO pattern)
+      if (so.status === 1) totals.pending++;
+      else if (so.status === 2) totals.approved++;
+      else if (so.status === 3) totals.fulfilled++;
+      else if (so.status === 4) totals.cancelled++;
+    });
+
+    return totals;
+  }, [allSOs]);
+
+  // 4. Mutations
+  const { mutate: deleteSO, isPending: isDeleting } = useDeleteSupplyOrder();
+
+  const handleDelete = async () => {
+    if (!soToDelete) return;
+    deleteSO(soToDelete.id, {
+      onSuccess: () => {
+        toast.success('Supply order deleted successfully');
+        setIsDeleteDialogOpen(false);
+        setSoToDelete(null);
+        queryClient.invalidateQueries({ queryKey: ['supplyOrders'] });
+      },
+      onError: (error: any) => {
+        toast.error(error?.userMessage || 'Failed to delete supply order');
+      },
+    });
   };
 
-  const handleDelete = (order: typeof supplyOrders[0]) => {
-    if (!canDelete) {
-      toast.error('You do not have permission to delete supply orders');
-      return;
-    }
-    if (confirm('Are you sure you want to delete this supply order?')) {
-      deleteSupplyOrder(order.id);
-      toast.success('Supply order deleted successfully');
-    }
-  };
+  const columns: Column<SupplyOrder>[] = useMemo(() => [
+    {
+      header: 'SO Number',
+      accessor: (row) => (
+        <span className="font-black text-primary tracking-tight">{row.supplyOrderNumber}</span>
+      ),
+    },
+    {
+      header: 'Hospital',
+      accessor: 'hospitalName',
+    },
+    {
+      header: 'Order Date',
+      accessor: (row) => new Date(row.orderDate).toLocaleDateString(),
+    },
+    {
+      header: 'Required By',
+      accessor: (row) => new Date(row.requiredByDate).toLocaleDateString(),
+    },
+    {
+      header: 'Total Amount',
+      accessor: (row) => formatCurrency(row.totalAmount),
+    },
+    {
+      header: 'Status',
+      accessor: (row) => {
+        const statusName = statuses.find(s => s.value === row.status)?.name || `Status ${row.status}`;
 
-  const handleGeneratePO = (order: typeof supplyOrders[0]) => {
-    try {
-      const poRefNo = `PO-${order.orderNo}-${Date.now().toString(36).toUpperCase()}`;
-      addPurchaseOrder({
-        refNo: poRefNo,
-        supplierName: 'Auto Generated from Supply Order',
-        poDate: new Date().toISOString().split('T')[0],
-        deliveryAddress: '',
-        items: order.items.map((item) => ({
-          id: Math.random().toString(36).substring(2, 11),
-          nomenclature: item.productName,
-          unit: 'unit',
-          quantity: item.quantity,
-          rate: item.unitPrice,
-          amount: item.quantity * item.unitPrice,
-        })),
-        totalAmount: order.totalAmount,
-        distributorDiscount: 0,
-        netPayableAmount: order.totalAmount,
-        paymentMethod: 'Bank',
-        notes: `Auto-generated from Supply Order ${order.orderNo}`,
-      });
+        let variant: 'default' | 'secondary' | 'outline' | 'destructive' = 'outline';
+        if (row.status === 1) variant = 'secondary';
+        if (row.status === 2) variant = 'default';
+        if (row.status === 3) variant = 'outline'; // Fulfilled
+        if (row.status === 4) variant = 'destructive'; // Cancelled
 
-      updateSupplyOrder(order.id, { generatedPOId: poRefNo });
-      toast.success(`Purchase Order ${poRefNo} generated successfully`);
-    } catch (error) {
-      toast.error('Failed to generate purchase order');
-    }
-  };
-
-  const handleClose = () => {
-    setIsDialogOpen(false);
-    setSelectedOrder(null);
-  };
-
-  const columns = [
-    { header: 'Order No', accessor: 'orderNo' as const },
-    { header: 'Hospital', accessor: 'hospitalName' as const },
-    { header: 'Order Date', accessor: 'orderDate' as const },
-    { header: 'Delivery Date', accessor: 'deliveryDate' as const },
-    { header: 'Amount', accessor: 'totalAmount' as const },
-    { header: 'Status', accessor: 'status' as const },
-  ];
+        return <Badge variant={variant}>{statusName}</Badge>;
+      },
+    },
+  ], [statuses]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-slide-up">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Supply Orders</h1>
-          <p className="text-muted-foreground">Manage hospital supply orders</p>
+          <p className="text-muted-foreground">Manage hospital supply orders and fulfillment</p>
         </div>
-        {canCreate && (
-          <Button
-            onClick={() => {
-              setSelectedOrder(null);
-              setIsDialogOpen(true);
-            }}
-            className="gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            New Supply Order
-          </Button>
-        )}
+        <Button onClick={() => navigate('/supply-orders/create')} className="gap-2 shadow-md">
+          <Plus className="h-4 w-4" />
+          Create Supply Order
+        </Button>
       </div>
 
-      {supplyOrders.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
-          <h3 className="mt-4 text-lg font-semibold">No supply orders yet</h3>
-          <p className="text-muted-foreground">Create your first supply order to get started</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <DataTable
-            columns={columns}
-            data={supplyOrders}
-            onEdit={canUpdate ? handleEdit : undefined}
-            onDelete={canDelete ? handleDelete : undefined}
-            itemsPerPage={10}
-          />
-          <div className="space-y-2">
-            {supplyOrders.map((order) => (
-              <div key={order.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span className="text-sm font-medium">{order.orderNo}</span>
-                {!order.generatedPOId && order.status === 'Confirmed' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleGeneratePO(order)}
-                    className="gap-2"
-                  >
-                    <Zap className="w-4 h-4" />
-                    Generate PO
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+        <KPIBox label="Total SOs" value={stats.count} icon={<FileText className="w-4 h-4" />} color="bg-blue-500" />
+        <KPIBox label="Total Amount" value={formatCurrency(stats.amount)} icon={<DollarSign className="w-4 h-4" />} color="bg-green-500" />
+        <KPIBox label="Total Tax" value={formatCurrency(stats.tax)} icon={<TrendingUp className="w-4 h-4" />} color="bg-indigo-500" />
+        <KPIBox label="Total Discount" value={formatCurrency(stats.discount)} icon={<Zap className="w-4 h-4" />} color="bg-amber-500" />
+        <KPIBox label="Pending" value={stats.pending} icon={<Clock className="w-4 h-4" />} color="bg-orange-500" />
+        <KPIBox label="Approved" value={stats.approved} icon={<CheckCircle className="w-4 h-4" />} color="bg-emerald-500" />
+        <KPIBox label="Fulfilled" value={stats.fulfilled} icon={<PackageCheck className="w-4 h-4" />} color="bg-purple-500" />
+        <KPIBox label="Cancelled" value={stats.cancelled} icon={<XCircle className="w-4 h-4" />} color="bg-red-500" />
+      </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{selectedOrder ? 'Edit Supply Order' : 'New Supply Order'}</DialogTitle>
-            <DialogDescription>
-              {selectedOrder ? 'Update supply order details' : 'Create a new supply order from hospital'}
-            </DialogDescription>
-          </DialogHeader>
-          <SupplyOrderForm order={selectedOrder || undefined} onClose={handleClose} />
-        </DialogContent>
-      </Dialog>
+      {/* Control Bar */}
+      <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border shadow-sm">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <Input
+            placeholder="Search by SO number or hospital..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-10 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px] h-10">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              {statuses.map((status) => (
+                <SelectItem key={status.value} value={status.value.toString()}>
+                  {status.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <DataTable
+          columns={columns}
+          data={filteredSOs}
+          isLoading={isLoading}
+          onEdit={(row) => navigate(`/supply-orders/edit/${row.id}`)}
+          onDelete={(row) => {
+            setSoToDelete(row);
+            setIsDeleteDialogOpen(true);
+          }}
+          itemsPerPage={10}
+          emptyMessage="No supply orders found."
+          showSearch={false}
+          onRowClick={(row) => navigate(`/supply-orders/view/${row.id}`)}
+        />
+      </div>
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Supply Order"
+        description={
+          <span>
+            Are you sure you want to delete supply order
+            <span className="font-semibold text-foreground"> {soToDelete?.supplyOrderNumber} </span>?
+            This action cannot be undone.
+          </span>
+        }
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
+        confirmText="Delete"
+        variant="destructive"
+      />
     </div>
+  );
+}
+
+function KPIBox({ label, value, icon, color }: { label: string; value: string | number; icon: React.ReactNode; color: string }) {
+  return (
+    <Card className="p-4 relative overflow-hidden group hover:shadow-md transition-all duration-300">
+      <div className={`absolute top-0 right-0 w-16 h-16 ${color} opacity-5 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500`} />
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-lg ${color} bg-opacity-10 text-primary flex items-center justify-center`}>
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">{label}</p>
+          <p className="text-sm font-bold tracking-tight mt-0.5 truncate">{value}</p>
+        </div>
+      </div>
+    </Card>
   );
 }

@@ -1,18 +1,23 @@
-import { useForm, useFieldArray } from 'react-hook-form';
+import React, { useEffect, useMemo } from 'react';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useStore, SupplyOrder } from '@/hooks/useStore';
-import { supplyOrderSchema, SupplyOrderFormData } from '@/lib/schemas';
+import { toast } from 'sonner';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Plus, Trash2, Loader2, Save, ShoppingCart, Calculator, Calendar, MapPin, StickyNote, Package, User, ChevronLeft } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Select,
   SelectContent,
@@ -20,266 +25,736 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, X } from 'lucide-react';
-import { toast } from 'sonner';
+
+import { supplyOrderSchema, SupplyOrderFormData } from '@/lib/schemas';
+import {
+  useCreateSupplyOrder,
+  useUpdateSupplyOrder,
+  useSupplyOrder,
+  useSupplyOrderStatuses
+} from '@/api/services/supplyOrders.service';
+import { useGetHospitals } from '@/hooks/useHospitals';
+import { useProductList } from '@/api/services/products';
+import { useActiveSuppliers } from '@/api/services/suppliers';
+import { formatCurrency, cn } from '@/lib/utils';
+import { CreateSupplyOrderRequest, UpdateSupplyOrderRequest } from '@/types/api/supplyOrders';
 
 interface SupplyOrderFormProps {
-  order?: SupplyOrder;
-  onClose: () => void;
+  supplyOrderId?: number;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export default function SupplyOrderForm({ order, onClose }: SupplyOrderFormProps) {
-  const addSupplyOrder = useStore((state) => state.addSupplyOrder);
-  const updateSupplyOrder = useStore((state) => state.updateSupplyOrder);
-  const hospitals = useStore((state) => state.hospitals);
-  const products = useStore((state) => state.products);
+export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSuccess, onCancel }: SupplyOrderFormProps) {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const supplyOrderId = propSupplyOrderId || (id ? Number(id) : undefined);
+  const isEditMode = !!supplyOrderId;
 
+  const handleSuccess = () => {
+    if (onSuccess) {
+      onSuccess();
+    } else {
+      navigate('/supply-orders');
+    }
+  };
+
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      navigate('/supply-orders');
+    }
+  };
+
+  // 1. Fetch Data
+  const { data: existingSO, isPending: isLoadingSO } = useSupplyOrder(supplyOrderId || null);
+  const { data: hospitalsData, isPending: isLoadingHospitals } = useGetHospitals({ pageSize: 1000, pageNumber: 1 });
+  const { data: productsData, isPending: isLoadingProducts } = useProductList({ pageSize: 1000, pageNumber: 1 });
+  const { data: suppliers = [], isPending: isLoadingSuppliers } = useActiveSuppliers();
+  const { data: statuses = [] } = useSupplyOrderStatuses();
+
+  const hospitals = hospitalsData?.data?.items || [];
+  const products = productsData?.items || [];
+
+  // 2. Form Setup
   const form = useForm<SupplyOrderFormData>({
     resolver: zodResolver(supplyOrderSchema),
-    defaultValues: order ? {
-      orderNo: order.orderNo,
-      hospitalId: order.hospitalId,
-      hospitalName: order.hospitalName,
-      orderDate: order.orderDate,
-      deliveryDate: order.deliveryDate,
-      items: order.items.map((item) => ({
-        productId: item.productId,
-        productName: item.productName,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-      })),
-      status: order.status,
-    } : {
-      status: 'Draft',
-      items: [{ productId: '', productName: '', quantity: 1, unitPrice: 0 }],
+    defaultValues: {
+      hospitalId: 0,
+      orderDate: new Date().toISOString().split('T')[0],
+      requiredByDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      requestedBy: '',
+      shippingAddress: '',
+      notes: '',
+      items: [],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: 'items',
   });
 
-  const items = form.watch('items');
-  const totalAmount = items.reduce((sum, item) => sum + (item.quantity || 0) * (item.unitPrice || 0), 0);
+  // 3. Sync existing data in edit mode
+  useEffect(() => {
+    if (existingSO && isEditMode) {
+      form.reset({
+        hospitalId: existingSO.hospitalId,
+        orderDate: existingSO.orderDate.split('T')[0],
+        requiredByDate: existingSO.requiredByDate.split('T')[0],
+        requestedBy: existingSO.requestedBy,
+        shippingAddress: existingSO.shippingAddress,
+        notes: existingSO.notes || '',
+        items: existingSO.items.map(item => ({
+          productId: item.productId,
+          orderedQuantity: item.orderedQuantity,
+          unitPrice: item.unitPrice,
+          taxPercentage: item.taxPercentage,
+          discountPercentage: item.discountPercentage,
+          fulfillmentSource: item.fulfillmentSource,
+          supplierId: item.supplierId,
+        })),
+        status: existingSO.status,
+      } as any);
+    }
+  }, [existingSO, isEditMode, form]);
+
+  // 4. Mutations
+  const { mutate: createSO, isPending: isCreating } = useCreateSupplyOrder();
+  const { mutate: updateSO, isPending: isUpdating } = useUpdateSupplyOrder(supplyOrderId || 0);
 
   const onSubmit = (data: SupplyOrderFormData) => {
-    try {
-      const supplyOrderData: Omit<SupplyOrder, 'id' | 'createdAt'> = {
-        orderNo: data.orderNo,
-        hospitalId: data.hospitalId,
-        hospitalName: data.hospitalName,
-        orderDate: data.orderDate,
-        deliveryDate: data.deliveryDate,
-        items: data.items.map((item) => ({
-          id: Math.random().toString(36).substring(2, 11),
-          productId: item.productId,
-          productName: item.productName,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          amount: item.quantity * item.unitPrice,
-        })),
-        totalAmount,
-        status: data.status,
-      };
+    // Helper to format date to ISO string if it's just a YYYY-MM-DD string
+    const formatToISO = (dateStr: string) => {
+      if (!dateStr) return '';
+      if (dateStr.includes('T')) return dateStr;
+      return new Date(dateStr).toISOString();
+    };
 
-      if (order) {
-        updateSupplyOrder(order.id, supplyOrderData);
-        toast.success('Supply order updated successfully');
-      } else {
-        addSupplyOrder(supplyOrderData);
-        toast.success('Supply order created successfully');
-      }
-      onClose();
-    } catch (error) {
-      toast.error('Failed to save supply order');
+    if (isEditMode && supplyOrderId) {
+      const updateData: UpdateSupplyOrderRequest = {
+        requiredByDate: formatToISO(data.requiredByDate),
+        requestedBy: data.requestedBy,
+        shippingAddress: data.shippingAddress,
+        notes: data.notes || '',
+        status: (data as any).status || existingSO?.status || 1,
+      };
+      updateSO(updateData, {
+        onSuccess: () => {
+          toast.success('Supply order updated successfully');
+          handleSuccess();
+        },
+        onError: (error: any) => {
+          toast.error(error?.userMessage || 'Failed to update supply order');
+        },
+      });
+    } else {
+      const createData: CreateSupplyOrderRequest = {
+        hospitalId: data.hospitalId,
+        orderDate: formatToISO(data.orderDate),
+        requiredByDate: formatToISO(data.requiredByDate),
+        requestedBy: data.requestedBy,
+        shippingAddress: data.shippingAddress,
+        notes: data.notes || '',
+        items: data.items.map(item => ({
+          productId: item.productId,
+          orderedQuantity: item.orderedQuantity,
+          unitPrice: item.unitPrice,
+          taxPercentage: item.taxPercentage,
+          discountPercentage: item.discountPercentage,
+          fulfillmentSource: item.fulfillmentSource,
+          supplierId: item.supplierId,
+        }))
+      };
+      createSO(createData, {
+        onSuccess: () => {
+          toast.success('Supply order created successfully');
+          handleSuccess();
+        },
+        onError: (error: any) => {
+          toast.error(error?.userMessage || 'Failed to create supply order');
+        },
+      });
     }
   };
 
+  // 5. Calculations
+  const watchedItems = useWatch({ control: form.control, name: 'items' });
+
+  const calculations = useMemo(() => {
+    const rowTotals = (watchedItems || []).map((item) => {
+      const subtotal = (item.orderedQuantity || 0) * (item.unitPrice || 0);
+      const taxAmount = subtotal * ((item.taxPercentage || 0) / 100);
+      const discountAmount = subtotal * ((item.discountPercentage || 0) / 100);
+      const total = subtotal + taxAmount - discountAmount;
+      return { subtotal, taxAmount, discountAmount, total };
+    });
+
+    const grandSubtotal = rowTotals.reduce((sum, row) => sum + row.subtotal, 0);
+    const grandTax = rowTotals.reduce((sum, row) => sum + row.taxAmount, 0);
+    const grandDiscount = rowTotals.reduce((sum, row) => sum + row.discountAmount, 0);
+    const grandTotal = rowTotals.reduce((sum, row) => sum + row.total, 0);
+
+    return { rowTotals, grandSubtotal, grandTax, grandDiscount, grandTotal };
+  }, [watchedItems]);
+
+  // Handle Product Change
+  const handleProductChange = (index: number, productId: number) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      form.setValue(`items.${index}.unitPrice`, product.standardSaleRate);
+      form.setValue(`items.${index}.taxPercentage`, product.taxPercentage);
+      form.setValue(`items.${index}.discountPercentage`, 0);
+      form.setValue(`items.${index}.fulfillmentSource`, 1); // Default to Warehouse
+      form.setValue(`items.${index}.supplierId`, 0); // Default to None
+    }
+  };
+
+  if (isEditMode && isLoadingSO) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground font-medium animate-pulse">Loading supply order details...</p>
+      </div>
+    );
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="orderNo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Order No *</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., SO-001" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="hospitalId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Hospital *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select hospital" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {hospitals.filter((h) => h.isActive).map((hospital) => (
-                      <SelectItem key={hospital.id} value={hospital.id}>
-                        {hospital.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="orderDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Order Date *</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="deliveryDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Delivery Date *</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Draft">Draft</SelectItem>
-                    <SelectItem value="Confirmed">Confirmed</SelectItem>
-                    <SelectItem value="Completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <FormLabel>Line Items *</FormLabel>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append({ productId: '', productName: '', quantity: 1, unitPrice: 0 })}
-              className="gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Item
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 animate-slide-up">
+        {/* Header navigation if in page mode */}
+        {!propSupplyOrderId && (
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {isEditMode ? 'Edit Supply Order' : 'Create Supply Order'}
+              </h1>
+              <p className="text-muted-foreground">
+                {isEditMode ? 'Update existing supply order details' : 'Fill in the details to create a new hospital supply order'}
+              </p>
+            </div>
+            <Button type="button" variant="outline" onClick={handleCancel} className="gap-2">
+              <ChevronLeft className="h-4 w-4" />
+              Back to List
             </Button>
           </div>
-
-          <div className="space-y-3">
-            {fields.map((field, index) => (
-              <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.productId`}
-                  render={({ field }) => (
-                    <FormItem className="col-span-4">
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select product" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {products.filter((p) => p.isActive).map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.brandName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.quantity`}
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormControl>
-                        <Input type="number" min="1" placeholder="Qty" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.unitPrice`}
-                  render={({ field }) => (
-                    <FormItem className="col-span-3">
-                      <FormControl>
-                        <Input type="number" min="0" step="0.01" placeholder="Price" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="col-span-2 text-right text-sm font-medium">
-                  {((form.watch(`items.${index}.quantity`) || 0) * (form.watch(`items.${index}.unitPrice`) || 0)).toFixed(2)}
+        )}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Left Column: Basic Info & Items */}
+          <div className="lg:col-span-3 space-y-6">
+            <Card className="border-t-4 border-t-primary shadow-sm overflow-hidden">
+              <CardHeader className="bg-muted/30 pb-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-xl">Basic Information</CardTitle>
                 </div>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="hospitalId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                          <User className="h-3 w-3" /> Hospital
+                        </FormLabel>
+                        <FormControl>
+                          <SearchableSelect
+                            items={hospitals.map(h => ({ value: h.id, label: h.hospitalName }))}
+                            value={field.value}
+                            onValueChange={(val) => field.onChange(Number(val))}
+                            placeholder="Choose Hospital"
+                            isLoading={isLoadingHospitals}
+                            className={cn(
+                              "h-11 border-muted-foreground/20",
+                              isEditMode && "bg-muted cursor-not-allowed border-none opacity-80"
+                            )}
+                            disabled={isEditMode}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="orderDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Order Date</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            {...field}
+                            disabled={isEditMode}
+                            className="h-11 border-muted-foreground/20 bg-muted/5 focus-visible:ring-primary"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="requiredByDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Required By</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            {...field}
+                            className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="requestedBy"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                          <User className="h-3 w-3" /> Requested By
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter requester name"
+                            {...field}
+                            className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="shippingAddress"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" /> Shipping Address
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter shipping destination"
+                            {...field}
+                            className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {isEditMode && (
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Status</FormLabel>
+                        <Select onValueChange={(val) => field.onChange(Number(val))} defaultValue={field.value?.toString()}>
+                          <FormControl>
+                            <SelectTrigger className="h-11 border-muted-foreground/20">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {statuses.map((status) => (
+                              <SelectItem key={status.value} value={status.value.toString()}>
+                                {status.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                        <StickyNote className="h-3 w-3" /> Notes
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Any additional notes..."
+                          {...field}
+                          className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Items Table */}
+            <Card className="shadow-sm border-muted/60">
+              <CardHeader className="flex flex-row items-center justify-between pb-4">
+                <div className="space-y-1">
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5 text-primary" />
+                    Order Items
+                    {fields.length > 0 && (
+                      <span className="ml-1 inline-flex items-center justify-center h-5 px-2 rounded-full bg-primary/10 text-primary text-xs font-black">
+                        {fields.length}
+                      </span>
+                    )}
+                  </CardTitle>
+                  <CardDescription>Add products and fulfillment details</CardDescription>
+                </div>
+                {!isEditMode && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => append({
+                      productId: 0,
+                      orderedQuantity: 1,
+                      unitPrice: 0,
+                      taxPercentage: 0,
+                      discountPercentage: 0,
+                      fulfillmentSource: 1,
+                      supplierId: 0
+                    })}
+                    className="gap-2 shadow-sm border border-primary/20 hover:bg-primary/10 transition-colors text-primary font-bold"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Item
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="p-0 border-t">
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[1000px]">
+                    <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                      <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
+                        <TableHead className="w-[52px] text-center font-black text-slate-500 border-r border-slate-200 text-xs uppercase tracking-wider">#</TableHead>
+                        <TableHead className="min-w-[200px] pl-4 font-black text-slate-700 text-xs uppercase tracking-wider">Product</TableHead>
+                        <TableHead className="w-[80px] font-black text-slate-700 text-center text-xs uppercase tracking-wider">Qty</TableHead>
+                        <TableHead className="w-[110px] font-black text-slate-700 text-xs uppercase tracking-wider text-right">Price</TableHead>
+                        <TableHead className="w-[80px] font-black text-slate-700 text-center text-xs uppercase tracking-wider">Tax %</TableHead>
+                        <TableHead className="w-[80px] font-black text-slate-700 text-center text-xs uppercase tracking-wider">Disc %</TableHead>
+                        <TableHead className="w-[120px] font-black text-slate-700 text-xs uppercase tracking-wider">Source</TableHead>
+                        <TableHead className="w-[150px] font-black text-slate-700 text-xs uppercase tracking-wider">Supplier</TableHead>
+                        <TableHead className="w-[130px] font-black text-primary text-right pr-5 text-xs uppercase tracking-wider bg-primary/5">Total</TableHead>
+                        {!isEditMode && <TableHead className="w-[52px]" />}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {fields.map((field, index) => (
+                        <TableRow key={field.id} className={cn("border-b border-slate-100 transition-colors hover:bg-primary/[0.02]", index % 2 === 0 ? "bg-white" : "bg-slate-50/60")}>
+                          <TableCell className="text-center border-r border-slate-100 bg-slate-50/80">
+                            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-slate-200/80 text-slate-600 text-[11px] font-black">
+                              {index + 1}
+                            </span>
+                          </TableCell>
+
+                          <TableCell className="pl-3 py-2">
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.productId`}
+                              render={({ field }) => (
+                                <FormItem className="space-y-0">
+                                  <FormControl>
+                                    <SearchableSelect
+                                      items={products.map(p => ({ value: p.id, label: p.productName }))}
+                                      value={field.value}
+                                      onValueChange={(val) => {
+                                        field.onChange(Number(val));
+                                        handleProductChange(index, Number(val));
+                                      }}
+                                      placeholder="Find Product..."
+                                      isLoading={isLoadingProducts}
+                                      className="w-full font-semibold h-9"
+                                      disabled={isEditMode}
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-[10px] mt-0.5" />
+                                </FormItem>
+                              )}
+                            />
+                          </TableCell>
+
+                          <TableCell className="px-2 py-2">
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.orderedQuantity`}
+                              render={({ field }) => (
+                                <FormItem className="space-y-0">
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      {...field}
+                                      disabled={isEditMode}
+                                      className="text-center font-black h-9 tabular-nums bg-white border-slate-200 focus:border-primary"
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-[10px] mt-0.5" />
+                                </FormItem>
+                              )}
+                            />
+                          </TableCell>
+
+                          <TableCell className="px-2 py-2 text-right">
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.unitPrice`}
+                              render={({ field }) => (
+                                <FormItem className="space-y-0">
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      {...field}
+                                      disabled={isEditMode}
+                                      className="text-right font-semibold h-9 tabular-nums bg-white border-slate-200 focus:border-primary"
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-[10px] mt-0.5" />
+                                </FormItem>
+                              )}
+                            />
+                          </TableCell>
+
+                          <TableCell className="px-1 py-2">
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.taxPercentage`}
+                              render={({ field }) => (
+                                <FormItem className="space-y-0">
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      step="0.1"
+                                      {...field}
+                                      disabled={isEditMode}
+                                      className="text-center font-medium h-9 tabular-nums bg-white border-slate-200 focus:border-primary px-1"
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-[10px] mt-0.5" />
+                                </FormItem>
+                              )}
+                            />
+                          </TableCell>
+
+                          <TableCell className="px-1 py-2">
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.discountPercentage`}
+                              render={({ field }) => (
+                                <FormItem className="space-y-0">
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      step="0.1"
+                                      {...field}
+                                      disabled={isEditMode}
+                                      className="text-center font-medium h-9 tabular-nums bg-white border-slate-200 focus:border-primary px-1"
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-[10px] mt-0.5" />
+                                </FormItem>
+                              )}
+                            />
+                          </TableCell>
+
+                          <TableCell className="px-2 py-2">
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.fulfillmentSource`}
+                              render={({ field }) => (
+                                <FormItem className="space-y-0">
+                                  <Select onValueChange={(val) => field.onChange(Number(val))} defaultValue={field.value?.toString()} disabled={isEditMode}>
+                                    <FormControl>
+                                      <SelectTrigger className="h-9 border-slate-200">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="1">Warehouse</SelectItem>
+                                      <SelectItem value="2">Supplier</SelectItem>
+                                      <SelectItem value="3">Direct</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage className="text-[10px] mt-0.5" />
+                                </FormItem>
+                              )}
+                            />
+                          </TableCell>
+
+                          <TableCell className="px-2 py-2">
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.supplierId`}
+                              render={({ field }) => (
+                                <FormItem className="space-y-0">
+                                  <FormControl>
+                                    <SearchableSelect
+                                      items={[{ value: 0, label: 'None' }, ...suppliers.map(s => ({ value: s.id, label: s.supplierName }))]}
+                                      value={field.value}
+                                      onValueChange={(val) => field.onChange(Number(val))}
+                                      placeholder="Supplier (Optional)"
+                                      isLoading={isLoadingSuppliers}
+                                      className="w-full font-semibold h-9"
+                                      disabled={isEditMode}
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-[10px] mt-0.5" />
+                                </FormItem>
+                              )}
+                            />
+                          </TableCell>
+
+                          <TableCell className="text-right pr-5 bg-primary/[0.04]">
+                            <span className="font-black text-primary tabular-nums text-[14px]">
+                              {formatCurrency(calculations.rowTotals[index]?.total || 0)}
+                            </span>
+                          </TableCell>
+
+                          {!isEditMode && (
+                            <TableCell className="text-center py-2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => remove(index)}
+                                className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                      {fields.length > 0 && (
+                        <>
+                          <TableRow className="bg-slate-100/50 font-bold border-t-2 border-slate-200">
+                            <TableCell colSpan={8} className="text-right py-3 text-slate-600 uppercase text-[11px] tracking-wider pr-4">
+                              Total Gross Amount
+                            </TableCell>
+                            <TableCell className="text-right pr-5 bg-primary/5">
+                              <span className="font-bold text-slate-700 tabular-nums text-sm">
+                                {formatCurrency(calculations.grandSubtotal)}
+                              </span>
+                            </TableCell>
+                            {!isEditMode && <TableCell />}
+                          </TableRow>
+                          <TableRow className="bg-primary/5 font-black border-t border-slate-200">
+                            <TableCell colSpan={8} className="text-right py-3 text-primary uppercase text-[12px] tracking-widest pr-4">
+                              Total Net Amount
+                            </TableCell>
+                            <TableCell className="text-right pr-5 bg-primary/10">
+                              <span className="font-black text-primary tabular-nums text-md">
+                                {formatCurrency(calculations.grandTotal)}
+                              </span>
+                            </TableCell>
+                            {!isEditMode && <TableCell />}
+                          </TableRow>
+                        </>
+                      )}
+                      {fields.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={8} className="h-32 text-center text-muted-foreground bg-muted/5">
+                            <div className="flex flex-col items-center gap-2">
+                              <Package className="h-8 w-8 opacity-20" />
+                              <p className="italic">No items added to this supply order.</p>
+                              {!isEditMode && (
+                                <Button type="button" variant="link" size="sm" onClick={() => append({ productId: 0, orderedQuantity: 1, unitPrice: 0, taxPercentage: 0, discountPercentage: 0, fulfillmentSource: 1, supplierId: 0 })}>
+                                  Click here to add the first item
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column: Summary Box */}
+          <div className="space-y-6">
+            <Card className="sticky top-6 shadow-lg border-primary/20 overflow-hidden">
+              <div className="h-2 bg-primary" />
+              <CardHeader className="bg-muted/20 border-b">
+                <div className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">Order Summary</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-sm font-medium border-b border-slate-100 pb-2">
+                    <span className="text-muted-foreground uppercase tracking-tight text-xs">Gross Amount</span>
+                    <div className="text-md font-bold text-slate-700 tracking-tight">
+                      {formatCurrency(calculations.grandSubtotal)}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-sm font-medium border-b border-slate-100 pb-2">
+                    <span className="text-muted-foreground uppercase tracking-tight text-xs">Tax Amount</span>
+                    <div className="text-md font-bold text-slate-700 tracking-tight">
+                      + {formatCurrency(calculations.grandTax)}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-sm font-medium border-b border-slate-100 pb-2">
+                    <span className="text-muted-foreground uppercase tracking-tight text-xs">Discount</span>
+                    <div className="text-md font-bold text-slate-700 tracking-tight">
+                      - {formatCurrency(calculations.grandDiscount)}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-muted-foreground uppercase tracking-tight text-xs font-bold">Net Total</span>
+                    <div className="text-2xl font-black text-primary tracking-tighter">
+                      {formatCurrency(calculations.grandTotal)}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex flex-col gap-3 bg-muted/10 pt-4 border-t">
+                <Button
+                  type="submit"
+                  className="w-full gap-2 h-12 text-md font-bold shadow-md hover:shadow-lg transition-all"
+                  disabled={isCreating || isUpdating}
+                >
+                  {(isCreating || isUpdating) ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Save className="h-5 w-5" />
+                  )}
+                  {isEditMode ? 'Update Supply Order' : 'Create Supply Order'}
+                </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
-                  onClick={() => remove(index)}
-                  className="col-span-1"
+                  className="w-full text-muted-foreground hover:text-foreground"
+                  onClick={handleCancel}
                 >
-                  <X className="w-4 h-4" />
+                  Cancel
                 </Button>
-              </div>
-            ))}
+              </CardFooter>
+            </Card>
           </div>
-
-          <div className="bg-muted p-4 rounded-lg">
-            <div className="text-right text-lg font-bold">Total: PKR {totalAmount.toFixed(2)}</div>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? 'Saving...' : order ? 'Update Order' : 'Create Order'}
-          </Button>
         </div>
       </form>
     </Form>

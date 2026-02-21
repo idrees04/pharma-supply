@@ -58,6 +58,7 @@ interface DataTableProps<T> {
   showToolbar?: boolean;
   showSearch?: boolean;
   showColumnVisibility?: boolean;
+  onRowClick?: (item: T) => void;
 }
 
 export function DataTable<T extends { id?: string | number }>({
@@ -71,6 +72,7 @@ export function DataTable<T extends { id?: string | number }>({
   showToolbar = true,
   showSearch = true,
   showColumnVisibility = true,
+  onRowClick,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState('');
@@ -114,7 +116,10 @@ export function DataTable<T extends { id?: string | number }>({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onEdit(row.original)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(row.original);
+                }}
                 className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
               >
                 <Edit2 className="w-4 h-4" />
@@ -124,7 +129,10 @@ export function DataTable<T extends { id?: string | number }>({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onDelete(row.original)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(row.original);
+                }}
                 className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-red-50"
               >
                 <Trash2 className="w-4 h-4" />
@@ -236,7 +244,11 @@ export function DataTable<T extends { id?: string | number }>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className="hover:bg-muted/50 transition-colors border-b last:border-0"
+                  className={cn(
+                    "hover:bg-muted/50 transition-colors border-b last:border-0",
+                    onRowClick && "cursor-pointer"
+                  )}
+                  onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="py-3">

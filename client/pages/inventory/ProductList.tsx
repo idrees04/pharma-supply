@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +38,7 @@ export default function ProductList() {
 
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const canCreate = hasPermission('products', 'create');
   const canUpdate = hasPermission('products', 'update');
@@ -308,6 +310,7 @@ export default function ProductList() {
                 itemsPerPage={ITEMS_PER_PAGE}
                 emptyMessage="No products found."
                 showSearch={false}
+                onRowClick={(p) => navigate(`/inventory/products/${p.id}`)}
               />
             </motion.div>
           ) : (

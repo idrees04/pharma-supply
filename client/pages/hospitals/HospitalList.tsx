@@ -286,6 +286,7 @@ export default function HospitalList() {
                 itemsPerPage={ITEMS_PER_PAGE}
                 emptyMessage="No hospitals found matching your search."
                 showSearch={false}
+                onRowClick={(h) => navigate(`/hospitals/${h.id}`)}
               />
             </motion.div>
           ) : (

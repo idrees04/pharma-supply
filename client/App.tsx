@@ -34,6 +34,8 @@ import InventoryList from "./pages/inventory/InventoryList";
 import SupplierList from "./pages/suppliers/SupplierList";
 import SupplierDetails from "./pages/suppliers/SupplierDetails";
 import HospitalList from "./pages/hospitals/HospitalList";
+import HospitalDetails from "./pages/hospitals/HospitalDetails";
+import ProductDetails from "./pages/inventory/ProductDetails";
 import SupplyOrderList from "./pages/supply/SupplyOrderList";
 import UsersPage from "./pages/users/UsersPage";
 import ProductTypesList from "./pages/settings/ProductTypesList";
@@ -81,56 +83,84 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     />
-    <Route
-      path="/inventory/products"
-      element={
-        <ProtectedRoute module="products" permission="read">
-          <MainLayout>
-            <ProductList />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/inventory"
-      element={
-        <ProtectedRoute module="inventory" permission="read">
-          <MainLayout>
-            <InventoryList />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/suppliers"
-      element={
-        <ProtectedRoute module="suppliers" permission="read">
-          <MainLayout>
-            <SupplierList />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/hospitals"
-      element={
-        <ProtectedRoute module="hospitals" permission="read">
-          <MainLayout>
-            <HospitalList />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/suppliers/:id"
-      element={
-        <ProtectedRoute module="suppliers" permission="read">
-          <MainLayout>
-            <SupplierDetails />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
+    <Route path="/inventory">
+      <Route
+        index
+        element={
+          <ProtectedRoute module="inventory" permission="read">
+            <MainLayout>
+              <InventoryList />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="products">
+        <Route
+          index
+          element={
+            <ProtectedRoute module="products" permission="read">
+              <MainLayout>
+                <ProductList />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path=":id"
+          element={
+            <ProtectedRoute module="products" permission="read">
+              <MainLayout>
+                <ProductDetails />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+      </Route>
+    </Route>
+    <Route path="/suppliers">
+      <Route
+        index
+        element={
+          <ProtectedRoute module="suppliers" permission="read">
+            <MainLayout>
+              <SupplierList />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path=":id"
+        element={
+          <ProtectedRoute module="suppliers" permission="read">
+            <MainLayout>
+              <SupplierDetails />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+    </Route>
+    <Route path="/hospitals">
+      <Route
+        index
+        element={
+          <ProtectedRoute module="hospitals" permission="read">
+            <MainLayout>
+              <HospitalList />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path=":id"
+        element={
+          <ProtectedRoute module="hospitals" permission="read">
+            <MainLayout>
+              <HospitalDetails />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+    </Route>
     <Route
       path="/supply-orders"
       element={

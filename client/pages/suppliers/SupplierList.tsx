@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,6 +39,7 @@ export default function SupplierList() {
 
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const canCreate = hasPermission('suppliers', 'create');
   const canUpdate = hasPermission('suppliers', 'update');
@@ -274,6 +276,7 @@ export default function SupplierList() {
                 itemsPerPage={ITEMS_PER_PAGE}
                 emptyMessage="No suppliers found. Add your first supplier to get started."
                 showSearch={false}
+                onRowClick={(s) => navigate(`/suppliers/${s.id}`)}
               />
             </motion.div>
           ) : (

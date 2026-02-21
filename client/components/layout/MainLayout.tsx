@@ -95,12 +95,12 @@ const menuItems: MenuItemType[] = [
         href: "/orders/purchase",
         module: "purchaseOrders",
       },
-      {
-        icon: <FileText className="w-4 h-4" />,
-        label: "Sales Orders",
-        href: "/orders/sales",
-        module: "salesOrders",
-      },
+      // {
+      //   icon: <FileText className="w-4 h-4" />,
+      //   label: "Sales Orders",
+      //   href: "/orders/sales",
+      //   module: "salesOrders",
+      // },
     ],
   },
   {

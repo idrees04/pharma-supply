@@ -9,27 +9,26 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { Plus, Edit2, Trash2, AlertCircle, Search, LayoutGrid, List, Package, Pill, Stethoscope, TrendingDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, AlertCircle, Package, Pill, Stethoscope, TrendingDown, List, LayoutGrid, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import ProductForm from './ProductForm';
-import { DataTable } from '@/components/common/DataTable';
-import { Input } from '@/components/ui/input';
-import { useProductList, productService } from '@/api/services/products';
+import { cn, formatCurrency } from '@/lib/utils';
+import { DataTable, Column } from '@/components/common/DataTable';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { productService } from '@/api/services/products';
 import { Product } from '@/types/api/products';
-import { useQueryClient } from '@tanstack/react-query';
 import { ProductCard } from '@/components/inventory/ProductCard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn, formatCurrency } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 
 const ITEMS_PER_PAGE = 10;
 
 export default function ProductList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<number | undefined>(undefined);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Delete State
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
@@ -43,36 +42,33 @@ export default function ProductList() {
   const canUpdate = hasPermission('products', 'update');
   const canDelete = hasPermission('products', 'delete');
 
-  // Fetch products from API with pagination and search
-  const {
-    data: productsResponse,
-    isPending: isLoadingProducts,
-    error: productsError,
-  } = useProductList({
-    pageNumber: currentPage,
-    pageSize: viewMode === 'table' ? ITEMS_PER_PAGE : 12, // More items for grid
-    searchTerm: searchTerm || undefined,
+  // 1. Fetch products (large batch for client-side ops)
+  const { data: productData, isLoading, error: productsError } = useQuery({
+    queryKey: ['products', 'list'],
+    queryFn: () => productService.getProducts({ pageNumber: 1, pageSize: 1000 })
   });
 
-  // Get the products list
-  const products = useMemo(() => productsResponse?.items || [], [productsResponse]);
-  const totalPages = useMemo(() => productsResponse?.totalPages || 1, [productsResponse]);
-  const totalCount = useMemo(() => productsResponse?.totalCount || 0, [productsResponse]);
+  const allProducts = productData?.items || [];
+  const totalCount = productData?.totalCount || 0;
+
+  // 2. Filter products
+  const filteredProducts = useMemo(() => {
+    return allProducts.filter(p =>
+      p.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.genericName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.manufacturer?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [allProducts, searchTerm]);
 
   // Stats calculation
   const stats = useMemo(() => {
-    if (!productsResponse) return { total: 0, medicines: 0, equipment: 0, lowStock: 0 };
-
-    // Note: In a real app, these stats should probably come from a separate API endpoint 
-    // or calculated from a full list. For now, we'll use what's available or mock logic.
-    // Assuming productTypeName helps distinguish
     return {
-      total: totalCount,
-      medicines: products.filter(p => p.productTypeName?.toLowerCase().includes('medicine') || p.productTypeName?.toLowerCase().includes('tablet')).length,
-      equipment: products.filter(p => p.productTypeName?.toLowerCase().includes('equipment') || p.productTypeName?.toLowerCase().includes('surgical')).length,
-      lowStock: products.filter(p => p.availableQuantity <= p.reorderLevel).length
+      total: allProducts.length,
+      medicines: allProducts.filter(p => p.productTypeName?.toLowerCase().includes('medicine') || p.productTypeName?.toLowerCase().includes('tablet')).length,
+      equipment: allProducts.filter(p => p.productTypeName?.toLowerCase().includes('equipment') || p.productTypeName?.toLowerCase().includes('surgical')).length,
+      lowStock: allProducts.filter(p => p.availableQuantity <= (p.reorderLevel || 0)).length
     };
-  }, [productsResponse, products, totalCount]);
+  }, [allProducts]);
 
   const handleEdit = (product: Product) => {
     setSelectedProductId(product.id);
@@ -112,64 +108,55 @@ export default function ProductList() {
     setIsDialogOpen(true);
   };
 
-  const columns = [
+  const columns: Column<Product>[] = useMemo(() => [
     {
-      header: 'Actions',
-      accessor: (row: Product) => (
-        <div className="flex items-center gap-2">
-          {canUpdate && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-              onClick={() => handleEdit(row)}
-              title="Edit Product"
-            >
-              <Edit2 className="w-4 h-4" />
-            </Button>
-          )}
-          {canDelete && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-              onClick={() => handleDeleteClick(row)}
-              title="Delete Product"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-      ),
-      className: 'w-[100px]',
+      header: 'Product Name',
+      accessor: 'productName',
     },
-    { header: 'Product Name', accessor: 'productName' as const },
-    { header: 'Generic Name', accessor: 'genericName' as const },
-    { header: 'Manufacturer', accessor: 'manufacturer' as const },
-    { header: 'Type', accessor: 'productTypeName' as const },
-    { header: 'Unit', accessor: (row: Product) => `${row.unitName}` },
+    {
+      header: 'Generic Name',
+      accessor: 'genericName',
+    },
+    {
+      header: 'Manufacturer',
+      accessor: 'manufacturer',
+    },
+    {
+      header: 'Type',
+      accessor: 'productTypeName',
+    },
+    {
+      header: 'Unit',
+      accessor: 'unitName',
+    },
     {
       header: 'Purchase Rate',
-      accessor: (row: Product) => formatCurrency(row.standardPurchaseRate),
+      accessor: (row) => formatCurrency(row.standardPurchaseRate),
     },
     {
       header: 'Sale Rate',
-      accessor: (row: Product) => (
+      accessor: (row) => (
         <span className="font-bold text-green-600">{formatCurrency(row.standardSaleRate)}</span>
       ),
     },
     {
       header: 'Stock',
-      accessor: (row: Product) => (
+      accessor: (row) => (
         <div className={cn(
           "font-bold",
-          row.availableQuantity <= row.reorderLevel ? "text-red-600" : ""
+          row.availableQuantity <= (row.reorderLevel || 0) ? "text-red-600" : ""
         )}>
           {row.availableQuantity}
         </div>
       ),
     },
-  ];
+  ], []);
+
+  // Pagination for grid view (basic implementation)
+  const [gridPage, setGridPage] = useState(0);
+  const gridItemsPerPage = 12;
+  const gridTotalPages = Math.ceil(filteredProducts.length / gridItemsPerPage);
+  const displayProducts = filteredProducts.slice(gridPage * gridItemsPerPage, (gridPage + 1) * gridItemsPerPage);
 
   // Show error state
   if (productsError) {
@@ -183,8 +170,8 @@ export default function ProductList() {
         <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-red-600" />
           <h3 className="mt-4 text-lg font-semibold text-red-900">Error Loading Products</h3>
-          <p className="text-red-700">{productsError.userMessage || 'Failed to load products'}</p>
-          <Button onClick={() => window.location.reload()} className="mt-4">
+          <p className="text-red-700">{(productsError as any)?.userMessage || 'Failed to load products'}</p>
+          <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['products'] })} className="mt-4">
             Retry
           </Button>
         </div>
@@ -277,16 +264,13 @@ export default function ProductList() {
 
       {/* Control Bar: Search & View Switcher */}
       <div className="flex flex-col md:flex-row gap-4 items-center">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative flex-1 group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
-            placeholder="Search by name, generic, or manufacturer..."
-            className="pl-10 h-10 border-muted focus:ring-2 focus:ring-blue-500/20"
+            placeholder="Search products by name, generic name or manufacturer..."
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-10"
           />
         </div>
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-full md:w-auto">
@@ -313,22 +297,17 @@ export default function ProductList() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
+              className="bg-white rounded-xl border shadow-sm overflow-hidden"
             >
-              {!isLoadingProducts && products.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-20 text-center bg-muted/20">
-                  <Package className="mx-auto h-12 w-12 text-muted-foreground/30" />
-                  <h3 className="mt-4 text-lg font-semibold">No products found</h3>
-                  <p className="text-muted-foreground italic">Try adjusting your filters or search terms</p>
-                </div>
-              ) : (
-                <DataTable
-                  columns={columns}
-                  data={products}
-                  isLoading={isLoadingProducts}
-                  itemsPerPage={ITEMS_PER_PAGE}
-                  emptyMessage="No products to display"
-                />
-              )}
+              <DataTable
+                columns={columns}
+                data={filteredProducts}
+                isLoading={isLoading}
+                onEdit={canUpdate ? handleEdit : undefined}
+                onDelete={canDelete ? handleDeleteClick : undefined}
+                itemsPerPage={ITEMS_PER_PAGE}
+                emptyMessage="No products found matching your search."
+              />
             </motion.div>
           ) : (
             <motion.div
@@ -338,24 +317,54 @@ export default function ProductList() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              {isLoadingProducts ? (
+              {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {Array.from({ length: 8 }).map((_, i) => (
                     <div key={i} className="h-[300px] bg-muted animate-pulse rounded-2xl" />
                   ))}
                 </div>
-              ) : products.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {products.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onEdit={handleEdit}
-                      onDelete={handleDeleteClick}
-                      canUpdate={canUpdate}
-                      canDelete={canDelete}
-                    />
-                  ))}
+              ) : filteredProducts.length > 0 ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {displayProducts.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onEdit={handleEdit}
+                        onDelete={handleDeleteClick}
+                        canUpdate={canUpdate}
+                        canDelete={canDelete}
+                      />
+                    ))}
+                  </div>
+
+                  {gridTotalPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t font-medium">
+                      <div className="text-sm text-muted-foreground">
+                        Displaying <span className="text-foreground">{gridPage * gridItemsPerPage + 1}</span> - {' '}
+                        <span className="text-foreground">{Math.min((gridPage + 1) * gridItemsPerPage, filteredProducts.length)}</span> of total {filteredProducts.length}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setGridPage(p => Math.max(0, p - 1))}
+                          disabled={gridPage === 0}
+                        >
+                          Previous
+                        </Button>
+                        <span className="text-sm">Page {gridPage + 1} of {gridTotalPages}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setGridPage(p => Math.min(gridTotalPages - 1, p + 1))}
+                          disabled={gridPage >= gridTotalPages - 1}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-muted bg-muted/5">
@@ -370,55 +379,6 @@ export default function ProductList() {
           )}
         </AnimatePresence>
       </div>
-
-      {/* Pagination Footer */}
-      {!isLoadingProducts && totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t font-medium">
-          <div className="text-sm text-muted-foreground">
-            Displaying <span className="text-foreground">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> - {' '}
-            <span className="text-foreground">{Math.min(currentPage * ITEMS_PER_PAGE, totalCount)}</span> of total {totalCount}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="rounded-lg h-9"
-            >
-              Previous
-            </Button>
-            <div className="flex items-center gap-1 mx-2">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = i + 1;
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={currentPage === pageNum ? 'default' : 'ghost'}
-                    size="icon"
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={cn(
-                      "w-9 h-9 text-xs transition-all duration-200",
-                      currentPage === pageNum ? "shadow-md" : ""
-                    )}
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className="rounded-lg h-9"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Dialog for Add/Edit */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

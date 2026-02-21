@@ -1,17 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Trash2, Plus, Filter, FileText, CheckCircle, Clock, XCircle, DollarSign, Package } from 'lucide-react';
+import { Eye, Trash2, Plus, Filter, FileText, CheckCircle, Clock, XCircle, DollarSign, Package, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { CommonTable } from '@/components/table/CommonTable';
-import { useTableState } from '@/components/table/hooks/useTableState';
-import { useTableQuery } from '@/components/table/hooks/useTableQuery';
-import { CommonTableColumn, RowAction, TableQueryParams } from '@/components/table/types';
+import { DataTable, Column } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -21,27 +19,37 @@ import {
 } from '@/components/ui/select';
 
 import { PurchaseOrder } from '@/types/api/purchaseOrders';
-import { purchaseOrderService, usePurchaseOrderStatuses, useDeletePurchaseOrder, usePurchaseOrderList as useAllPurchaseOrders } from '@/api/services/purchaseOrders';
+import { purchaseOrderService, usePurchaseOrderStatuses, useDeletePurchaseOrder, usePurchaseOrderList } from '@/api/services/purchaseOrders';
 import { formatCurrency } from '@/lib/utils';
 
 export default function PurchaseOrderList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // 1. Manage table state
-  const tableState = useTableState({
-    initialPagination: { pageIndex: 1, pageSize: 10 },
+  // 1. Fetch data
+  const { data: poData, isLoading } = usePurchaseOrderList({
+    pageSize: 1000,
+    pageNumber: 1
   });
+  const allPOs = poData?.items || [];
 
   // 2. Fetch statuses for filter
   const { data: statuses = [] } = usePurchaseOrderStatuses();
 
-  // 3. Fetch all POs for summary (large batch)
-  const { data: allPOsData } = useAllPurchaseOrders({ pageSize: 1000 });
-  const allPOs = allPOsData?.items || [];
+  // 3. Filter data
+  const filteredPOs = useMemo(() => {
+    return allPOs.filter((po) => {
+      const matchesStatus = statusFilter === 'all' || po.status.toString() === statusFilter;
+      const matchesSearch =
+        po.purchaseOrderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        po.supplierName.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesStatus && matchesSearch;
+    });
+  }, [allPOs, statusFilter, searchTerm]);
 
   const stats = useMemo(() => {
     const totals = {
@@ -76,51 +84,6 @@ export default function PurchaseOrderList() {
     return totals;
   }, [allPOs]);
 
-  // 4. Fetch data from server for the table
-  const tableQuery = useTableQuery({
-    queryKey: ['purchaseOrders', 'table', statusFilter],
-    queryFn: async (params: TableQueryParams) => {
-      // If a specific status is selected, we might need to handle it differently 
-      // based on whether getPurchaseOrders supports status param or we use by-status endpoint.
-      // The prompt suggests using GET /api/PurchaseOrders/by-status/:status for filtering.
-      // However, by-status doesn't seem to support pagination in the example.
-      // Let's check if we can pass status to getPurchaseOrders or if we must use by-status.
-
-      if (statusFilter !== 'all') {
-        const results = await purchaseOrderService.getPurchaseOrdersByStatus(Number(statusFilter));
-        // Map array to TableDataResponse
-        return {
-          items: results,
-          total: results.length,
-          page: 1,
-          pageSize: results.length,
-          hasNextPage: false,
-          hasPreviousPage: false,
-        };
-      }
-
-      const response = await purchaseOrderService.getPurchaseOrders({
-        pageNumber: params.page,
-        pageSize: params.pageSize,
-        searchTerm: params.globalFilter,
-        sortBy: params.sorting?.[0]?.id,
-        sortDescending: params.sorting?.[0]?.desc,
-      });
-
-      return {
-        items: response.items,
-        total: response.totalCount,
-        page: response.pageNumber,
-        pageSize: response.pageSize,
-        hasNextPage: response.hasNext,
-        hasPreviousPage: response.hasPrevious,
-      };
-    },
-    pagination: tableState.pagination,
-    sorting: tableState.sorting,
-    globalFilter: tableState.globalFilter,
-  });
-
   // 4. Mutations
   const { mutate: deletePO, isPending: isDeleting } = useDeletePurchaseOrder();
 
@@ -131,6 +94,7 @@ export default function PurchaseOrderList() {
         toast.success('Purchase order deleted successfully');
         setIsDeleteDialogOpen(false);
         setPoToDelete(null);
+        queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
       },
       onError: (error: any) => {
         toast.error(error?.userMessage || 'Failed to delete purchase order');
@@ -139,88 +103,48 @@ export default function PurchaseOrderList() {
   };
 
   // 5. Define Columns
-  const columns = useMemo((): CommonTableColumn<PurchaseOrder>[] => [
+  const columns: Column<PurchaseOrder>[] = useMemo(() => [
     {
-      accessorKey: 'purchaseOrderNumber',
       header: 'PO Number',
-      label: 'PO Number',
-      sortable: true,
-      cell: (info) => (
+      accessor: (row) => (
         <button
-          onClick={() => navigate(`/orders/purchase/view/${info.row.original.id}`)}
+          onClick={() => navigate(`/orders/purchase/view/${row.id}`)}
           className="font-black text-primary hover:underline cursor-pointer text-left tracking-tight"
         >
-          {info.getValue() as string}
+          {row.purchaseOrderNumber}
         </button>
       ),
     },
     {
-      accessorKey: 'supplierName',
       header: 'Supplier',
-      label: 'Supplier',
-      sortable: true,
+      accessor: 'supplierName',
     },
     {
-      accessorKey: 'orderDate',
       header: 'Order Date',
-      label: 'Order Date',
-      sortable: true,
-      cell: (info) => new Date(info.getValue() as string).toLocaleDateString(),
+      accessor: (row) => new Date(row.orderDate).toLocaleDateString(),
     },
     {
-      accessorKey: 'expectedDeliveryDate',
       header: 'Expected Delivery',
-      label: 'Expected Delivery',
-      sortable: true,
-      cell: (info) => new Date(info.getValue() as string).toLocaleDateString(),
+      accessor: (row) => new Date(row.expectedDeliveryDate).toLocaleDateString(),
     },
     {
-      accessorKey: 'totalAmount',
       header: 'Total Amount',
-      label: 'Total Amount',
-      sortable: true,
-      cell: (info) => formatCurrency(info.getValue() as number),
+      accessor: (row) => formatCurrency(row.totalAmount),
     },
     {
-      accessorKey: 'status',
       header: 'Status',
-      label: 'Status',
-      sortable: true,
-      cell: (info) => {
-        const status = info.getValue() as number;
-        const statusName = statuses.find(s => s.value === status)?.name || `Status ${status}`;
+      accessor: (row) => {
+        const statusName = statuses.find(s => s.value === row.status)?.name || `Status ${row.status}`;
 
         let variant: 'default' | 'secondary' | 'outline' | 'destructive' = 'outline';
-        if (status === 1) variant = 'secondary'; // Pending/Draft
-        if (status === 2) variant = 'default';   // Confirmed
-        if (status === 3) variant = 'outline';   // Completed/Received
+        if (row.status === 1) variant = 'secondary';
+        if (row.status === 2) variant = 'default';
+        if (row.status === 3) variant = 'outline';
 
         return <Badge variant={variant}>{statusName}</Badge>;
       },
     },
-  ] as any[], [statuses]);
-
-  // 6. Row Actions
-  const rowActions = useMemo((): RowAction<PurchaseOrder>[] => [
-    {
-      id: 'view',
-      label: 'View',
-      icon: <Eye className="h-4 w-4 text-blue-600" />,
-      onClick: ({ row }) => {
-        navigate(`/orders/purchase/view/${row.id}`);
-      },
-    },
-    {
-      id: 'delete',
-      label: 'Delete',
-      icon: <Trash2 className="h-4 w-4 text-red-600" />,
-      variant: 'ghost',
-      onClick: ({ row }) => {
-        setPoToDelete(row);
-        setIsDeleteDialogOpen(true);
-      },
-    },
-  ], [navigate]);
+  ], [statuses, navigate]);
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -230,7 +154,7 @@ export default function PurchaseOrderList() {
           <h1 className="text-3xl font-bold tracking-tight">Purchase Orders</h1>
           <p className="text-muted-foreground">Manage and track your supplier purchase orders</p>
         </div>
-        <Button onClick={() => navigate('/orders/purchase/create')} className="gap-2">
+        <Button onClick={() => navigate('/orders/purchase/create')} className="gap-2 shadow-md">
           <Plus className="h-4 w-4" />
           Create Purchase Order
         </Button>
@@ -238,112 +162,57 @@ export default function PurchaseOrderList() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        <KPIBox
-          label="Total POs"
-          value={stats.count}
-          icon={<FileText className="w-5 h-5" />}
-          color="bg-blue-500"
-        />
-        <KPIBox
-          label="Total Amount"
-          value={formatCurrency(stats.amount)}
-          icon={<DollarSign className="w-5 h-5" />}
-          color="bg-green-500"
-        />
-        <KPIBox
-          label="Pending / Confirmed"
-          value={`${stats.pending} / ${stats.confirmed}`}
-          icon={<Clock className="w-5 h-5" />}
-          color="bg-amber-500"
-        />
-        <KPIBox
-          label="Completed"
-          value={stats.completed}
-          icon={<CheckCircle className="w-5 h-5" />}
-          color="bg-emerald-500"
-        />
-        <KPIBox
-          label="Cancelled"
-          value={stats.cancelled}
-          icon={<XCircle className="w-5 h-5" />}
-          color="bg-red-500"
-        />
-        <KPIBox
-          label="Cash POs"
-          value={stats.cash}
-          icon={<Package className="w-5 h-5" />}
-          color="bg-indigo-500"
-        />
-        <KPIBox
-          label="Credit POs"
-          value={stats.credit}
-          icon={<FileText className="w-5 h-5" />}
-          color="bg-purple-500"
-        />
-        <KPIBox
-          label="Received Amount"
-          value={formatCurrency(stats.receivedAmount)}
-          icon={<CheckCircle className="w-5 h-5" />}
-          color="bg-teal-500"
-        />
-        <KPIBox
-          label="Remaining Amount"
-          value={formatCurrency(stats.remainingAmount)}
-          icon={<Clock className="w-5 h-5" />}
-          color="bg-orange-500"
-        />
+        <KPIBox label="Total POs" value={stats.count} icon={<FileText className="w-5 h-5" />} color="bg-blue-500" />
+        <KPIBox label="Total Amount" value={formatCurrency(stats.amount)} icon={<DollarSign className="w-5 h-5" />} color="bg-green-500" />
+        <KPIBox label="Pending / Confirmed" value={`${stats.pending} / ${stats.confirmed}`} icon={<Clock className="w-5 h-5" />} color="bg-amber-500" />
+        <KPIBox label="Completed" value={stats.completed} icon={<CheckCircle className="w-5 h-5" />} color="bg-emerald-500" />
+        <KPIBox label="Cancelled" value={stats.cancelled} icon={<XCircle className="w-5 h-5" />} color="bg-red-500" />
       </div>
 
-      {/* Filters Area */}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Filter by Status:</span>
+      {/* Control Bar */}
+      <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border shadow-sm">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <Input
+            placeholder="Search by PO number or supplier..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-10 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+          />
         </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => {
-            setStatusFilter(value);
-            tableState.resetPagination();
-          }}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            {statuses.map((status) => (
-              <SelectItem key={status.value} value={status.value.toString()}>
-                {status.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px] h-10">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              {statuses.map((status) => (
+                <SelectItem key={status.value} value={status.value.toString()}>
+                  {status.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Table */}
-      <CommonTable
-        columns={columns}
-        data={tableQuery.data}
-        totalCount={tableQuery.totalCount}
-        isLoading={tableQuery.isPending}
-        error={tableQuery.error as Error}
-        onRetry={() => tableQuery.refetch()}
-
-        pagination={tableState.pagination}
-        onPaginationChange={tableState.setPagination}
-
-        sorting={tableState.sorting}
-        onSortingChange={tableState.setSorting}
-
-        globalFilter={tableState.globalFilter}
-        onGlobalFilterChange={tableState.setGlobalFilter}
-
-        rowActions={rowActions}
-        actionsPosition="start"
-        showToolbar={true}
-        emptyStateMessage="No purchase orders found."
-      />
+      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <DataTable
+          columns={columns}
+          data={filteredPOs}
+          isLoading={isLoading}
+          onEdit={(row) => navigate(`/orders/purchase/view/${row.id}`)}
+          onDelete={(row) => {
+            setPoToDelete(row);
+            setIsDeleteDialogOpen(true);
+          }}
+          itemsPerPage={10}
+          emptyMessage="No purchase orders found."
+        />
+      </div>
 
       {/* Delete Confirmation */}
       <ConfirmDialog

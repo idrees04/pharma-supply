@@ -93,7 +93,7 @@ export default function ProductDetails() {
             <div className="flex h-[80vh] items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                    <p className="text-muted-foreground animate-pulse font-medium">De-segmenting product DNA...</p>
+                    <p className="text-muted-foreground animate-pulse font-medium">Loading product details...</p>
                 </div>
             </div>
         );
@@ -111,13 +111,13 @@ export default function ProductDetails() {
                     <AlertCircle className="h-12 w-12 text-destructive" />
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">SKU Unreachable</h2>
+                    <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Product Not Found</h2>
                     <p className="text-muted-foreground max-w-sm text-balance">
-                        The requested product inventory reference is either restricted or has been erased from the system registry.
+                        This product may have been removed or you may not have permission to view it.
                     </p>
                 </div>
                 <Button onClick={() => navigate('/inventory/products')} variant="default" className="gap-2 h-12 px-6 shadow-xl shadow-primary/10 transition-all hover:scale-[1.05] active:scale-95">
-                    <ArrowLeft className="w-4 h-4" /> Exit Inventory Hub
+                    <ArrowLeft className="w-4 h-4" /> Back to Products
                 </Button>
             </motion.div>
         );
@@ -139,11 +139,11 @@ export default function ProductDetails() {
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                            <BreadcrumbLink onClick={() => navigate('/inventory/products')} className="cursor-pointer hover:text-primary transition-colors">Inventory Hub</BreadcrumbLink>
+                            <BreadcrumbLink onClick={() => navigate('/inventory/products')} className="cursor-pointer hover:text-primary transition-colors">Products</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="font-bold text-slate-900">SKU Intelligence</BreadcrumbPage>
+                            <BreadcrumbPage className="font-bold text-slate-900">Product Details</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
@@ -186,12 +186,12 @@ export default function ProductDetails() {
                             variant="outline"
                             className="gap-2 h-11 px-5 border-slate-200 hover:bg-slate-50 shadow-sm transition-all hover:scale-[1.02]"
                             onClick={() => {
-                                toast.info('Accessing product modification suite...');
+                                toast.info('Opening product editor...');
                                 navigate(`/inventory/products?edit=${product.id}`);
                             }}
                         >
                             <Edit2 className="w-4 h-4 text-orange-600" />
-                            <span className="font-bold text-slate-700">Edit SKU</span>
+                            <span className="font-bold text-slate-700">Edit Product</span>
                         </Button>
                     )}
                     <Button
@@ -244,7 +244,7 @@ export default function ProductDetails() {
                                     </p>
                                     <div className="bg-slate-50 p-5 rounded-2xl border border-dashed border-slate-200">
                                         <p className="text-sm text-slate-600 leading-relaxed italic">
-                                            {product.description || "The technical narrative for this SKU has not been formalized."}
+                                            {product.description || "No description has been added for this product yet."}
                                         </p>
                                     </div>
                                 </div>
@@ -270,8 +270,8 @@ export default function ProductDetails() {
                                     <div className="p-16 text-center space-y-4">
                                         <Truck className="w-12 h-12 text-slate-200 mx-auto" />
                                         <div className="space-y-1">
-                                            <p className="text-sm font-bold text-slate-600">No Upstream Links</p>
-                                            <p className="text-xs text-slate-400">This SKU is not currently mapped to any qualified suppliers.</p>
+                                            <p className="text-sm font-bold text-slate-600">No Suppliers Linked</p>
+                                            <p className="text-xs text-slate-400">This product has not been linked to any suppliers yet.</p>
                                         </div>
                                     </div>
                                 ) : (
@@ -354,63 +354,64 @@ export default function ProductDetails() {
                     <div className="sticky top-24 space-y-8">
                         {/* Core Stock Metric */}
                         <motion.div variants={itemVariants}>
-                            <Card className="overflow-hidden border-orange-500/30 bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-900 text-white shadow-2xl shadow-indigo-900/50 relative">
-                                {/* Glowing orb accent */}
-                                <div className="absolute -top-10 -left-10 h-40 w-40 rounded-full bg-orange-500/15 blur-3xl pointer-events-none" />
-                                <div className="absolute -right-4 -bottom-4 opacity-10 rotate-12">
-                                    <Warehouse className="h-48 w-48" />
+                            <Card className="overflow-hidden border-orange-200 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 shadow-xl shadow-orange-100/60 relative">
+                                {/* Decorative background blobs */}
+                                <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-orange-300/20 blur-2xl pointer-events-none" />
+                                <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-amber-300/20 blur-2xl pointer-events-none" />
+                                <div className="absolute -right-4 -bottom-4 opacity-5 rotate-12">
+                                    <Warehouse className="h-48 w-48 text-orange-900" />
                                 </div>
-                                <CardHeader className="border-b border-white/10 pb-4">
+                                <CardHeader className="border-b border-orange-200/70 pb-4 relative z-10">
                                     <div className="flex justify-between items-center">
-                                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-300 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]">
+                                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-500 bg-clip-text text-transparent">
                                             Inventory Equilibrium
                                         </CardTitle>
-                                        <div className="p-1 rounded-md bg-orange-500/20 ring-1 ring-orange-500/40">
-                                            <TrendingUp className="h-3.5 w-3.5 text-orange-400" />
+                                        <div className="p-1.5 rounded-lg bg-orange-500 shadow-sm shadow-orange-300">
+                                            <TrendingUp className="h-3.5 w-3.5 text-white" />
                                         </div>
                                     </div>
                                 </CardHeader>
-                                <CardContent className="pt-10 pb-8 space-y-10 relative z-10">
+                                <CardContent className="pt-10 pb-8 space-y-8 relative z-10">
                                     <div className="space-y-3 text-center">
-                                        <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Volume On-Hand</p>
+                                        <p className="text-[10px] font-black text-orange-400 uppercase tracking-[0.3em]">Quantity In Stock</p>
                                         <div className="inline-flex flex-col items-center">
                                             <h2 className={cn(
                                                 "text-7xl font-black tracking-tighter leading-none mb-2",
-                                                product.availableQuantity <= product.reorderLevel ? "text-rose-400" : "text-white"
+                                                product.availableQuantity <= product.reorderLevel ? "text-rose-500" : "text-orange-600"
                                             )}>
                                                 {product.availableQuantity}
                                             </h2>
-                                            <p className="text-sm font-bold text-white/40 uppercase tracking-[0.4em]">{product.unitName}</p>
+                                            <p className="text-sm font-bold text-orange-400/70 uppercase tracking-[0.4em]">{product.unitName}</p>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-8 text-center px-4">
-                                        <div className="space-y-1.5 p-3 rounded-xl bg-white/5 border border-white/5">
-                                            <p className="text-[9px] font-black text-white/30 uppercase">Threshold</p>
-                                            <p className="text-xl font-bold">{product.reorderLevel}</p>
+                                    <div className="grid grid-cols-2 gap-3 border-t border-orange-200/60 pt-6 text-center px-2">
+                                        <div className="space-y-1.5 p-3 rounded-xl bg-white/60 border border-orange-100 shadow-sm">
+                                            <p className="text-[9px] font-black text-orange-400 uppercase">Reorder Point</p>
+                                            <p className="text-xl font-black text-slate-800">{product.reorderLevel}</p>
                                         </div>
-                                        <div className="space-y-1.5 p-3 rounded-xl bg-white/5 border border-white/5">
-                                            <p className="text-[9px] font-black text-white/30 uppercase">EOQ (Refill)</p>
-                                            <p className="text-xl font-bold">{product.reorderQuantity}</p>
+                                        <div className="space-y-1.5 p-3 rounded-xl bg-white/60 border border-orange-100 shadow-sm">
+                                            <p className="text-[9px] font-black text-orange-400 uppercase">Refill Qty</p>
+                                            <p className="text-xl font-black text-slate-800">{product.reorderQuantity}</p>
                                         </div>
                                     </div>
 
                                     {product.availableQuantity <= product.reorderLevel && (
                                         <motion.div
-                                            animate={{ scale: [1, 1.05, 1] }}
+                                            animate={{ scale: [1, 1.03, 1] }}
                                             transition={{ repeat: Infinity, duration: 2 }}
-                                            className="mx-4 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center gap-4"
+                                            className="mx-2 p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 shadow-sm"
                                         >
-                                            <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-rose-500 text-white shadow-lg">
-                                                <Zap className="w-5 h-5" />
+                                            <div className="h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-lg bg-rose-500 text-white shadow-md">
+                                                <Zap className="w-4 h-4" />
                                             </div>
-                                            <p className="text-xs font-bold text-rose-300 leading-tight">
-                                                Depletion Warning: Re-procurement suggested immediately.
+                                            <p className="text-xs font-bold text-rose-600 leading-tight">
+                                                Low stock! Consider reordering soon.
                                             </p>
                                         </motion.div>
                                     )}
                                 </CardContent>
-                                <div className="h-2 bg-gradient-to-r from-orange-500 via-primary to-rose-500" />
+                                <div className="h-1.5 bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400" />
                             </Card>
                         </motion.div>
 
@@ -491,19 +492,19 @@ export default function ProductDetails() {
                                 });
                             }),
                             {
-                                loading: 'Decommissioning product SKU...',
+                                loading: 'Deleting product...',
                                 success: () => {
                                     navigate('/inventory/products');
-                                    return 'Product successfully decommissioned from registry.';
+                                    return 'Product deleted successfully.';
                                 },
-                                error: (err) => err.userMessage || 'Failed to decommission product.'
+                                error: (err) => err.userMessage || 'Failed to delete product.'
                             }
                         );
                     }
                     setIsDeleteConfirmOpen(false);
                 }}
-                title="SKU Decommissioning"
-                description={`You are about to permanently remove ${product.productName} from the active inventory registry. This SKU will no longer be available for procurement or distribution. Are you absolutely certain?`}
+                title="Delete Product"
+                description={`Are you sure you want to delete "${product.productName}"? This action cannot be undone and the product will be permanently removed from the system.`}
                 confirmText="Confirm Decommission"
                 variant="destructive"
             />

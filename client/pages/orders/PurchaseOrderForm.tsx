@@ -400,7 +400,12 @@ export default function PurchaseOrderForm() {
                   <div className="space-y-1">
                     <CardTitle className="text-xl flex items-center gap-2">
                       <ShoppingCart className="h-5 w-5 text-primary" />
-                      Products & Items
+                      Products &amp; Items
+                      {fields.length > 0 && (
+                        <span className="ml-1 inline-flex items-center justify-center h-5 px-2 rounded-full bg-primary/10 text-primary text-xs font-black">
+                          {fields.length} {fields.length === 1 ? 'item' : 'items'}
+                        </span>
+                      )}
                     </CardTitle>
                     <CardDescription>Select products and specify quantities for this order</CardDescription>
                   </div>
@@ -415,7 +420,7 @@ export default function PurchaseOrderForm() {
                         disabled={fields.length === 0}
                       >
                         <Trash2 className="h-4 w-4" />
-                        Clear Table
+                        Clear All
                       </Button>
                       <Button
                         type="button"
@@ -440,31 +445,42 @@ export default function PurchaseOrderForm() {
                 </CardHeader>
                 <CardContent className="p-0 border-t">
                   <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader className="bg-muted/40 sticky top-0 z-10">
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="w-[60px] text-center font-bold text-muted-foreground border-r">#</TableHead>
-                          <TableHead className="min-w-[300px] pl-4 font-bold">Product / Description</TableHead>
-                          <TableHead className="w-[120px] font-bold text-center">Quantity</TableHead>
-                          <TableHead className="w-[140px] font-bold">Unit Price</TableHead>
-                          <TableHead className="w-[100px] font-bold text-center bg-blue-50/30">Tax %</TableHead>
-                          <TableHead className="w-[100px] font-bold text-center bg-red-50/30">Disc %</TableHead>
-                          <TableHead className="w-[160px] font-bold text-right pr-6 bg-primary/5">Total Amount</TableHead>
-                          {!isReadOnly && <TableHead className="w-[60px] pr-4"></TableHead>}
+                    <Table className="min-w-[860px]">
+                      <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                        <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
+                          <TableHead className="w-[52px] text-center font-black text-slate-500 border-r border-slate-200 text-xs uppercase tracking-wider">#</TableHead>
+                          <TableHead className="min-w-[260px] pl-4 font-black text-slate-700 text-xs uppercase tracking-wider">Product / Description</TableHead>
+                          <TableHead className="w-[110px] font-black text-slate-700 text-center text-xs uppercase tracking-wider">Qty</TableHead>
+                          <TableHead className="w-[150px] font-black text-slate-700 text-xs uppercase tracking-wider">Unit Price (PKR)</TableHead>
+                          <TableHead className="w-[100px] font-black text-blue-700 text-center text-xs uppercase tracking-wider bg-blue-50/60">Tax %</TableHead>
+                          <TableHead className="w-[100px] font-black text-rose-700 text-center text-xs uppercase tracking-wider bg-rose-50/60">Disc %</TableHead>
+                          <TableHead className="w-[170px] font-black text-primary text-right pr-5 text-xs uppercase tracking-wider bg-primary/5">Row Total (PKR)</TableHead>
+                          {!isReadOnly && <TableHead className="w-[52px]" />}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {fields.map((field, index) => (
-                          <TableRow key={field.id} className="group hover:bg-muted/20 transition-colors">
-                            <TableCell className="text-center font-medium text-muted-foreground border-r bg-muted/5">
-                              {index + 1}
+                          <TableRow
+                            key={field.id}
+                            className={cn(
+                              "border-b border-slate-100 transition-colors hover:bg-primary/[0.02]",
+                              index % 2 === 0 ? "bg-white" : "bg-slate-50/60"
+                            )}
+                          >
+                            {/* Row number */}
+                            <TableCell className="text-center border-r border-slate-100 bg-slate-50/80">
+                              <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-slate-200/80 text-slate-600 text-[11px] font-black">
+                                {index + 1}
+                              </span>
                             </TableCell>
-                            <TableCell className="pl-4">
+
+                            {/* Product */}
+                            <TableCell className="pl-3 py-2">
                               <FormField
                                 control={form.control}
                                 name={`items.${index}.productId`}
                                 render={({ field }) => (
-                                  <FormItem>
+                                  <FormItem className="space-y-0">
                                     <FormControl>
                                       <SearchableSelect
                                         items={getAvailableProducts(index)}
@@ -476,23 +492,25 @@ export default function PurchaseOrderForm() {
                                         placeholder="Find Product..."
                                         isLoading={isLoadingSupplierProducts}
                                         className={cn(
-                                          "w-full transition-all duration-200 border-transparent bg-transparent group-hover:border-input group-hover:bg-background group-hover:text-primary font-medium",
-                                          isReadOnly && "border-none bg-transparent cursor-default pointer-events-none p-0 text-foreground font-semibold"
+                                          "w-full font-semibold h-9",
+                                          isReadOnly && "border-none bg-transparent cursor-default pointer-events-none text-foreground"
                                         )}
                                         disabled={isReadOnly}
                                       />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage className="text-[10px] mt-0.5" />
                                   </FormItem>
                                 )}
                               />
                             </TableCell>
-                            <TableCell className="px-2">
+
+                            {/* Quantity */}
+                            <TableCell className="px-2 py-2">
                               <FormField
                                 control={form.control}
                                 name={`items.${index}.orderedQuantity`}
                                 render={({ field }) => (
-                                  <FormItem>
+                                  <FormItem className="space-y-0">
                                     <FormControl>
                                       <Input
                                         type="number"
@@ -500,22 +518,24 @@ export default function PurchaseOrderForm() {
                                         {...field}
                                         disabled={isReadOnly}
                                         className={cn(
-                                          "text-center font-semibold border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
-                                          isReadOnly && "border-none"
+                                          "text-center font-black h-9 tabular-nums bg-white border-slate-200 focus:border-primary focus:bg-white",
+                                          isReadOnly && "border-none bg-transparent text-center"
                                         )}
                                       />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage className="text-[10px] mt-0.5" />
                                   </FormItem>
                                 )}
                               />
                             </TableCell>
-                            <TableCell className="px-2">
+
+                            {/* Unit Price */}
+                            <TableCell className="px-2 py-2">
                               <FormField
                                 control={form.control}
                                 name={`items.${index}.unitPrice`}
                                 render={({ field }) => (
-                                  <FormItem>
+                                  <FormItem className="space-y-0">
                                     <FormControl>
                                       <Input
                                         type="number"
@@ -523,22 +543,24 @@ export default function PurchaseOrderForm() {
                                         {...field}
                                         disabled={isReadOnly}
                                         className={cn(
-                                          "font-semibold border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
-                                          isReadOnly && "border-none"
+                                          "font-semibold h-9 tabular-nums bg-white border-slate-200 focus:border-primary focus:bg-white",
+                                          isReadOnly && "border-none bg-transparent"
                                         )}
                                       />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage className="text-[10px] mt-0.5" />
                                   </FormItem>
                                 )}
                               />
                             </TableCell>
-                            <TableCell className="px-2 bg-blue-50/10">
+
+                            {/* Tax % */}
+                            <TableCell className="px-2 py-2 bg-blue-50/30">
                               <FormField
                                 control={form.control}
                                 name={`items.${index}.taxPercentage`}
                                 render={({ field }) => (
-                                  <FormItem>
+                                  <FormItem className="space-y-0">
                                     <FormControl>
                                       <Input
                                         type="number"
@@ -546,22 +568,24 @@ export default function PurchaseOrderForm() {
                                         {...field}
                                         disabled={isReadOnly}
                                         className={cn(
-                                          "text-center font-bold text-blue-700 border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
-                                          isReadOnly && "border-none"
+                                          "text-center font-bold text-blue-700 h-9 tabular-nums bg-blue-50/60 border-blue-200/70 focus:border-blue-400 focus:bg-white",
+                                          isReadOnly && "border-none bg-transparent text-center"
                                         )}
                                       />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage className="text-[10px] mt-0.5" />
                                   </FormItem>
                                 )}
                               />
                             </TableCell>
-                            <TableCell className="px-2 bg-red-50/10">
+
+                            {/* Discount % */}
+                            <TableCell className="px-2 py-2 bg-rose-50/30">
                               <FormField
                                 control={form.control}
                                 name={`items.${index}.discountPercentage`}
                                 render={({ field }) => (
-                                  <FormItem>
+                                  <FormItem className="space-y-0">
                                     <FormControl>
                                       <Input
                                         type="number"
@@ -569,29 +593,42 @@ export default function PurchaseOrderForm() {
                                         {...field}
                                         disabled={isReadOnly}
                                         className={cn(
-                                          "text-center font-bold text-red-700 border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
-                                          isReadOnly && "border-none"
+                                          "text-center font-bold text-rose-700 h-9 tabular-nums bg-rose-50/60 border-rose-200/70 focus:border-rose-400 focus:bg-white",
+                                          isReadOnly && "border-none bg-transparent text-center"
                                         )}
                                       />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage className="text-[10px] mt-0.5" />
                                   </FormItem>
                                 )}
                               />
                             </TableCell>
-                            <TableCell className="text-right pr-6 font-black text-primary bg-primary/5 text-lg">
-                              {formatCurrency(calculations.rowTotals[index]?.total || 0)}
+
+                            {/* Row Total */}
+                            <TableCell className="text-right pr-5 bg-primary/[0.04]">
+                              <div className="flex flex-col items-end">
+                                <span className="font-black text-primary tabular-nums text-[15px] leading-tight">
+                                  {formatCurrency(calculations.rowTotals[index]?.total || 0)}
+                                </span>
+                                {(calculations.rowTotals[index]?.discountAmount > 0 || calculations.rowTotals[index]?.taxAmount > 0) && (
+                                  <span className="text-[10px] text-slate-400 tabular-nums">
+                                    base: {formatCurrency(calculations.rowTotals[index]?.subtotal || 0)}
+                                  </span>
+                                )}
+                              </div>
                             </TableCell>
+
+                            {/* Delete */}
                             {!isReadOnly && (
-                              <TableCell className="pr-4 text-center">
+                              <TableCell className="text-center py-2">
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => remove(index)}
-                                  className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
+                                  className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               </TableCell>
                             )}
@@ -599,8 +636,8 @@ export default function PurchaseOrderForm() {
                         ))}
                         {fields.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={isReadOnly ? 7 : 8} className="h-40 text-center text-muted-foreground bg-muted/5">
-                              <div className="flex flex-col items-center gap-3 animate-pulse-subtle">
+                            <TableCell colSpan={isReadOnly ? 7 : 8} className="h-44 text-center text-muted-foreground bg-muted/5">
+                              <div className="flex flex-col items-center gap-3">
                                 {selectedSupplierId > 0 && !isLoadingSupplierProducts && (!supplierProductsData || supplierProductsData.length === 0) ? (
                                   <>
                                     <div className="bg-red-50 p-4 rounded-full">
@@ -609,7 +646,7 @@ export default function PurchaseOrderForm() {
                                     <div className="space-y-1">
                                       <p className="font-bold text-red-600 text-lg tracking-tight">No Products Linked</p>
                                       <p className="text-sm max-w-[380px] mx-auto leading-relaxed">
-                                        We couldn't find any products associated with this supplier in the system. Please ensure the supplier catalog is linked before creating an order.
+                                        We couldn't find any products associated with this supplier. Please link products to the supplier first.
                                       </p>
                                     </div>
                                   </>
@@ -619,11 +656,11 @@ export default function PurchaseOrderForm() {
                                       <Package className="h-10 w-10 text-primary opacity-40" />
                                     </div>
                                     <div className="space-y-1">
-                                      <p className="italic font-bold text-foreground">No active order items</p>
-                                      <p className="text-xs">
+                                      <p className="italic font-bold text-foreground">No items added yet</p>
+                                      <p className="text-xs text-muted-foreground">
                                         {selectedSupplierId === 0
                                           ? "Please select a supplier to begin adding products."
-                                          : "Click \"Add Row\" to manually add more products."}
+                                          : 'Click "Add Row" to add products to this order.'}
                                       </p>
                                     </div>
                                   </>
@@ -635,6 +672,15 @@ export default function PurchaseOrderForm() {
                       </TableBody>
                     </Table>
                   </div>
+                  {/* Table Footer Summary */}
+                  {fields.length > 0 && (
+                    <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200 text-sm">
+                      <span className="text-muted-foreground font-medium">{fields.length} product{fields.length !== 1 ? 's' : ''} in this order</span>
+                      <span className="font-black text-primary tabular-nums text-base">
+                        Total: {formatCurrency(calculations.grandTotal)}
+                      </span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

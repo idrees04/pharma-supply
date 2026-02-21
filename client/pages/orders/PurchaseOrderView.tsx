@@ -122,7 +122,7 @@ export default function PurchaseOrderView() {
           </p>
         </div>
         <Button onClick={() => navigate('/orders/purchase')} variant="default" className="gap-2 h-12 px-6 shadow-xl shadow-primary/10 transition-all hover:scale-[1.05] active:scale-95">
-          <ArrowLeft className="w-4 h-4" /> Exit Procurement Hub
+          <ArrowLeft className="w-4 h-4" /> Back to Orders
         </Button>
       </motion.div>
     );
@@ -148,7 +148,7 @@ export default function PurchaseOrderView() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage className="font-bold text-slate-900 text-xs">Order Intelligence</BreadcrumbPage>
+              <BreadcrumbPage className="font-bold text-slate-900 text-xs">Order Details</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -208,7 +208,7 @@ export default function PurchaseOrderView() {
         <Card className="border shadow-xl shadow-slate-200/50 bg-card overflow-hidden rounded-3xl">
           <CardHeader className="bg-slate-50/80 border-b py-4">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" /> Procurement Lifecycle
+              <Clock className="w-4 h-4 text-primary" /> Order Status
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -404,44 +404,48 @@ export default function PurchaseOrderView() {
           <div className="sticky top-24 space-y-8">
             {/* Financial Equilibrium Card */}
             <motion.div variants={itemVariants}>
-              <Card className="overflow-hidden border-slate-200 bg-slate-900 text-white shadow-2xl shadow-slate-900/40 relative">
-                <div className="absolute -right-4 -bottom-4 opacity-10 rotate-12">
-                  <DollarSign className="h-48 w-48" />
+              <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-violet-50 to-purple-50 shadow-xl shadow-primary/10 relative">
+                <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-violet-200/20 blur-2xl pointer-events-none" />
+                <div className="absolute -right-4 -bottom-4 opacity-5 rotate-12">
+                  <DollarSign className="h-48 w-48 text-primary" />
                 </div>
-                <CardHeader className="border-b border-white/10 pb-4">
+                <CardHeader className="border-b border-primary/10 pb-4 relative z-10">
                   <div className="flex justify-between items-center">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">
-                      Valuation Architecture
+                    <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] bg-gradient-to-r from-primary via-violet-600 to-purple-600 bg-clip-text text-transparent">
+                      Order Summary
                     </CardTitle>
-                    <TrendingUp className="h-4 w-4 text-orange-400" />
+                    <div className="p-1.5 rounded-lg bg-primary shadow-sm">
+                      <TrendingUp className="h-3.5 w-3.5 text-white" />
+                    </div>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-10 pb-8 space-y-10 relative z-10">
+                <CardContent className="pt-10 pb-8 space-y-8 relative z-10">
                   <div className="space-y-3 text-center">
-                    <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Total Procurement Value</p>
+                    <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.3em]">Total Amount (PKR)</p>
                     <div className="inline-flex flex-col items-center">
-                      <h2 className="text-5xl font-black tracking-tighter leading-none mb-2">
+                      <h2 className="text-5xl font-black tracking-tighter leading-none mb-2 text-primary">
                         {formatCurrency(calculations.total)}
                       </h2>
-                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-black text-[9px] uppercase tracking-widest px-3">
-                        Settlement Required
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 font-black text-[9px] uppercase tracking-widest px-3">
+                        Payment Due
                       </Badge>
                     </div>
                   </div>
 
-                  <div className="space-y-4 px-4">
-                    <SummaryRow label="Gross Subtotal" value={calculations.subtotal} color="text-white/70" />
-                    <SummaryRow label="Aggregated Tax" value={calculations.tax} color="text-blue-400" />
-                    <SummaryRow label="Strategic Discount" value={calculations.discount} color="text-rose-400" isNegative />
-                    <div className="border-t border-white/10 pt-4 flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-white/30 tracking-widest">Efficiency Rate</span>
-                      <span className="text-xl font-bold">
+                  <div className="space-y-3 px-2">
+                    <SummaryRow label="Subtotal" value={calculations.subtotal} color="text-slate-700" />
+                    <SummaryRow label="Tax" value={calculations.tax} color="text-blue-600" />
+                    <SummaryRow label="Discount" value={calculations.discount} color="text-rose-500" isNegative />
+                    <div className="border-t border-primary/10 pt-4 flex justify-between items-center">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Discount %</span>
+                      <span className="text-xl font-black text-slate-800">
                         {calculations.subtotal > 0 ? ((calculations.discount / calculations.subtotal) * 100).toFixed(1) : 0}%
                       </span>
                     </div>
                   </div>
                 </CardContent>
-                <div className="h-2 bg-gradient-to-r from-orange-500 via-primary to-rose-500" />
+                <div className="h-1.5 bg-gradient-to-r from-primary via-violet-500 to-purple-500" />
               </Card>
             </motion.div>
 
@@ -449,7 +453,7 @@ export default function PurchaseOrderView() {
             <motion.div variants={itemVariants}>
               <Card className="border-slate-200 shadow-none rounded-3xl">
                 <CardHeader className="pb-3 bg-slate-50/30 border-b">
-                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Registry Integrity</CardTitle>
+                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Order Info</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                   <div className="p-4 border rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group">
@@ -460,7 +464,7 @@ export default function PurchaseOrderView() {
                     <span className="text-[10px] font-black text-slate-900">{new Date(po.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div className="p-4 border rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group text-xs text-muted-foreground italic">
-                    Last synchronization completed successfully.
+                    Last updated successfully.
                   </div>
                 </CardContent>
               </Card>
@@ -531,7 +535,7 @@ export default function PurchaseOrderView() {
 function SummaryRow({ label, value, color, isNegative }: { label: string; value: number; color?: string; isNegative?: boolean }) {
   return (
     <div className="flex justify-between items-center text-sm">
-      <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{label}</span>
+      <span className="text-slate-600 text-[10px] font-black uppercase tracking-widest">{label}</span>
       <span className={cn("font-mono font-bold", color)}>
         {isNegative ? '-' : ''}{formatCurrency(value)}
       </span>

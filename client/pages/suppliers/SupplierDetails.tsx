@@ -76,7 +76,7 @@ export default function SupplierDetails() {
             <div className="flex h-[80vh] items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                    <p className="text-muted-foreground animate-pulse font-medium">Syncing supplier intelligence...</p>
+                    <p className="text-muted-foreground animate-pulse font-medium">Loading supplier details...</p>
                 </div>
             </div>
         );
@@ -94,13 +94,13 @@ export default function SupplierDetails() {
                     <AlertCircle className="h-12 w-12 text-destructive" />
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Partner Node Offline</h2>
+                    <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Supplier Not Found</h2>
                     <p className="text-muted-foreground max-sm text-balance">
-                        The requested supplier entity could not be retrieved from the global partner registry.
+                        This supplier record may have been removed or you may not have permission to view it.
                     </p>
                 </div>
                 <Button onClick={() => navigate('/suppliers')} variant="default" className="gap-2 h-12 px-6 shadow-xl shadow-primary/10 transition-all hover:scale-[1.05] active:scale-95">
-                    <ArrowLeft className="w-4 h-4" /> Exit Partner Hub
+                    <ArrowLeft className="w-4 h-4" /> Back to Suppliers
                 </Button>
             </motion.div>
         );
@@ -122,11 +122,11 @@ export default function SupplierDetails() {
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                            <BreadcrumbLink onClick={() => navigate('/suppliers')} className="cursor-pointer hover:text-primary transition-colors">Partner Registry</BreadcrumbLink>
+                            <BreadcrumbLink onClick={() => navigate('/suppliers')} className="cursor-pointer hover:text-primary transition-colors">Suppliers</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="font-bold text-slate-900">Partner Intelligence</BreadcrumbPage>
+                            <BreadcrumbPage className="font-bold text-slate-900">Supplier Details</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
@@ -146,7 +146,7 @@ export default function SupplierDetails() {
                                 "px-3 py-1 font-black uppercase tracking-widest text-[10px]",
                                 supplier.isActive ? "bg-emerald-500 hover:bg-emerald-600" : "bg-slate-200 text-slate-500"
                             )}>
-                                {supplier.isActive ? 'System Active' : 'Suspended'}
+                                {supplier.isActive ? 'Active' : 'Inactive'}
                             </Badge>
                         </div>
                         <div className="flex items-center gap-3 text-slate-500 text-sm font-medium">
@@ -167,12 +167,12 @@ export default function SupplierDetails() {
                             variant="outline"
                             className="gap-2 h-11 px-5 border-slate-200 hover:bg-slate-50 shadow-sm transition-all hover:scale-[1.02]"
                             onClick={() => {
-                                toast.info('Accessing partner modification suite...');
+                                toast.info('Opening supplier editor...');
                                 navigate(`/suppliers?edit=${supplier.id}`);
                             }}
                         >
                             <Edit2 className="w-4 h-4 text-blue-600" />
-                            <span className="font-bold text-slate-700">Modify Profile</span>
+                            <span className="font-bold text-slate-700">Edit Supplier</span>
                         </Button>
                     )}
                     <Button
@@ -194,14 +194,14 @@ export default function SupplierDetails() {
                         <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
                             <CardHeader className="bg-slate-50/80 border-b py-4">
                                 <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                    <Contact className="w-4 h-4 text-blue-500" /> Professional Footprint
+                                    <Contact className="w-4 h-4 text-blue-500" /> Contact Information
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-8 pb-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                     <div className="space-y-6">
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Decision Maker</p>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Person</p>
                                             <p className="text-lg font-bold text-slate-800">{supplier.contactPerson}</p>
                                         </div>
                                         <div className="space-y-4">
@@ -210,7 +210,7 @@ export default function SupplierDetails() {
                                                     <Phone className="w-5 h-5" />
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Primary Line</p>
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Phone Number</p>
                                                     <p className="font-bold text-slate-700">{supplier.phoneNumber}</p>
                                                 </div>
                                             </div>
@@ -219,7 +219,7 @@ export default function SupplierDetails() {
                                                     <Mail className="w-5 h-5" />
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Electronic Mail</p>
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Email Address</p>
                                                     <p className="font-bold text-slate-700">{supplier.email}</p>
                                                 </div>
                                             </div>
@@ -228,7 +228,7 @@ export default function SupplierDetails() {
 
                                     <div className="space-y-6 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Geographical Node</p>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Address</p>
                                             <div className="flex items-start gap-3 pt-2">
                                                 <MapPin className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                                                 <p className="text-sm font-medium text-slate-600 leading-relaxed">
@@ -245,11 +245,11 @@ export default function SupplierDetails() {
 
                                 <div className="space-y-4">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                        <FileText className="w-3 h-3 text-blue-500" /> Partner Brief
+                                        <FileText className="w-3 h-3 text-blue-500" /> Notes
                                     </p>
                                     <div className="bg-slate-50 p-5 rounded-2xl border border-dashed border-slate-200">
                                         <p className="text-sm text-slate-600 leading-relaxed italic">
-                                            {supplier.notes || "No tactical annotations recorded for this partner node."}
+                                            {supplier.notes || "No notes added for this supplier yet."}
                                         </p>
                                     </div>
                                 </div>
@@ -261,14 +261,14 @@ export default function SupplierDetails() {
                     <motion.div variants={itemVariants} className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Supply Portfolio</h3>
-                                <p className="text-sm text-slate-500 font-medium">Active SKUs associated with this partner entity.</p>
+                                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Linked Products</h3>
+                                <p className="text-sm text-slate-500 font-medium">Products supplied by this supplier.</p>
                             </div>
                             <Button
                                 onClick={() => setIsLinkModalOpen(true)}
                                 className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all hover:scale-[1.02]"
                             >
-                                <Zap className="w-4 h-4 mr-2" /> Link New SKU
+                                <Zap className="w-4 h-4 mr-2" /> Link Product
                             </Button>
                         </div>
                         <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
@@ -282,59 +282,64 @@ export default function SupplierDetails() {
                     <div className="sticky top-24 space-y-8">
                         {/* Financial Equilibrium Card */}
                         <motion.div variants={itemVariants}>
-                            <Card className="overflow-hidden border-slate-200 bg-slate-900 text-white shadow-2xl shadow-slate-900/40 relative">
-                                <div className="absolute -right-4 -bottom-4 opacity-10 rotate-12">
-                                    <TrendingUp className="h-48 w-48" />
+                            <Card className="overflow-hidden border-blue-200 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 shadow-xl shadow-blue-100/60 relative">
+                                {/* Decorative blobs */}
+                                <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" />
+                                <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-indigo-300/20 blur-2xl pointer-events-none" />
+                                <div className="absolute -right-4 -bottom-4 opacity-5 rotate-12">
+                                    <TrendingUp className="h-48 w-48 text-blue-900" />
                                 </div>
-                                <CardHeader className="border-b border-white/10 pb-4">
+                                <CardHeader className="border-b border-blue-200/70 pb-4 relative z-10">
                                     <div className="flex justify-between items-center">
-                                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">
-                                            Financial Equilibrium
+                                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 bg-clip-text text-transparent">
+                                            Account Balance
                                         </CardTitle>
-                                        <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                                        <div className="p-1.5 rounded-lg bg-blue-500 shadow-sm shadow-blue-300">
+                                            <ShieldCheck className="h-3.5 w-3.5 text-white" />
+                                        </div>
                                     </div>
                                 </CardHeader>
-                                <CardContent className="pt-10 pb-8 space-y-10 relative z-10">
+                                <CardContent className="pt-10 pb-8 space-y-8 relative z-10">
                                     <div className="space-y-3 text-center">
-                                        <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Outstanding Exposure</p>
+                                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">Amount Payable (PKR)</p>
                                         <h2 className={cn(
                                             "text-5xl font-black tracking-tighter leading-none mb-2",
-                                            supplier.outstandingBalance > supplier.creditLimit ? "text-rose-400" : "text-white"
+                                            supplier.outstandingBalance > supplier.creditLimit ? "text-rose-500" : "text-blue-700"
                                         )}>
                                             {formatCurrency(supplier.outstandingBalance)}
                                         </h2>
                                     </div>
 
-                                    <div className="grid grid-cols-1 gap-4 border-t border-white/10 pt-8 px-4">
-                                        <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
+                                    <div className="grid grid-cols-1 gap-3 border-t border-blue-200/60 pt-6 px-2">
+                                        <div className="flex items-center justify-between p-4 rounded-xl bg-white/60 border border-blue-100 shadow-sm">
                                             <div className="space-y-0.5">
-                                                <p className="text-[9px] font-black text-white/30 uppercase">Credit Ceiling</p>
-                                                <p className="text-lg font-bold">{formatCurrency(supplier.creditLimit)}</p>
+                                                <p className="text-[9px] font-black text-blue-500 uppercase">Credit Limit</p>
+                                                <p className="text-lg font-black text-slate-800">{formatCurrency(supplier.creditLimit)}</p>
                                             </div>
-                                            <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
+                                            <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                                                 <CreditCard className="w-5 h-5" />
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="px-4 space-y-2">
-                                        <div className="flex justify-between text-[10px] font-black text-white/20 uppercase tracking-widest px-1">
-                                            <span>Utilization</span>
+                                    <div className="px-2 space-y-2">
+                                        <div className="flex justify-between text-[10px] font-black text-blue-400 uppercase tracking-widest px-1">
+                                            <span>Credit Used</span>
                                             <span>{Math.min(100, (supplier.outstandingBalance / supplier.creditLimit) * 100).toFixed(0)}%</span>
                                         </div>
-                                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                                        <div className="h-2 w-full bg-blue-100 rounded-full overflow-hidden">
                                             <motion.div
                                                 initial={{ width: 0 }}
                                                 animate={{ width: `${Math.min(100, (supplier.outstandingBalance / supplier.creditLimit) * 100)}%` }}
                                                 className={cn(
                                                     "h-full transition-all duration-1000",
-                                                    supplier.outstandingBalance > (supplier.creditLimit * 0.8) ? "bg-rose-500" : "bg-emerald-500"
+                                                    supplier.outstandingBalance > (supplier.creditLimit * 0.8) ? "bg-rose-500" : "bg-blue-500"
                                                 )}
                                             />
                                         </div>
                                     </div>
                                 </CardContent>
-                                <div className="h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+                                <div className="h-1.5 bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400" />
                             </Card>
                         </motion.div>
 
@@ -343,20 +348,20 @@ export default function SupplierDetails() {
                             <Card className="border-slate-200 shadow-xl shadow-slate-200/50">
                                 <CardHeader className="pb-3 border-b bg-slate-50/50">
                                     <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                        <Banknote className="w-4 h-4 text-emerald-500" /> Operational Governance
+                                        <Banknote className="w-4 h-4 text-emerald-500" /> Business Details
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="pt-8 space-y-6">
                                     <div className="flex justify-between items-center">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tax Registry ID</p>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">NTN Number</p>
                                         <p className="font-mono text-sm font-bold text-slate-800">{supplier.taxNumber}</p>
                                     </div>
                                     <div className="flex justify-between items-center border-t pt-6">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Trade License</p>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">License Number</p>
                                         <p className="text-sm font-bold text-slate-800">{supplier.licenseNumber || 'N/A'}</p>
                                     </div>
                                     <div className="flex justify-between items-center border-t pt-6">
-                                        <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Default Payment Term</p>
+                                        <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Payment Days</p>
                                         <Badge className="bg-blue-50 text-blue-600 border-blue-100 font-black text-[10px]">
                                             {supplier.paymentTermDays} Days
                                         </Badge>
@@ -369,13 +374,13 @@ export default function SupplierDetails() {
                         <motion.div variants={itemVariants}>
                             <Card className="border-slate-200 shadow-none">
                                 <CardHeader className="pb-3 bg-slate-50/30 border-b">
-                                    <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Partner Intelligence</CardTitle>
+                                    <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Quick Info</CardTitle>
                                 </CardHeader>
                                 <CardContent className="pt-6 space-y-4">
                                     <div className="p-4 border rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group">
                                         <div className="flex items-center gap-4">
                                             <History className="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
-                                            <span className="text-xs font-bold text-slate-600">Historical Engagement</span>
+                                            <span className="text-xs font-bold text-slate-600">Purchase History</span>
                                         </div>
                                         <span className="text-xs font-black text-slate-900">Premium</span>
                                     </div>

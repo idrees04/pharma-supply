@@ -23,10 +23,9 @@ import { purchaseOrderSchema, PurchaseOrderFormData } from '@/lib/schemas';
 import {
   useCreatePurchaseOrder,
   useUpdatePurchaseOrder,
-  usePurchaseOrder,
-  usePurchaseOrdersBySupplier
+  usePurchaseOrder
 } from '@/api/services/purchaseOrders';
-import { useActiveSuppliers } from '@/api/services/suppliers';
+import { useActiveSuppliers, useSupplierProducts } from '@/api/services/suppliers';
 import { productService } from '@/api/services/products';
 import { formatCurrency, cn } from '@/lib/utils';
 import { CreatePurchaseOrderRequest, UpdatePurchaseOrderRequest } from '@/types/api/purchaseOrders';
@@ -40,9 +39,6 @@ export default function PurchaseOrderForm() {
   const isViewMode = !!id && location.pathname.includes('/view/');
   const isReadOnly = isViewMode;
   const poId = id ? parseInt(id) : null;
-  const previousSupplierIdRef = useRef<number | null>(null);
-  const [isSupplierConfirmOpen, setIsSupplierConfirmOpen] = React.useState(false);
-  const [pendingSupplierId, setPendingSupplierId] = React.useState<number | null>(null);
   const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = React.useState(false);
 
   // 1. Fetch Data
@@ -85,68 +81,49 @@ export default function PurchaseOrderForm() {
           supplyOrderIds: item.supplyOrderIds || [],
         })),
       });
-      previousSupplierIdRef.current = existingPO.supplierId;
     }
   }, [existingPO, isEditMode, isViewMode, form]);
 
   // 4. Supplier Selection & Dependent Queries
   const selectedSupplierId = useWatch({ control: form.control, name: 'supplierId' });
 
-  // Fetch POs by supplier to get "supplier-specific products"
-  const { data: supplierPOs, isPending: isLoadingSupplierPOs } = usePurchaseOrdersBySupplier(selectedSupplierId || null);
+  // Fetch products by supplier
+  const { data: supplierProductsData, isPending: isLoadingSupplierProducts } = useSupplierProducts(selectedSupplierId || null);
 
-  // Extract unique products from previous orders of this supplier
+  // Map supplier products to dropdown format
   const supplierProducts = useMemo(() => {
-    if (!supplierPOs) return [];
-    const productsMap = new Map();
-    supplierPOs.forEach(order => {
-      order.items?.forEach(item => {
-        if (!productsMap.has(item.productId)) {
-          productsMap.set(item.productId, {
-            value: item.productId,
-            label: `${item.productName} (${item.productCode})`
-          });
-        }
-      });
-    });
-    return Array.from(productsMap.values());
-  }, [supplierPOs]);
+    if (!supplierProductsData) return [];
+    return supplierProductsData.map(p => ({
+      value: p.productId,
+      label: `${p.productName} (${p.productCode})`,
+      data: p // Store original data for prefilling
+    }));
+  }, [supplierProductsData]);
 
-  // Handle Supplier Change with Confirmation
+  // Effect to auto-append default row when supplier has products
+  useEffect(() => {
+    if (selectedSupplierId > 0 && supplierProductsData && supplierProductsData.length > 0 && fields.length === 0) {
+      append({
+        productId: 0,
+        orderedQuantity: 1,
+        unitPrice: 0,
+        taxPercentage: 0,
+        discountPercentage: 0,
+        supplyOrderIds: []
+      });
+    }
+  }, [selectedSupplierId, supplierProductsData, fields.length, append]);
+
+  // Handle Supplier Change
   const handleSupplierChange = (newSupplierId: number) => {
     if (isReadOnly) return;
 
-    // If no items, change immediately
-    if (fields.length === 0) {
-      form.setValue('supplierId', newSupplierId);
-      previousSupplierIdRef.current = newSupplierId;
-      return;
-    }
-
-    // If items exist and supplier actually changes, ask for confirmation
+    // Always clear items on supplier change
     if (selectedSupplierId !== 0 && newSupplierId !== selectedSupplierId) {
-      setPendingSupplierId(newSupplierId);
-      setIsSupplierConfirmOpen(true);
-    } else {
-      form.setValue('supplierId', newSupplierId);
+      replace([]);
     }
-  };
 
-  const confirmSupplierChange = () => {
-    if (pendingSupplierId !== null) {
-      replace([]); // Clear all rows
-      form.setValue('supplierId', pendingSupplierId);
-      previousSupplierIdRef.current = pendingSupplierId;
-      toast.info('Supplier changed. Product items have been cleared.');
-    }
-    setIsSupplierConfirmOpen(false);
-    setPendingSupplierId(null);
-  };
-
-  const cancelSupplierChange = () => {
-    // Keep existing supplier by doing nothing to the form
-    setIsSupplierConfirmOpen(false);
-    setPendingSupplierId(null);
+    form.setValue('supplierId', newSupplierId);
   };
 
   const handleClearTable = () => {
@@ -233,11 +210,19 @@ export default function PurchaseOrderForm() {
   // 7. Product Selection Logic
   const handleProductChange = async (index: number, productId: number) => {
     try {
+      // Find the product in the prefetched list for immediate prefill
+      const supplierProduct = supplierProductsData?.find(p => p.productId === productId);
+
+      if (supplierProduct) {
+        // Prefill unit price from supplier product API
+        form.setValue(`items.${index}.unitPrice`, supplierProduct.purchaseRate);
+        form.setValue(`items.${index}.discountPercentage`, 0);
+      }
+
+      // Still fetch full product details to get the tax percentage if not in supplier product
       const product = await productService.getProduct(productId);
       if (product) {
-        form.setValue(`items.${index}.unitPrice`, product.standardPurchaseRate);
         form.setValue(`items.${index}.taxPercentage`, product.taxPercentage);
-        form.setValue(`items.${index}.discountPercentage`, 0);
       }
     } catch (error) {
       console.error('Failed to fetch product details', error);
@@ -247,10 +232,10 @@ export default function PurchaseOrderForm() {
   // Prevent duplicate products in dropdown
   const getAvailableProducts = (currentIndex: number) => {
     const selectedProductIds = (watchedItems || [])
-      .map((item, idx) => (idx !== currentIndex ? item.productId : null))
+      .map((item, idx) => (idx !== currentIndex ? Number(item.productId) : null))
       .filter(Boolean);
 
-    return supplierProducts.filter((p) => !selectedProductIds.includes(p.value));
+    return supplierProducts.filter((p) => !selectedProductIds.includes(Number(p.value)));
   };
 
   if ((isEditMode || isViewMode) && isLoadingPO) {
@@ -444,8 +429,8 @@ export default function PurchaseOrderForm() {
                           discountPercentage: 0,
                           supplyOrderIds: []
                         })}
-                        className="gap-2 shadow-sm border border-primary/20 hover:bg-primary/10 transition-colors"
-                        disabled={selectedSupplierId === 0 || isLoadingSupplierPOs}
+                        className="gap-2 shadow-sm border border-primary/20 hover:bg-primary/10 transition-colors text-primary font-bold"
+                        disabled={selectedSupplierId === 0 || isLoadingSupplierProducts}
                       >
                         <Plus className="h-4 w-4" />
                         Add Row
@@ -481,62 +466,21 @@ export default function PurchaseOrderForm() {
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormControl>
-                                      <div className="flex gap-1 items-center">
-                                        {form.getValues(`items.${index}.isManual`) ? (
-                                          <div className="flex-1 flex gap-1">
-                                            <FormField
-                                              control={form.control}
-                                              name={`items.${index}.productName`}
-                                              render={({ field: nameField }) => (
-                                                <Input
-                                                  {...nameField}
-                                                  placeholder="Enter product description..."
-                                                  className="h-9 text-sm"
-                                                  disabled={isReadOnly}
-                                                />
-                                              )}
-                                            />
-                                          </div>
-                                        ) : (
-                                          <SearchableSelect
-                                            items={getAvailableProducts(index)}
-                                            value={field.value}
-                                            onValueChange={(val) => {
-                                              field.onChange(val);
-                                              handleProductChange(index, Number(val));
-                                            }}
-                                            placeholder="Find Product..."
-                                            isLoading={isLoadingSupplierPOs}
-                                            className={cn(
-                                              "w-full transition-all duration-200 border-transparent bg-transparent group-hover:border-input group-hover:bg-background",
-                                              isReadOnly && "border-none bg-transparent cursor-default pointer-events-none p-0 text-foreground font-semibold"
-                                            )}
-                                            disabled={isReadOnly}
-                                          />
+                                      <SearchableSelect
+                                        items={getAvailableProducts(index)}
+                                        value={field.value}
+                                        onValueChange={(val) => {
+                                          field.onChange(val);
+                                          handleProductChange(index, Number(val));
+                                        }}
+                                        placeholder="Find Product..."
+                                        isLoading={isLoadingSupplierProducts}
+                                        className={cn(
+                                          "w-full transition-all duration-200 border-transparent bg-transparent group-hover:border-input group-hover:bg-background group-hover:text-primary font-medium",
+                                          isReadOnly && "border-none bg-transparent cursor-default pointer-events-none p-0 text-foreground font-semibold"
                                         )}
-                                        {!isReadOnly && (
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 hover:bg-muted text-muted-foreground"
-                                            title={form.getValues(`items.${index}.isManual`) ? "Switch to Search" : "Manual Entry"}
-                                            onClick={() => {
-                                              const currentIsManual = !!form.getValues(`items.${index}.isManual`);
-                                              form.setValue(`items.${index}.isManual`, !currentIsManual);
-                                              if (!currentIsManual) {
-                                                form.setValue(`items.${index}.productId`, 0);
-                                              }
-                                            }}
-                                          >
-                                            {form.getValues(`items.${index}.isManual`) ? (
-                                              <Search className="h-3 w-3" />
-                                            ) : (
-                                              <Type className="h-3 w-3" />
-                                            )}
-                                          </Button>
-                                        )}
-                                      </div>
+                                        disabled={isReadOnly}
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -655,11 +599,35 @@ export default function PurchaseOrderForm() {
                         ))}
                         {fields.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={isReadOnly ? 7 : 8} className="h-32 text-center text-muted-foreground">
-                              <div className="flex flex-col items-center gap-2">
-                                <Package className="h-8 w-8 opacity-20" />
-                                <p className="italic font-medium">No items found for this order.</p>
-                                {!isReadOnly && <p className="text-xs">Click "Add Row" to start adding products.</p>}
+                            <TableCell colSpan={isReadOnly ? 7 : 8} className="h-40 text-center text-muted-foreground bg-muted/5">
+                              <div className="flex flex-col items-center gap-3 animate-pulse-subtle">
+                                {selectedSupplierId > 0 && !isLoadingSupplierProducts && (!supplierProductsData || supplierProductsData.length === 0) ? (
+                                  <>
+                                    <div className="bg-red-50 p-4 rounded-full">
+                                      <Package className="h-10 w-10 text-red-400 opacity-80" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <p className="font-bold text-red-600 text-lg tracking-tight">No Products Linked</p>
+                                      <p className="text-sm max-w-[380px] mx-auto leading-relaxed">
+                                        We couldn't find any products associated with this supplier in the system. Please ensure the supplier catalog is linked before creating an order.
+                                      </p>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="bg-primary/5 p-4 rounded-full">
+                                      <Package className="h-10 w-10 text-primary opacity-40" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <p className="italic font-bold text-foreground">No active order items</p>
+                                      <p className="text-xs">
+                                        {selectedSupplierId === 0
+                                          ? "Please select a supplier to begin adding products."
+                                          : "Click \"Add Row\" to manually add more products."}
+                                      </p>
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -750,23 +718,6 @@ export default function PurchaseOrderForm() {
           </div>
         </form>
       </Form>
-
-      {/* Confirmation Dialogs */}
-      <ConfirmDialog
-        open={isSupplierConfirmOpen}
-        onOpenChange={setIsSupplierConfirmOpen}
-        title="Change Supplier?"
-        description={
-          <span>
-            Changing the supplier will <span className="font-bold text-destructive">clear all selected product rows</span>.
-            Are you sure you want to continue?
-          </span>
-        }
-        onConfirm={confirmSupplierChange}
-        confirmText="Yes, Change Supplier"
-        cancelText="No, Keep Current"
-        variant="destructive"
-      />
 
       <ConfirmDialog
         open={isClearAllConfirmOpen}

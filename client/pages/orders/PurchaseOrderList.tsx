@@ -107,12 +107,7 @@ export default function PurchaseOrderList() {
     {
       header: 'PO Number',
       accessor: (row) => (
-        <button
-          onClick={() => navigate(`/orders/purchase/view/${row.id}`)}
-          className="font-black text-primary hover:underline cursor-pointer text-left tracking-tight"
-        >
-          {row.purchaseOrderNumber}
-        </button>
+        <span className="font-black text-primary tracking-tight">{row.purchaseOrderNumber}</span>
       ),
     },
     {
@@ -144,7 +139,7 @@ export default function PurchaseOrderList() {
         return <Badge variant={variant}>{statusName}</Badge>;
       },
     },
-  ], [statuses, navigate]);
+  ], [statuses]);
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -199,12 +194,11 @@ export default function PurchaseOrderList() {
       </div>
 
       {/* Table */}
-      <div className="bg-white shadow-sm overflow-hidden">
+      <div className="overflow-x-auto">
         <DataTable
           columns={columns}
           data={filteredPOs}
           isLoading={isLoading}
-          onEdit={(row) => navigate(`/orders/purchase/view/${row.id}`)}
           onDelete={(row) => {
             setPoToDelete(row);
             setIsDeleteDialogOpen(true);
@@ -212,6 +206,7 @@ export default function PurchaseOrderList() {
           itemsPerPage={10}
           emptyMessage="No purchase orders found."
           showSearch={false}
+          onRowClick={(row) => navigate(`/orders/purchase/view/${row.id}`)}
         />
       </div>
 

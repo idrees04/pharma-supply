@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,7 +20,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HospitalCard } from '@/components/hospitals/HospitalCard';
@@ -40,6 +40,8 @@ export default function HospitalList() {
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
 
   const canCreate = hasPermission('hospitals', 'create');
   const canUpdate = hasPermission('hospitals', 'update');
@@ -61,6 +63,17 @@ export default function HospitalList() {
       h.city?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [allHospitals, searchTerm]);
+
+  // Handle URL edit parameter
+  useEffect(() => {
+    if (editId && allHospitals.length > 0) {
+      const hospital = allHospitals.find(h => h.id === parseInt(editId));
+      if (hospital) {
+        setSelectedHospital(hospital);
+        setIsDialogOpen(true);
+      }
+    }
+  }, [editId, allHospitals]);
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -124,6 +137,12 @@ export default function HospitalList() {
     setIsDialogOpen(false);
     setSelectedHospital(null);
     queryClient.invalidateQueries({ queryKey: ['hospitals'] });
+    // Clear the edit parameter from URL
+    if (searchParams.has('edit')) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('edit');
+      setSearchParams(newParams, { replace: true });
+    }
   };
 
   const columns: Column<Hospital>[] = useMemo(() => [

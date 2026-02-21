@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,6 +39,8 @@ export default function ProductList() {
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
 
   const canCreate = hasPermission('products', 'create');
   const canUpdate = hasPermission('products', 'update');
@@ -61,6 +63,17 @@ export default function ProductList() {
       p.manufacturer?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [allProducts, searchTerm]);
+
+  // Handle URL edit parameter
+  useEffect(() => {
+    if (editId && allProducts.length > 0) {
+      const id = parseInt(editId);
+      if (!isNaN(id)) {
+        setSelectedProductId(id);
+        setIsDialogOpen(true);
+      }
+    }
+  }, [editId, allProducts]);
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -103,6 +116,12 @@ export default function ProductList() {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setSelectedProductId(undefined);
+    // Clear the edit parameter from URL
+    if (searchParams.has('edit')) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('edit');
+      setSearchParams(newParams, { replace: true });
+    }
   };
 
   const handleCreate = () => {

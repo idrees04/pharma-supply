@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,6 +40,8 @@ export default function SupplierList() {
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
 
   const canCreate = hasPermission('suppliers', 'create');
   const canUpdate = hasPermission('suppliers', 'update');
@@ -61,6 +63,17 @@ export default function SupplierList() {
       s.city?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [allSuppliers, searchTerm]);
+
+  // Handle URL edit parameter
+  useEffect(() => {
+    if (editId && allSuppliers.length > 0) {
+      const supplier = allSuppliers.find(s => s.id === parseInt(editId));
+      if (supplier) {
+        setSelectedSupplier(supplier);
+        setIsDialogOpen(true);
+      }
+    }
+  }, [editId, allSuppliers]);
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -118,6 +131,12 @@ export default function SupplierList() {
     setIsDialogOpen(false);
     setSelectedSupplier(null);
     queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+    // Clear the edit parameter from URL
+    if (searchParams.has('edit')) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('edit');
+      setSearchParams(newParams, { replace: true });
+    }
   };
 
   const columns: Column<Supplier>[] = useMemo(() => [

@@ -76,9 +76,9 @@ export function useGetQuery<T>(
       return failureCount < 3;
     },
     // Refetch on window focus and reconnect
-    refetchOnMount: 'stale',
-    refetchOnWindowFocus: 'stale',
-    refetchOnReconnect: 'stale',
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     ...options,
   });
 }
@@ -185,12 +185,12 @@ export function usePatchMutation<T, D = any>(
  *     }
  *   };
  */
-export function useDeleteMutation<T = void>(
-  mutationFn: () => Promise<T>,
-  options?: Omit<UseMutationOptions<T, ApiError, void>, 'mutationFn'>
+export function useDeleteMutation<T = void, D = any>(
+  mutationFn: (data: D) => Promise<T>,
+  options?: Omit<UseMutationOptions<T, ApiError, D>, 'mutationFn'>
 ) {
-  return useMutation<T, ApiError, void>({
-    mutationFn: () => mutationFn(),
+  return useMutation<T, ApiError, D>({
+    mutationFn,
     ...options,
   });
 }

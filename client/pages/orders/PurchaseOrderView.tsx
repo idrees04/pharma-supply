@@ -3,14 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { usePurchaseOrder, usePurchaseOrderStatuses } from '@/api/services/purchaseOrders';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { 
-  ArrowLeft, 
-  Loader2, 
-  AlertCircle, 
-  Calendar, 
-  MapPin, 
-  Package, 
-  FileText, 
+import {
+  ArrowLeft,
+  Loader2,
+  AlertCircle,
+  Calendar,
+  MapPin,
+  Package,
+  FileText,
   User,
   StickyNote,
   DollarSign,
@@ -18,12 +18,24 @@ import {
   Clock,
   XCircle,
   Truck,
-  Mail
+  Mail,
+  Save
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency, cn } from '@/lib/utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription
+} from '@/components/ui/sheet';
+import { UpdatePurchaseOrderForm } from '@/components/purchase-orders/UpdatePurchaseOrderForm';
+import { ReceiveItemsForm } from '@/components/purchase-orders/ReceiveItemsForm';
+import { Edit2, PackageCheck } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 import {
   Breadcrumb,
@@ -39,8 +51,10 @@ export default function PurchaseOrderView() {
   const navigate = useNavigate();
   const poId = id ? parseInt(id) : null;
 
-  const { data: po, isPending, error } = usePurchaseOrder(poId);
+  const { data: po, isPending, error, refetch } = usePurchaseOrder(poId);
   const { data: statuses = [] } = usePurchaseOrderStatuses();
+  const [isEditSheetOpen, setIsEditSheetOpen] = React.useState(false);
+  const [isReceiveSheetOpen, setIsReceiveSheetOpen] = React.useState(false);
 
   const calculations = useMemo(() => {
     if (!po?.items) return { subtotal: 0, tax: 0, discount: 0, total: 0 };
@@ -102,9 +116,9 @@ export default function PurchaseOrderView() {
       {/* Header Section */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             onClick={() => navigate('/orders/purchase')}
             className="rounded-full"
           >
@@ -121,6 +135,21 @@ export default function PurchaseOrderView() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="gap-2 border-primary/20 hover:bg-primary/5 text-primary font-bold transition-all hover:scale-105 active:scale-95"
+            onClick={() => setIsEditSheetOpen(true)}
+          >
+            <Edit2 className="h-4 w-4" />
+            Edit Order
+          </Button>
+          <Button
+            className="gap-2 font-bold transition-all hover:scale-105 active:scale-95 shadow-md hover:shadow-primary/20"
+            onClick={() => setIsReceiveSheetOpen(true)}
+          >
+            <PackageCheck className="h-4 w-4" />
+            Receive Goods
+          </Button>
           <Button variant="outline" className="gap-2" onClick={() => window.print()}>
             <FileText className="h-4 w-4" />
             Print Order
@@ -137,68 +166,73 @@ export default function PurchaseOrderView() {
 
         <Card className="border shadow-none bg-card overflow-hidden">
           <CardContent className="p-0">
-            <div className="grid grid-cols-1 md:grid-cols-4">
+            <div className="flex overflow-x-auto no-scrollbar md:grid md:grid-cols-5 lg:grid-cols-9">
               {statuses.map((status, index) => {
                 const isCurrent = po.status === status.value;
-                const isCancelled = po.status === 4;
-                const isNormalFlow = status.value < 4;
+                const isCancelled = po.status === 8; // 8 is Cancelled in the new API response
 
-                // Determine if this step is "completed" in the flow
-                const isDone = !isCancelled && po.status > status.value && isNormalFlow;
+                // Simplified "Done" logic: if the status value is less than current, it's done
+                // unless the current status is Cancelled (8), in which case everything else is "skipped"
+                const isDone = !isCancelled && po.status > status.value && status.value !== 8;
 
+                const name = status.name.toLowerCase();
                 let Icon = Clock;
                 let colorClass = "text-muted-foreground";
                 let bgClass = "bg-muted/50";
                 let borderClass = "border-transparent";
 
-                if (status.name.toLowerCase().includes('pending')) Icon = Clock;
-                if (status.name.toLowerCase().includes('confirmed')) Icon = CheckCircle2;
-                if (status.name.toLowerCase().includes('completed')) Icon = Truck;
-                if (status.name.toLowerCase().includes('cancelled')) Icon = XCircle;
+                if (name.includes('draft')) Icon = FileText;
+                else if (name.includes('sent')) Icon = Mail;
+                else if (name.includes('confirmed')) Icon = CheckCircle2;
+                else if (name.includes('partiallyreceived')) Icon = Package;
+                else if (name.includes('received')) Icon = Truck;
+                else if (name.includes('partiallypaid')) Icon = DollarSign;
+                else if (name.includes('paid')) Icon = DollarSign;
+                else if (name.includes('cancelled')) Icon = XCircle;
+                else if (name.includes('closed')) Icon = Save;
 
                 if (isCurrent) {
-                  colorClass = status.value === 4 ? "text-red-600" : "text-primary";
-                  bgClass = status.value === 4 ? "bg-red-50" : "bg-primary/10";
-                  borderClass = status.value === 4 ? "border-red-200" : "border-primary/20";
+                  colorClass = status.value === 8 ? "text-red-600" : "text-primary";
+                  bgClass = status.value === 8 ? "bg-red-50" : "bg-primary/10";
+                  borderClass = status.value === 8 ? "border-red-200" : "border-primary/20";
                 } else if (isDone) {
                   colorClass = "text-emerald-600";
                   bgClass = "bg-emerald-50";
                 }
 
-                // If cancelled, and this is a normal step, show it as skipped/muted
-                if (isCancelled && isNormalFlow) {
-                    colorClass = "text-muted-foreground/40";
-                    bgClass = "bg-muted/20";
+                if (isCancelled && status.value !== 8) {
+                  colorClass = "text-muted-foreground/40";
+                  bgClass = "bg-muted/20";
                 }
 
                 return (
                   <div
                     key={status.value}
                     className={cn(
-                      "flex items-center gap-4 p-6 border-b md:border-b-0 md:border-r last:border-0 transition-colors relative",
+                      "flex flex-col items-center gap-3 p-4 min-w-[120px] border-r last:border-0 transition-colors relative",
                       bgClass,
                       borderClass
                     )}
                   >
                     <div className={cn(
-                      "w-12 h-12 rounded-full flex items-center justify-center shrink-0 border-2 shadow-sm",
+                      "w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 shadow-sm transition-transform duration-300",
                       isCurrent ? "bg-background border-current scale-110 z-10" : "bg-transparent border-muted-foreground/20"
                     )}>
-                      <Icon className={cn("h-6 w-6", colorClass)} />
+                      <Icon className={cn("h-5 w-5", colorClass)} />
                     </div>
-                    <div className="flex flex-col">
-                      <span className={cn("text-xs font-black uppercase tracking-widest leading-none mb-1", colorClass)}>
+                    <div className="flex flex-col items-center text-center">
+                      <span className={cn("text-[10px] font-black uppercase tracking-widest leading-none mb-1", colorClass)}>
                         {status.name}
                       </span>
-                      <span className="text-[10px] text-muted-foreground font-medium">
-                        {isCurrent ? "Currently Here" : isDone ? "Step Completed" : isCancelled && status.value === 4 ? "Order Terminated" : "Awaiting Progress"}
+                      <span className="text-[8px] text-muted-foreground font-medium whitespace-nowrap">
+                        {isCurrent ? "Current" : isDone ? "Done" : isCancelled && status.value === 8 ? "Terminated" : "Wait"}
                       </span>
                     </div>
                     {isCurrent && (
-                        <div className={cn(
-                            "absolute top-0 left-0 w-1 h-full",
-                            status.value === 4 ? "bg-red-600" : "bg-primary"
-                        )} />
+                      <div className={cn(
+                        "absolute bottom-0 left-0 h-1 w-full",
+                        status.value === 8 ? "bg-red-600" : "bg-primary"
+                      )} />
                     )}
                   </div>
                 );
@@ -220,40 +254,40 @@ export default function PurchaseOrderView() {
               </div>
             </CardHeader>
             <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
-              <InfoItem 
-                icon={<User className="h-4 w-4" />} 
-                label="Supplier Name" 
-                value={po.supplierName} 
+              <InfoItem
+                icon={<User className="h-4 w-4" />}
+                label="Supplier Name"
+                value={po.supplierName}
                 subValue={`ID: ${po.supplierId}`}
               />
-              <InfoItem 
-                icon={<Calendar className="h-4 w-4" />} 
-                label="Order Date" 
-                value={new Date(po.orderDate).toLocaleDateString(undefined, { dateStyle: 'long' })} 
+              <InfoItem
+                icon={<Calendar className="h-4 w-4" />}
+                label="Order Date"
+                value={new Date(po.orderDate).toLocaleDateString(undefined, { dateStyle: 'long' })}
               />
-              <InfoItem 
-                icon={<Clock className="h-4 w-4" />} 
-                label="Expected Delivery" 
-                value={new Date(po.expectedDeliveryDate).toLocaleDateString(undefined, { dateStyle: 'long' })} 
+              <InfoItem
+                icon={<Clock className="h-4 w-4" />}
+                label="Expected Delivery"
+                value={new Date(po.expectedDeliveryDate).toLocaleDateString(undefined, { dateStyle: 'long' })}
               />
-              <InfoItem 
-                icon={<Truck className="h-4 w-4" />} 
-                label="Actual Delivery" 
-                value={po.actualDeliveryDate ? new Date(po.actualDeliveryDate).toLocaleDateString(undefined, { dateStyle: 'long' }) : 'Not yet delivered'} 
+              <InfoItem
+                icon={<Truck className="h-4 w-4" />}
+                label="Actual Delivery"
+                value={po.actualDeliveryDate ? new Date(po.actualDeliveryDate).toLocaleDateString(undefined, { dateStyle: 'long' }) : 'Not yet delivered'}
                 className={!po.actualDeliveryDate ? "text-muted-foreground italic" : ""}
               />
               <div className="md:col-span-2">
-                <InfoItem 
-                  icon={<MapPin className="h-4 w-4" />} 
-                  label="Delivery Address" 
-                  value={po.deliveryAddress} 
+                <InfoItem
+                  icon={<MapPin className="h-4 w-4" />}
+                  label="Delivery Address"
+                  value={po.deliveryAddress}
                 />
               </div>
               <div className="md:col-span-2">
-                <InfoItem 
-                  icon={<StickyNote className="h-4 w-4" />} 
-                  label="Special Notes" 
-                  value={po.notes || 'No special instructions provided.'} 
+                <InfoItem
+                  icon={<StickyNote className="h-4 w-4" />}
+                  label="Special Notes"
+                  value={po.notes || 'No special instructions provided.'}
                   className={!po.notes ? "text-muted-foreground italic" : ""}
                 />
               </div>
@@ -268,46 +302,65 @@ export default function PurchaseOrderView() {
                   <Package className="h-5 w-5 text-primary" />
                   <CardTitle className="text-lg">Ordered Items</CardTitle>
                 </div>
-                <Badge variant="secondary">{po.items.length} Items</Badge>
+                <Badge variant="secondary">{(po.items || []).length} Items</Badge>
               </div>
             </CardHeader>
             <CardContent className="p-0 border-t">
-              <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead className="w-[60px] text-center">#</TableHead>
-                    <TableHead>Product Description</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Tax %</TableHead>
-                    <TableHead className="text-right">Disc %</TableHead>
-                    <TableHead className="text-right pr-6">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {po.items.map((item, index) => {
-                    const lineSubtotal = item.orderedQuantity * item.unitPrice;
-                    const lineTax = lineSubtotal * (item.taxPercentage / 100);
-                    const lineDiscount = lineSubtotal * (item.discountPercentage / 100);
-                    const lineTotal = lineSubtotal + lineTax - lineDiscount;
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest pl-6 whitespace-nowrap">Product</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest whitespace-nowrap">Code</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest whitespace-nowrap">Ordered</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest text-blue-600 whitespace-nowrap">Received</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest text-amber-600 whitespace-nowrap">Remaining</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest whitespace-nowrap">Unit Price</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest whitespace-nowrap">Tax %</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest whitespace-nowrap">Disc %</TableHead>
+                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest pr-6 whitespace-nowrap">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(po.items || []).map((item, index) => {
+                      const lineSubtotal = item.orderedQuantity * item.unitPrice;
+                      const lineTax = lineSubtotal * (item.taxPercentage / 100);
+                      const lineDiscount = lineSubtotal * (item.discountPercentage / 100);
+                      const lineTotal = lineSubtotal + lineTax - lineDiscount;
 
-                    return (
-                      <TableRow key={item.id} className="hover:bg-muted/10">
-                        <TableCell className="text-center font-medium text-muted-foreground">{index + 1}</TableCell>
-                        <TableCell>
-                          <p className="font-semibold">{item.productName}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.productCode}</p>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">{item.orderedQuantity}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(item.unitPrice)}</TableCell>
-                        <TableCell className="text-right text-blue-600 font-medium">{item.taxPercentage}%</TableCell>
-                        <TableCell className="text-right text-red-600 font-medium">{item.discountPercentage}%</TableCell>
-                        <TableCell className="text-right pr-6 font-bold">{formatCurrency(lineTotal)}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                      return (
+                        <motion.tr
+                          key={item.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.03 }}
+                          className="border-b transition-colors hover:bg-muted/10 group data-[state=selected]:bg-muted"
+                        >
+                          <TableCell className="pl-6 py-4 min-w-[200px] max-w-[300px]">
+                            <p className="font-bold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                              {item.productName}
+                            </p>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Badge variant="outline" className="font-mono text-[10px] py-0 h-5 px-1.5 bg-muted/50">
+                              {item.productCode}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-black text-sm whitespace-nowrap">{item.orderedQuantity.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-black text-sm text-blue-700 bg-blue-50/30 whitespace-nowrap">{item.receivedQuantity.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-black text-sm text-amber-700 bg-amber-50/30 whitespace-nowrap">
+                            {item.remainingQuantity.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-xs whitespace-nowrap">{formatCurrency(item.unitPrice)}</TableCell>
+                          <TableCell className="text-right font-bold text-xs text-blue-600/80 whitespace-nowrap">{item.taxPercentage}%</TableCell>
+                          <TableCell className="text-right font-bold text-xs text-red-600/80 whitespace-nowrap">{item.discountPercentage}%</TableCell>
+                          <TableCell className="text-right pr-6 font-black text-sm text-primary whitespace-nowrap">{formatCurrency(lineTotal)}</TableCell>
+                        </motion.tr>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -360,6 +413,60 @@ export default function PurchaseOrderView() {
           </Card>
         </div>
       </div>
+
+      <Sheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen}>
+        <SheetContent className="sm:max-w-[540px] p-0 border-l-0">
+          <div className="h-full flex flex-col focus-visible:outline-none">
+            <SheetHeader className="p-6 bg-muted/20 border-b">
+              <SheetTitle className="text-2xl font-bold flex items-center gap-2">
+                <Edit2 className="h-6 w-6 text-primary" />
+                Update Purchase Order
+              </SheetTitle>
+              <SheetDescription>
+                Modify the status and delivery details for PO <span className="font-mono font-bold text-foreground">{po.purchaseOrderNumber}</span>
+              </SheetDescription>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto p-6">
+              <UpdatePurchaseOrderForm
+                purchaseOrder={po}
+                onSuccess={() => {
+                  setIsEditSheetOpen(false);
+                }}
+                onCancel={() => setIsEditSheetOpen(false)}
+              />
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={isReceiveSheetOpen} onOpenChange={setIsReceiveSheetOpen}>
+        <SheetContent className="sm:max-w-[800px] p-0 border-l-0">
+          <div className="h-full flex flex-col focus-visible:outline-none">
+            <SheetHeader className="p-6 bg-primary/5 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <PackageCheck className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <SheetTitle className="text-2xl font-bold">Receive Goods</SheetTitle>
+                  <SheetDescription>
+                    Record quantity received and batch details for PO <span className="font-mono font-bold text-foreground">{po.purchaseOrderNumber}</span>
+                  </SheetDescription>
+                </div>
+              </div>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto p-6 bg-muted/5">
+              <ReceiveItemsForm
+                purchaseOrder={po}
+                onSuccess={() => {
+                  setIsReceiveSheetOpen(false);
+                }}
+                onCancel={() => setIsReceiveSheetOpen(false)}
+              />
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

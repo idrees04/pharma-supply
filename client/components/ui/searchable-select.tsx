@@ -30,6 +30,7 @@ interface SearchableSelectProps {
     searchPlaceholder?: string;
     emptyMessage?: string;
     isLoading?: boolean;
+    disabled?: boolean;
     className?: string;
 }
 
@@ -41,6 +42,7 @@ export function SearchableSelect({
     searchPlaceholder = "Search...",
     emptyMessage = "No item found.",
     isLoading = false,
+    disabled = false,
     className,
 }: SearchableSelectProps) {
     const [open, setOpen] = React.useState(false);
@@ -57,6 +59,7 @@ export function SearchableSelect({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
+                    disabled={disabled || isLoading}
                     className={cn(
                         "w-full justify-between font-normal border-input bg-background shadow-sm transition-all duration-200",
                         "hover:border-primary/50 hover:bg-accent/5",

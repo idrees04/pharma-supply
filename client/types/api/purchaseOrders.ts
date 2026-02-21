@@ -43,6 +43,7 @@ export interface PurchaseOrder {
   paymentMethod?: 'Cash' | 'Cheque' | 'Bank';
   notes: string;
   isActive: boolean;
+  createdAt: string;
   items: PurchaseOrderItem[];
 }
 
@@ -57,6 +58,7 @@ export interface CreatePurchaseOrderRequest {
   notes: string;
   items: {
     productId: number;
+    productName?: string;
     orderedQuantity: number;
     unitPrice: number;
     taxPercentage: number;

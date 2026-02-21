@@ -1,4 +1,16 @@
-import { ReactNode } from 'react';
+import * as React from 'react';
+import {
+  ColumnDef,
+  ColumnFiltersState,
+  SortingState,
+  VisibilityState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
 import {
   Table,
   TableBody,
@@ -8,13 +20,31 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Edit2,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  Settings2,
+  Search,
+  ChevronFirst,
+  ChevronLast
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface Column<T> {
   header: string;
-  accessor: keyof T | ((row: T) => ReactNode);
+  accessor: keyof T | ((row: T) => React.ReactNode);
   className?: string;
+  id?: string;
 }
 
 interface DataTableProps<T> {
@@ -25,137 +55,280 @@ interface DataTableProps<T> {
   isLoading?: boolean;
   itemsPerPage?: number;
   emptyMessage?: string;
+  showToolbar?: boolean;
+  showSearch?: boolean;
+  showColumnVisibility?: boolean;
+  onRowClick?: (item: T) => void;
 }
 
 export function DataTable<T extends { id?: string | number }>({
-  columns,
+  columns: userColumns,
   data,
   onEdit,
   onDelete,
   isLoading = false,
   itemsPerPage = 10,
   emptyMessage = 'No data available',
+  showToolbar = true,
+  showSearch = true,
+  showColumnVisibility = true,
+  onRowClick,
 }: DataTableProps<T>) {
-  const [currentPage, setCurrentPage] = React.useState(0);
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = React.useState('');
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
 
-  const totalPages = Math.ceil(data.length / itemsPerPage);
-  const startIdx = currentPage * itemsPerPage;
-  const endIdx = startIdx + itemsPerPage;
-  const displayData = data.slice(startIdx, endIdx);
+  // Memoize columns for TanStack Table
+  const columns = React.useMemo<ColumnDef<T>[]>(() => {
+    const cols: ColumnDef<T>[] = userColumns.map((col, index) => {
+      const id = col.id || (typeof col.accessor === 'string' ? col.accessor : `col-${index}`);
 
-  const getCellValue = (row: T, column: Column<T>): ReactNode => {
-    if (typeof column.accessor === 'function') {
-      return column.accessor(row);
+      return {
+        id,
+        header: ({ column }) => {
+          return (
+            <div className={cn("flex items-center gap-1 cursor-pointer select-none", col.className)} onClick={() => column.toggleSorting()}>
+              {col.header}
+              <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+            </div>
+          );
+        },
+        accessorFn: typeof col.accessor === 'function' ? col.accessor : (row) => row[col.accessor as keyof T],
+        cell: ({ row, getValue }) => {
+          const value = getValue();
+          if (typeof col.accessor === 'function') {
+            // If it's a function, we re-execute it with the row data to preserve original behavior
+            return col.accessor(row.original);
+          }
+          return (value as React.ReactNode) || '-';
+        },
+      };
+    });
+
+    // Add Actions column if onEdit or onDelete is provided
+    if (onEdit || onDelete) {
+      cols.push({
+        id: 'actions',
+        header: () => <div className="text-right">Actions</div>,
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-1">
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(row.original);
+                }}
+                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              >
+                <Edit2 className="w-4 h-4" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(row.original);
+                }}
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        ),
+      });
     }
-    return (row[column.accessor] as ReactNode) || '-';
-  };
+
+    return cols;
+  }, [userColumns, onEdit, onDelete]);
+
+  const table = useReactTable({
+    data,
+    columns,
+    state: {
+      sorting,
+      globalFilter,
+      columnVisibility,
+    },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    onColumnVisibilityChange: setColumnVisibility,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: itemsPerPage,
+      },
+    },
+  });
 
   if (isLoading) {
-    return <div className="py-8 text-center text-muted-foreground">Loading...</div>;
-  }
-
-  if (data.length === 0) {
-    return <div className="py-8 text-center text-muted-foreground">{emptyMessage}</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm text-muted-foreground animate-pulse">Loading data records...</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      <div className="border border-border rounded-lg overflow-hidden">
+      {showToolbar && (showSearch || showColumnVisibility) && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
+          {showSearch ? (
+            <div className="relative w-full sm:max-w-sm group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Filter results..."
+                value={globalFilter ?? ''}
+                onChange={(event) => setGlobalFilter(event.target.value)}
+                className="pl-9 h-10 bg-muted/20 border-muted-foreground/20 focus:bg-background transition-all"
+              />
+            </div>
+          ) : <div />}
+
+          {showColumnVisibility && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-10 ml-auto flex gap-2">
+                  <Settings2 className="w-4 h-4" />
+                  Columns
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[180px]">
+                {table
+                  .getAllColumns()
+                  .filter((column) => column.getCanHide())
+                  .map((column) => {
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        className="capitalize"
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                      >
+                        {column.id}
+                      </DropdownMenuCheckboxItem>
+                    );
+                  })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      )}
+
+      <div className="border border-border rounded-xl overflow-hidden bg-background shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow className="bg-sidebar hover:bg-sidebar">
-              {columns.map((column, idx) => (
-                <TableHead key={idx} className={column.className}>
-                  {column.header}
-                </TableHead>
-              ))}
-              {(onEdit || onDelete) && <TableHead className="text-right">Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {displayData.map((row, rowIdx) => (
-              <TableRow key={rowIdx} className="hover:bg-muted/50">
-                {columns.map((column, colIdx) => (
-                  <TableCell key={colIdx} className={cn('py-3', column.className)}>
-                    {getCellValue(row, column)}
-                  </TableCell>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id} className="bg-muted/30 hover:bg-muted/30 border-b">
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} className="h-11 font-bold text-foreground">
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
                 ))}
-                {(onEdit || onDelete) && (
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {onEdit && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onEdit(row)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                      {onDelete && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDelete(row)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                )}
               </TableRow>
             ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                  className={cn(
+                    "hover:bg-muted/50 transition-colors border-b last:border-0",
+                    onRowClick && "cursor-pointer"
+                  )}
+                  onClick={() => onRowClick?.(row.original)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id} className="py-3">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center space-y-2">
+                    <Search className="w-8 h-8 opacity-20" />
+                    <p>{emptyMessage}</p>
+                    {globalFilter && (
+                      <Button variant="link" onClick={() => setGlobalFilter('')} className="text-xs h-auto p-0">
+                        Clear filters
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            Showing {startIdx + 1} to {Math.min(endIdx, data.length)} of {data.length} records
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-              disabled={currentPage === 0}
-              className="gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
-            </Button>
-            <div className="flex items-center gap-2">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <Button
-                  key={i}
-                  variant={currentPage === i ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setCurrentPage(i)}
-                  className="w-8 h-8 p-0"
-                >
-                  {i + 1}
-                </Button>
-              ))}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
-              disabled={currentPage === totalPages - 1}
-              className="gap-2"
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
+        <div className="text-sm text-muted-foreground font-medium">
+          Showing <span className="text-foreground">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> - {' '}
+          <span className="text-foreground">
+            {Math.min(
+              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+              table.getFilteredRowModel().rows.length
+            )}
+          </span> of {' '}
+          <span className="text-foreground">{table.getFilteredRowModel().rows.length}</span> results
         </div>
-      )}
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => table.setPageIndex(0)}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <ChevronFirst className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center justify-center text-xs font-bold bg-muted h-8 px-3 rounded-md">
+            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+            disabled={!table.getCanNextPage()}
+          >
+            <ChevronLast className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
-
-import * as React from 'react';

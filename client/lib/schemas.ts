@@ -172,10 +172,14 @@ export type TenderFormData = z.infer<typeof tenderSchema>;
 
 // Purchase Order Schema
 export const poItemSchema = z.object({
-  nomenclature: z.string().min(1, "Nomenclature is required"),
-  unit: z.string().min(1, "Unit is required"),
-  quantity: z.coerce.number().positive("Quantity must be positive"),
-  rate: z.coerce.number().positive("Rate must be positive"),
+  productId: z.coerce.number().int().min(0, "Product is required"),
+  productName: z.string().optional(),
+  orderedQuantity: z.coerce.number().positive("Quantity must be positive"),
+  unitPrice: z.coerce.number().positive("Unit Price must be positive"),
+  taxPercentage: z.coerce.number().min(0, "Tax % must be non-negative"),
+  discountPercentage: z.coerce.number().min(0, "Discount % must be non-negative"),
+  supplyOrderIds: z.array(z.coerce.number().int()).default([]),
+  isManual: z.boolean().default(false).optional(),
 });
 
 export const purchaseOrderSchema = z.object({
@@ -193,6 +197,28 @@ export const purchaseOrderSchema = z.object({
 
 export type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;
 export type UpdatePurchaseOrderFormData = z.infer<typeof updatePurchaseOrderSchema>;
+
+// Receive Items Schema
+export const receiveItemLineSchema = z.object({
+  purchaseOrderItemId: z.coerce.number().int().min(1),
+  productName: z.string(), // For UI display only
+  orderedQuantity: z.coerce.number(), // For validation/UI display
+  previouslyReceived: z.coerce.number(), // For validation/UI display
+  receivedQuantity: z.coerce.number().min(0, "Must be at least 0"),
+  batchNumber: z.string().min(1, "Batch Number is required"),
+  manufactureDate: z.string().min(1, "Manufacture Date is required"),
+  expiryDate: z.string().min(1, "Expiry Date is required"),
+  notes: z.string().optional().default(""),
+});
+
+export const receiveItemsSchema = z.object({
+  purchaseOrderId: z.coerce.number().int().min(1),
+  actualDeliveryDate: z.string().min(1, "Actual Delivery Date is required"),
+  items: z.array(receiveItemLineSchema).min(1, "At least one item is required"),
+});
+
+export type ReceiveItemsFormData = z.infer<typeof receiveItemsSchema>;
+export type ReceiveItemLineFormData = z.infer<typeof receiveItemLineSchema>;
 
 // Sales Order Schema
 export const salesItemSchema = z.object({

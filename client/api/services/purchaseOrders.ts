@@ -39,7 +39,10 @@ export const purchaseOrderService = {
     const queryParams = new URLSearchParams();
 
     if (params) {
-      if (params.pageNumber !== undefined) queryParams.append('PageNumber', params.pageNumber.toString());
+      if (params.pageNumber !== undefined) {
+        const pageNumber = params.pageNumber <= 0 ? 1 : params.pageNumber;
+        queryParams.append('PageNumber', pageNumber.toString());
+      }
       if (params.pageSize !== undefined) queryParams.append('PageSize', params.pageSize.toString());
       if (params.searchTerm) queryParams.append('SearchTerm', params.searchTerm);
       if (params.sortBy) queryParams.append('SortBy', params.sortBy);
@@ -103,15 +106,8 @@ export const purchaseOrderService = {
    * Returns the list of possible status values and names
    */
   getStatuses: async (): Promise<PurchaseOrderStatus[]> => {
-    // Note: The API documentation for GET /api/PurchaseOrders/by-status/:status
-    // seems to be used for filtering orders. For the status list, we use
-    // a standard set of PO statuses consistent with the application logic.
-    return [
-      { value: 1, name: 'Pending' },
-      { value: 2, name: 'Confirmed' },
-      { value: 3, name: 'Completed' },
-      { value: 4, name: 'Cancelled' },
-    ];
+    const response = await get<GetPurchaseOrderStatusesResponse>('/api/PurchaseOrders/statuses');
+    return response.data;
   },
 
   /**
@@ -133,13 +129,12 @@ export const purchaseOrderService = {
   /**
    * Receive items for a purchase order
    */
-  receiveItems: async (data: ReceivePurchaseOrderRequest, config?: RequestConfig): Promise<PurchaseOrder> => {
-    const response = await post<ReceivePurchaseOrderResponse, ReceivePurchaseOrderRequest>(
+  receiveItems: async (data: ReceivePurchaseOrderRequest, config?: RequestConfig): Promise<ReceivePurchaseOrderResponse> => {
+    return post<ReceivePurchaseOrderResponse, ReceivePurchaseOrderRequest>(
       '/api/PurchaseOrders/receive',
       data,
       config
     );
-    return response.data;
   },
 
   /**
@@ -246,6 +241,24 @@ export function usePurchaseOrdersBySupplier(supplierId: number | null) {
     () => purchaseOrderService.getPurchaseOrdersBySupplier(supplierId!),
     {
       enabled: supplierId !== null,
+    }
+  );
+}
+
+export function useReceiveItems() {
+  const queryClient = useQueryClient();
+
+  return usePostMutation<ReceivePurchaseOrderResponse, ReceivePurchaseOrderRequest>(
+    (data) => purchaseOrderService.receiveItems(data),
+    {
+      onSuccess: (response, variables) => {
+        const updated = response.data;
+        if (updated) {
+          queryClient.setQueryData(['purchaseOrders', updated.id], updated);
+        }
+        queryClient.invalidateQueries({ queryKey: ['purchaseOrders', variables.purchaseOrderId] });
+        queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+      },
     }
   );
 }

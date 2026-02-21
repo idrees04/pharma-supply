@@ -15,6 +15,14 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     outDir: "dist/spa",
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        entryFileNames: "assets/[hash].ts",
+        chunkFileNames: "assets/[hash].ts",
+        assetFileNames: "assets/[hash].[ext]",
+      },
+    },
   },
   plugins: [react(), expressPlugin()],
   resolve: {

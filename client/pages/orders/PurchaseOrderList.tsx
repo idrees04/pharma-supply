@@ -199,7 +199,7 @@ export default function PurchaseOrderList() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+      <div className="bg-white shadow-sm overflow-hidden">
         <DataTable
           columns={columns}
           data={filteredPOs}
@@ -211,6 +211,7 @@ export default function PurchaseOrderList() {
           }}
           itemsPerPage={10}
           emptyMessage="No purchase orders found."
+          showSearch={false}
         />
       </div>
 

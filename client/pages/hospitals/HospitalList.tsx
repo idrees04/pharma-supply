@@ -275,7 +275,7 @@ export default function HospitalList() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+              className="bg-white shadow-sm overflow-hidden"
             >
               <DataTable
                 columns={columns}
@@ -285,6 +285,7 @@ export default function HospitalList() {
                 onDelete={canDelete ? handleDeleteClick : undefined}
                 itemsPerPage={ITEMS_PER_PAGE}
                 emptyMessage="No hospitals found matching your search."
+                showSearch={false}
               />
             </motion.div>
           ) : (

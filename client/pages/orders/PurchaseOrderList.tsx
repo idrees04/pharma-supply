@@ -199,6 +199,7 @@ export default function PurchaseOrderList() {
           columns={columns}
           data={filteredPOs}
           isLoading={isLoading}
+          onEdit={(row) => navigate(`/orders/purchase/edit/${row.id}`)}
           onDelete={(row) => {
             setPoToDelete(row);
             setIsDeleteDialogOpen(true);

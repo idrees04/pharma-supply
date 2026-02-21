@@ -98,24 +98,37 @@ export type HospitalFormData = z.infer<typeof hospitalSchema>;
 
 // Supply Order Item Schema
 export const supplyOrderItemSchema = z.object({
-  productId: z.string().min(1, "Product is required"),
-  productName: z.string().min(1, "Product Name is required"),
-  quantity: z.coerce.number().positive("Quantity must be positive"),
+  productId: z.coerce.number().int().min(1, "Product is required"),
+  orderedQuantity: z.coerce.number().positive("Quantity must be positive"),
   unitPrice: z.coerce.number().positive("Unit Price must be positive"),
+  taxPercentage: z.coerce.number().min(0, "Tax % must be non-negative"),
+  discountPercentage: z.coerce.number().min(0, "Discount % must be non-negative"),
+  fulfillmentSource: z.coerce.number().int().min(1, "Fulfillment Source is required"),
+  supplierId: z.coerce.number().int().min(0, "Supplier is required"),
 });
 
 // Supply Order Schema
 export const supplyOrderSchema = z.object({
-  orderNo: z.string().min(1, "Order No is required"),
-  hospitalId: z.string().min(1, "Hospital is required"),
-  hospitalName: z.string().min(1, "Hospital Name is required"),
+  hospitalId: z.coerce.number().int().min(1, "Hospital is required"),
   orderDate: z.string().min(1, "Order Date is required"),
-  deliveryDate: z.string().min(1, "Delivery Date is required"),
+  requiredByDate: z.string().min(1, "Required By Date is required"),
+  requestedBy: z.string().min(1, "Requested By is required"),
+  shippingAddress: z.string().min(1, "Shipping Address is required"),
+  notes: z.string().optional().default(""),
   items: z.array(supplyOrderItemSchema).min(1, "At least one item is required"),
-  status: z.enum(["Draft", "Confirmed", "Completed"]).default("Draft"),
+});
+
+export const updateSupplyOrderSchema = z.object({
+  requiredByDate: z.string().min(1, "Required By Date is required"),
+  requestedBy: z.string().min(1, "Requested By is required"),
+  shippingAddress: z.string().min(1, "Shipping Address is required"),
+  notes: z.string().optional().default(""),
+  status: z.coerce.number().int().min(1, "Status is required"),
 });
 
 export type SupplyOrderFormData = z.infer<typeof supplyOrderSchema>;
+export type UpdateSupplyOrderFormData = z.infer<typeof updateSupplyOrderSchema>;
+export type SupplyOrderItemFormData = z.infer<typeof supplyOrderItemSchema>;
 
 // Bank Account Schema
 export const bankAccountSchema = z.object({
@@ -193,6 +206,13 @@ export const purchaseOrderSchema = z.object({
     .min(0, "Discount must be non-negative"),
   paymentMethod: z.enum(["Cash", "Cheque", "Bank"]),
   notes: z.string().optional(),
+});
+
+export const updatePurchaseOrderSchema = z.object({
+  expectedDeliveryDate: z.string().min(1, "Expected Delivery Date is required"),
+  status: z.coerce.number().int().min(1, "Status is required"),
+  deliveryAddress: z.string().min(1, "Delivery Address is required"),
+  notes: z.string().optional().default(""),
 });
 
 export type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;

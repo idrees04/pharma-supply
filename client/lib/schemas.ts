@@ -183,19 +183,16 @@ export const poItemSchema = z.object({
 });
 
 export const purchaseOrderSchema = z.object({
-  supplierId: z.coerce.number().int().min(1, "Supplier is required"),
-  orderDate: z.string().min(1, "Order Date is required"),
-  expectedDeliveryDate: z.string().min(1, "Expected Delivery Date is required"),
+  refNo: z.string().min(1, "Reference No is required"),
+  supplierName: z.string().min(1, "Supplier Name is required"),
+  poDate: z.string().min(1, "PO Date is required"),
   deliveryAddress: z.string().min(1, "Delivery Address is required"),
-  notes: z.string().optional().default(""),
   items: z.array(poItemSchema).min(1, "At least one item is required"),
-});
-
-export const updatePurchaseOrderSchema = z.object({
-  expectedDeliveryDate: z.string().min(1, "Expected Delivery Date is required"),
-  status: z.coerce.number().int().min(0, "Status is required"),
-  deliveryAddress: z.string().min(1, "Delivery Address is required"),
-  notes: z.string().optional().default(""),
+  distributorDiscount: z.coerce
+    .number()
+    .min(0, "Discount must be non-negative"),
+  paymentMethod: z.enum(["Cash", "Cheque", "Bank"]),
+  notes: z.string().optional(),
 });
 
 export type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;

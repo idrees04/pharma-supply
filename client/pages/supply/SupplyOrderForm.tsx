@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { useForm, useFieldArray, useWatch } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -33,16 +33,244 @@ import {
   useSupplyOrder,
   useSupplyOrderStatuses
 } from '@/api/services/supplyOrders.service';
+import { useProductSuppliersByProduct } from '@/api/services/productSuppliers';
 import { useGetHospitals } from '@/hooks/useHospitals';
 import { useProductList } from '@/api/services/products';
 import { useActiveSuppliers } from '@/api/services/suppliers';
 import { formatCurrency, cn } from '@/lib/utils';
 import { CreateSupplyOrderRequest, UpdateSupplyOrderRequest } from '@/types/api/supplyOrders';
+import { Product } from '@/types/api/products';
+import { ProductSupplier } from '@/types/api/productSuppliers';
 
 interface SupplyOrderFormProps {
   supplyOrderId?: number;
   onSuccess?: () => void;
   onCancel?: () => void;
+}
+
+interface OrderItemRowProps {
+  index: number;
+  isEditMode: boolean;
+  form: UseFormReturn<SupplyOrderFormData>;
+  products: Product[];
+  isLoadingProducts: boolean;
+  onRemove: (index: number) => void;
+  handleProductChange: (index: number, productId: number) => void;
+  selectedProductIds: number[];
+  rowTotal: number;
+}
+
+function OrderItemRow({
+  index,
+  isEditMode,
+  form,
+  products,
+  isLoadingProducts,
+  onRemove,
+  handleProductChange,
+  selectedProductIds,
+  rowTotal
+}: OrderItemRowProps) {
+  const productId = useWatch({
+    control: form.control,
+    name: `items.${index}.productId`
+  });
+
+  const { data: productSuppliers, isPending: isLoadingSuppliers } = useProductSuppliersByProduct(productId || null);
+
+  // Filter out already selected products (except the current one)
+  const availableProducts = useMemo(() => {
+    return products.filter(p => !selectedProductIds.includes(p.id) || p.id === productId);
+  }, [products, selectedProductIds, productId]);
+
+  return (
+    <TableRow className={cn("border-b border-slate-100 transition-colors hover:bg-primary/[0.02]", index % 2 === 0 ? "bg-white" : "bg-slate-50/60")}>
+      <TableCell className="text-center border-r border-slate-100 bg-slate-50/80">
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-slate-200/80 text-slate-600 text-[11px] font-black">
+          {index + 1}
+        </span>
+      </TableCell>
+
+      <TableCell className="pl-3 py-2">
+        <FormField
+          control={form.control}
+          name={`items.${index}.productId`}
+          render={({ field }) => (
+            <FormItem className="space-y-0">
+              <FormControl>
+                <SearchableSelect
+                  items={availableProducts.map(p => ({ value: p.id, label: p.productName }))}
+                  value={field.value}
+                  onValueChange={(val) => {
+                    // Clear supplier when product changes
+                    form.setValue(`items.${index}.supplierId`, 0);
+                    field.onChange(Number(val));
+                    handleProductChange(index, Number(val));
+                  }}
+                  placeholder="Find Product..."
+                  isLoading={isLoadingProducts}
+                  className="w-full font-semibold h-9"
+                  disabled={isEditMode}
+                />
+              </FormControl>
+              <FormMessage className="text-[10px] mt-0.5" />
+            </FormItem>
+          )}
+        />
+      </TableCell>
+
+      <TableCell className="px-2 py-2">
+        <FormField
+          control={form.control}
+          name={`items.${index}.orderedQuantity`}
+          render={({ field }) => (
+            <FormItem className="space-y-0">
+              <FormControl>
+                <Input
+                  type="number"
+                  min="1"
+                  {...field}
+                  disabled={isEditMode}
+                  className="text-center font-black h-9 tabular-nums bg-white border-slate-200 focus:border-primary"
+                />
+              </FormControl>
+              <FormMessage className="text-[10px] mt-0.5" />
+            </FormItem>
+          )}
+        />
+      </TableCell>
+
+      <TableCell className="px-2 py-2 text-right">
+        <FormField
+          control={form.control}
+          name={`items.${index}.unitPrice`}
+          render={({ field }) => (
+            <FormItem className="space-y-0">
+              <FormControl>
+                <Input
+                  type="number"
+                  step="0.01"
+                  {...field}
+                  disabled={isEditMode}
+                  className="text-right font-semibold h-9 tabular-nums bg-white border-slate-200 focus:border-primary"
+                />
+              </FormControl>
+              <FormMessage className="text-[10px] mt-0.5" />
+            </FormItem>
+          )}
+        />
+      </TableCell>
+
+      <TableCell className="px-1 py-2">
+        <FormField
+          control={form.control}
+          name={`items.${index}.taxPercentage`}
+          render={({ field }) => (
+            <FormItem className="space-y-0">
+              <FormControl>
+                <Input
+                  type="number"
+                  step="0.1"
+                  {...field}
+                  disabled={isEditMode}
+                  className="text-center font-medium h-9 tabular-nums bg-white border-slate-200 focus:border-primary px-1"
+                />
+              </FormControl>
+              <FormMessage className="text-[10px] mt-0.5" />
+            </FormItem>
+          )}
+        />
+      </TableCell>
+
+      <TableCell className="px-1 py-2">
+        <FormField
+          control={form.control}
+          name={`items.${index}.discountPercentage`}
+          render={({ field }) => (
+            <FormItem className="space-y-0">
+              <FormControl>
+                <Input
+                  type="number"
+                  step="0.1"
+                  {...field}
+                  disabled={isEditMode}
+                  className="text-center font-medium h-9 tabular-nums bg-white border-slate-200 focus:border-primary px-1"
+                />
+              </FormControl>
+              <FormMessage className="text-[10px] mt-0.5" />
+            </FormItem>
+          )}
+        />
+      </TableCell>
+
+      <TableCell className="px-2 py-2">
+        <FormField
+          control={form.control}
+          name={`items.${index}.fulfillmentSource`}
+          render={({ field }) => (
+            <FormItem className="space-y-0">
+              <Select onValueChange={(val) => field.onChange(Number(val))} defaultValue={field.value?.toString()} disabled={isEditMode}>
+                <FormControl>
+                  <SelectTrigger className="h-9 border-slate-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="1">Warehouse</SelectItem>
+                  <SelectItem value="2">Supplier</SelectItem>
+                  <SelectItem value="3">Direct</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage className="text-[10px] mt-0.5" />
+            </FormItem>
+          )}
+        />
+      </TableCell>
+
+      <TableCell className="px-2 py-2">
+        <FormField
+          control={form.control}
+          name={`items.${index}.supplierId`}
+          render={({ field }) => (
+            <FormItem className="space-y-0">
+              <FormControl>
+                <SearchableSelect
+                  items={[{ value: 0, label: 'None' }, ...(productSuppliers || []).map(s => ({ value: s.supplierId, label: s.supplierName }))]}
+                  value={field.value}
+                  onValueChange={(val) => field.onChange(Number(val))}
+                  placeholder="Supplier (Optional)"
+                  isLoading={isLoadingSuppliers}
+                  className="w-full font-semibold h-9"
+                  disabled={isEditMode || !productId}
+                />
+              </FormControl>
+              <FormMessage className="text-[10px] mt-0.5" />
+            </FormItem>
+          )}
+        />
+      </TableCell>
+
+      <TableCell className="text-right pr-5 bg-primary/[0.04]">
+        <span className="font-black text-primary tabular-nums text-[14px]">
+          {formatCurrency(rowTotal)}
+        </span>
+      </TableCell>
+
+      {!isEditMode && (
+        <TableCell className="text-center py-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => onRemove(index)}
+            className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </TableCell>
+      )}
+    </TableRow>
+  );
 }
 
 export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSuccess, onCancel }: SupplyOrderFormProps) {
@@ -181,6 +409,10 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
 
   // 5. Calculations
   const watchedItems = useWatch({ control: form.control, name: 'items' });
+
+  const selectedProductIds = useMemo(() => {
+    return (watchedItems || []).map(item => item?.productId).filter(Boolean) as number[];
+  }, [watchedItems]);
 
   const calculations = useMemo(() => {
     const rowTotals = (watchedItems || []).map((item) => {
@@ -460,190 +692,19 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                     </TableHeader>
                     <TableBody>
                       {fields.map((field, index) => (
-                        <TableRow key={field.id} className={cn("border-b border-slate-100 transition-colors hover:bg-primary/[0.02]", index % 2 === 0 ? "bg-white" : "bg-slate-50/60")}>
-                          <TableCell className="text-center border-r border-slate-100 bg-slate-50/80">
-                            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-slate-200/80 text-slate-600 text-[11px] font-black">
-                              {index + 1}
-                            </span>
-                          </TableCell>
-
-                          <TableCell className="pl-3 py-2">
-                            <FormField
-                              control={form.control}
-                              name={`items.${index}.productId`}
-                              render={({ field }) => (
-                                <FormItem className="space-y-0">
-                                  <FormControl>
-                                    <SearchableSelect
-                                      items={products.map(p => ({ value: p.id, label: p.productName }))}
-                                      value={field.value}
-                                      onValueChange={(val) => {
-                                        field.onChange(Number(val));
-                                        handleProductChange(index, Number(val));
-                                      }}
-                                      placeholder="Find Product..."
-                                      isLoading={isLoadingProducts}
-                                      className="w-full font-semibold h-9"
-                                      disabled={isEditMode}
-                                    />
-                                  </FormControl>
-                                  <FormMessage className="text-[10px] mt-0.5" />
-                                </FormItem>
-                              )}
-                            />
-                          </TableCell>
-
-                          <TableCell className="px-2 py-2">
-                            <FormField
-                              control={form.control}
-                              name={`items.${index}.orderedQuantity`}
-                              render={({ field }) => (
-                                <FormItem className="space-y-0">
-                                  <FormControl>
-                                    <Input
-                                      type="number"
-                                      min="1"
-                                      {...field}
-                                      disabled={isEditMode}
-                                      className="text-center font-black h-9 tabular-nums bg-white border-slate-200 focus:border-primary"
-                                    />
-                                  </FormControl>
-                                  <FormMessage className="text-[10px] mt-0.5" />
-                                </FormItem>
-                              )}
-                            />
-                          </TableCell>
-
-                          <TableCell className="px-2 py-2 text-right">
-                            <FormField
-                              control={form.control}
-                              name={`items.${index}.unitPrice`}
-                              render={({ field }) => (
-                                <FormItem className="space-y-0">
-                                  <FormControl>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      {...field}
-                                      disabled={isEditMode}
-                                      className="text-right font-semibold h-9 tabular-nums bg-white border-slate-200 focus:border-primary"
-                                    />
-                                  </FormControl>
-                                  <FormMessage className="text-[10px] mt-0.5" />
-                                </FormItem>
-                              )}
-                            />
-                          </TableCell>
-
-                          <TableCell className="px-1 py-2">
-                            <FormField
-                              control={form.control}
-                              name={`items.${index}.taxPercentage`}
-                              render={({ field }) => (
-                                <FormItem className="space-y-0">
-                                  <FormControl>
-                                    <Input
-                                      type="number"
-                                      step="0.1"
-                                      {...field}
-                                      disabled={isEditMode}
-                                      className="text-center font-medium h-9 tabular-nums bg-white border-slate-200 focus:border-primary px-1"
-                                    />
-                                  </FormControl>
-                                  <FormMessage className="text-[10px] mt-0.5" />
-                                </FormItem>
-                              )}
-                            />
-                          </TableCell>
-
-                          <TableCell className="px-1 py-2">
-                            <FormField
-                              control={form.control}
-                              name={`items.${index}.discountPercentage`}
-                              render={({ field }) => (
-                                <FormItem className="space-y-0">
-                                  <FormControl>
-                                    <Input
-                                      type="number"
-                                      step="0.1"
-                                      {...field}
-                                      disabled={isEditMode}
-                                      className="text-center font-medium h-9 tabular-nums bg-white border-slate-200 focus:border-primary px-1"
-                                    />
-                                  </FormControl>
-                                  <FormMessage className="text-[10px] mt-0.5" />
-                                </FormItem>
-                              )}
-                            />
-                          </TableCell>
-
-                          <TableCell className="px-2 py-2">
-                            <FormField
-                              control={form.control}
-                              name={`items.${index}.fulfillmentSource`}
-                              render={({ field }) => (
-                                <FormItem className="space-y-0">
-                                  <Select onValueChange={(val) => field.onChange(Number(val))} defaultValue={field.value?.toString()} disabled={isEditMode}>
-                                    <FormControl>
-                                      <SelectTrigger className="h-9 border-slate-200">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="1">Warehouse</SelectItem>
-                                      <SelectItem value="2">Supplier</SelectItem>
-                                      <SelectItem value="3">Direct</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage className="text-[10px] mt-0.5" />
-                                </FormItem>
-                              )}
-                            />
-                          </TableCell>
-
-                          <TableCell className="px-2 py-2">
-                            <FormField
-                              control={form.control}
-                              name={`items.${index}.supplierId`}
-                              render={({ field }) => (
-                                <FormItem className="space-y-0">
-                                  <FormControl>
-                                    <SearchableSelect
-                                      items={[{ value: 0, label: 'None' }, ...suppliers.map(s => ({ value: s.id, label: s.supplierName }))]}
-                                      value={field.value}
-                                      onValueChange={(val) => field.onChange(Number(val))}
-                                      placeholder="Supplier (Optional)"
-                                      isLoading={isLoadingSuppliers}
-                                      className="w-full font-semibold h-9"
-                                      disabled={isEditMode}
-                                    />
-                                  </FormControl>
-                                  <FormMessage className="text-[10px] mt-0.5" />
-                                </FormItem>
-                              )}
-                            />
-                          </TableCell>
-
-                          <TableCell className="text-right pr-5 bg-primary/[0.04]">
-                            <span className="font-black text-primary tabular-nums text-[14px]">
-                              {formatCurrency(calculations.rowTotals[index]?.total || 0)}
-                            </span>
-                          </TableCell>
-
-                          {!isEditMode && (
-                            <TableCell className="text-center py-2">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => remove(index)}
-                                className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </TableCell>
-                          )}
-                        </TableRow>
+                        <OrderItemRow
+                          key={field.id}
+                          index={index}
+                          field={field}
+                          form={form}
+                          isEditMode={isEditMode}
+                          products={products}
+                          isLoadingProducts={isLoadingProducts}
+                          onRemove={remove}
+                          handleProductChange={handleProductChange}
+                          selectedProductIds={selectedProductIds}
+                          rowTotal={calculations.rowTotals[index]?.total || 0}
+                        />
                       ))}
                       {fields.length > 0 && (
                         <>

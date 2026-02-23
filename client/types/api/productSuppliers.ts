@@ -1,24 +1,15 @@
-/**
- * Product Suppliers API Types
- *
- * Type definitions for all Product Suppliers API endpoints.
- * These types are used for request/response type safety.
- *
- * API Base: https://mds.vtoxi.com/api/ProductSuppliers
- */
+// types/api/productSuppliers.ts
+import { ApiResponse } from './common';
 
-/**
- * Product Supplier entity from the API
- * Core data structure for product-supplier relationships
- */
-export interface ProductSupplier {
+// DTOs
+export interface ProductSupplierDto {
   id: number;
   productId: number;
-  productName: string;
-  productCode: string;
+  productName: string | null;
+  productCode: string | null;
   supplierId: number;
-  supplierName: string;
-  supplierProductCode: string;
+  supplierName: string | null;
+  supplierProductCode: string | null;
   purchaseRate: number;
   leadTimeDays: number;
   minOrderQuantity: number;
@@ -26,177 +17,72 @@ export interface ProductSupplier {
   isActive: boolean;
 }
 
-/**
- * Supplier's product details from GET /api/Suppliers/:id/products
- */
-export interface SupplierProductDetail {
-  productId: number;
-  productName: string;
-  productCode: string;
-  supplierProductCode: string;
-  purchaseRate: number;
-  minOrderQuantity: number;
-  leadTimeDays: number;
-  isPreferred: boolean;
-  lastPurchaseDate: string; // ISO 8601 date string
-  lastPurchaseRate: number;
-}
-
-/**
- * Supplier balance information from GET /api/Suppliers/:id/balance
- */
-export interface SupplierBalance {
-  supplierId: number;
-  supplierName: string;
-  creditLimit: number;
-  outstandingBalance: number;
-  availableCredit: number;
-  totalPurchaseAmount: number;
-  totalPaidAmount: number;
-  pendingOrders: number;
-  completedOrders: number;
-}
-
-/**
- * Request body for updating a product supplier (PUT /api/ProductSuppliers/:id)
- */
-export interface UpdateProductSupplierRequest {
-  supplierProductCode: string;
-  supplierRate: number;
-  leadTimeDays: number;
-  minimumOrderQuantity: number;
-  discountPercentage: number;
-  isPreferredSupplier: boolean;
-  notes: string;
-  isActive: boolean;
-}
-
-/**
- * Request body for linking a product to a supplier (POST /api/ProductSuppliers/link)
- */
+// Request DTOs
 export interface LinkProductSupplierRequest {
   productId: number;
   supplierId: number;
-  supplierProductCode: string;
+  supplierProductCode?: string | null;
   supplierRate: number;
-  leadTimeDays: number;
-  minimumOrderQuantity: number;
-  discountPercentage: number;
-  isPreferredSupplier: boolean;
-  notes: string;
+  leadTimeDays?: number;
+  minimumOrderQuantity?: number;
+  discountPercentage?: number;
+  isPreferredSupplier?: boolean;
+  notes?: string | null;
 }
 
-/**
- * Request body for bulk linking products to a supplier (POST /api/ProductSuppliers/bulk-link)
- */
-export interface BulkLinkProductSupplierRequest {
+export interface UpdateProductSupplierRequest {
+  supplierProductCode?: string | null;
+  supplierRate: number;
+  leadTimeDays?: number;
+  minimumOrderQuantity?: number;
+  discountPercentage?: number;
+  isPreferredSupplier?: boolean;
+  notes?: string | null;
+  isActive?: boolean;
+}
+
+export interface BulkLinkProductsToSupplierRequest {
   supplierId: number;
-  products: Array<{
+  products: {
     productId: number;
-    supplierProductCode: string;
+    supplierProductCode?: string | null;
     supplierRate: number;
-    leadTimeDays: number;
-    minimumOrderQuantity: number;
-    discountPercentage: number;
-    isPreferredSupplier: boolean;
-    notes: string;
-  }>;
+    leadTimeDays?: number;
+    minimumOrderQuantity?: number;
+    discountPercentage?: number;
+    isPreferredSupplier?: boolean;
+    notes?: string | null;
+  }[];
 }
 
-/**
- * Response body for bulk linking (POST /api/ProductSuppliers/bulk-link)
- */
+export interface BulkDelinkProductsFromSupplierRequest {
+  supplierId: number;
+  productIds: number[];
+}
+
+// Response types
 export interface BulkLinkResponse {
   supplierId: number;
   totalRequested: number;
   successfullyLinked: number;
   skipped: number;
-  errors: string[];
+  errors: string[] | null;
 }
 
-/**
- * Request body for bulk delinking products from a supplier (DELETE /api/ProductSuppliers/:id)
- * Note: This deletes the relationship between products and supplier
- */
-export interface BulkDelinktProductSupplierRequest {
-  supplierId: number;
-  productIds: number[];
-}
-
-/**
- * Response body for bulk delink (DELETE /api/ProductSuppliers/:id)
- */
 export interface BulkDelinkResponse {
   supplierId: number;
   totalRequested: number;
   successfullyDelinked: number;
   notFound: number;
-  errors: string[];
+  errors: string[] | null;
 }
 
-/**
- * API response wrapper structure
- * All API responses follow this structure
- */
-export interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-  errors?: string | null;
-  timestamp: string;
-}
-
-/**
- * GET /api/ProductSuppliers response (API 1)
- */
-export type GetProductSuppliersListResponse = ApiResponse<ProductSupplier[]>;
-
-/**
- * GET /api/ProductSuppliers/:id response (API 2)
- */
-export type GetProductSupplierResponse = ApiResponse<ProductSupplier>;
-
-/**
- * PUT /api/ProductSuppliers/:id response (API 3)
- */
-export type UpdateProductSupplierResponse = ApiResponse<ProductSupplier>;
-
-/**
- * DELETE /api/ProductSuppliers/:id response (API 4 - single delete)
- */
-export type DeleteProductSupplierResponse = ApiResponse<string>;
-
-/**
- * GET /api/ProductSuppliers/by-product/:productId response (API 5)
- */
-export type GetProductSuppliersByProductResponse = ApiResponse<ProductSupplier[]>;
-
-/**
- * GET /api/Suppliers/:id/products response (API 6)
- */
-export type GetSupplierProductsResponse = ApiResponse<SupplierProductDetail[]>;
-
-/**
- * GET /api/ProductSuppliers/by-supplier/:supplierId response (API 7)
- */
-export type GetProductSuppliersBySupplierResponse = ApiResponse<ProductSupplier[]>;
-
-/**
- * GET /api/Suppliers/:id/balance response (API 8)
- */
-export type GetSupplierBalanceResponse = ApiResponse<SupplierBalance>;
-
-/**
- * POST /api/ProductSuppliers/link response (API 9)
- */
-export type LinkProductSupplierResponse = ApiResponse<ProductSupplier>;
-
-/**
- * POST /api/ProductSuppliers/bulk-link response (API 10)
- */
-export type BulkLinkProductSupplierResponse = ApiResponse<BulkLinkResponse>;
-
-/**
- * DELETE /api/ProductSuppliers/:id response (API 11 - bulk delete)
- */
-export type BulkDelinkProductSupplierResponse = ApiResponse<BulkDelinkResponse>;
+export type GetProductSuppliersResponse = ApiResponse<ProductSupplierDto[]>;
+export type GetProductSupplierResponse = ApiResponse<ProductSupplierDto>;
+export type UpdateProductSupplierResponse = ApiResponse<ProductSupplierDto>;
+export type DeleteProductSupplierResponse = ApiResponse<null>;
+export type GetProductSuppliersByProductResponse = ApiResponse<ProductSupplierDto[]>;
+export type GetProductSuppliersBySupplierResponse = ApiResponse<ProductSupplierDto[]>;
+export type LinkProductSupplierResponse = ApiResponse<ProductSupplierDto>;
+export type BulkLinkResponseWrapper = ApiResponse<BulkLinkResponse>;
+export type BulkDelinkResponseWrapper = ApiResponse<BulkDelinkResponse>;

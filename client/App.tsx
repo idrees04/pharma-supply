@@ -1,14 +1,13 @@
 import "./global.css";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { Toaster } from "@/components/ui/toaster";
 import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { AuthProvider } from "@/context/AuthContext";
-import ErrorBoundary from "@/components/ErrorBoundary";
+import { AuthProvider } from "@/context/AuthContext"; import ErrorBoundary from "@/components/ErrorBoundary";
 import { queryClient } from "@/api/queryClient";
 import { useAuthInitialize } from "@/hooks/useAuth";
 import { AuthLoadingScreen } from "@/components/AuthLoadingScreen";
@@ -16,6 +15,7 @@ import { ProtectedRoute, PublicRoute } from "@/components/ProtectedRoute";
 import { ClickSpark } from "@/components/effects/ClickSpark";
 import Dashboard from "./pages/Dashboard";
 import LoginPage from "./pages/Login";
+import { StrictMode } from "react";
 import TenderList from "./pages/tender/TenderList";
 import PurchaseOrderList from "./pages/orders/PurchaseOrderList";
 import PurchaseOrderForm from "./pages/orders/PurchaseOrderForm";
@@ -48,8 +48,8 @@ import Unauthorized from "./pages/Unauthorized";
 /**
  * AppRoutes Component
  *
- * Handles all routing after authentication has been checked.
- * All protected routes are wrapped with ProtectedRoute component.
+ * Handles all routing. Currently configured for production with /login as the entry point.
+ * The dashboard and other pages are behind a 404 until the backend API is implemented.
  */
 const AppRoutes = () => (
   <Routes>
@@ -372,12 +372,6 @@ const AppRoutes = () => (
   </Routes>
 );
 
-/**
- * AppContent Component
- *
- * Wraps AppRoutes and handles authentication initialization.
- * Shows loading screen while checking for valid token.
- */
 const AppContent = () => {
   const auth = useAuthInitialize();
 
@@ -388,17 +382,11 @@ const AppContent = () => {
 
   return <AppRoutes />;
 };
-
 /**
  * Main App Component
  *
- * Root component that sets up:
- * - Error boundary
- * - React Query provider
- * - Tooltip provider
- * - Auth provider
- * - Toast notifications
- * - Browser router
+ * Production-ready app with login routing.
+ * The app is configured to show the login page as the entry point.
  */
 const App = () => (
   <ErrorBoundary
@@ -421,4 +409,4 @@ const App = () => (
   </ErrorBoundary>
 );
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(<StrictMode><App /></StrictMode>);

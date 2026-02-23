@@ -17,7 +17,7 @@
  * - Components use hooks, not this service directly
  */
 
-import { get, post, put, deleteRequest } from "../requests";
+import { get, post, put, deleteRequest } from "@/api/requests";
 import {
   UserDTO,
   LoginRequestDTO,

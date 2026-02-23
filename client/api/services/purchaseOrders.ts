@@ -4,7 +4,7 @@
  * API Base: https://mds.vtoxi.com/api/PurchaseOrders
  */
 
-import { get, post, put, deleteRequest, RequestConfig } from '../requests';
+import { get, post, put, deleteRequest, RequestConfig } from '@/api/requests';
 import {
   PurchaseOrder,
   CreatePurchaseOrderRequest,
@@ -25,7 +25,7 @@ import {
   PurchaseOrderStatus,
 } from '@/types/api/purchaseOrders';
 import { PaginatedResponse } from '@/types/api/products';
-import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '../hooks';
+import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 
 export const purchaseOrderService = {

@@ -10,7 +10,7 @@
  * API Base: https://mds.vtoxi.com/api/Suppliers
  */
 
-import { get, post, put, deleteRequest, RequestConfig } from '../requests';
+import { get, post, put, deleteRequest, RequestConfig } from '@/api/requests';
 import {
   Supplier,
   CreateSupplierRequest,
@@ -36,7 +36,7 @@ import {
   usePostMutation,
   usePutMutation,
   useDeleteMutation,
-} from '../hooks';
+} from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 
 /**

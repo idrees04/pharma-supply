@@ -4,7 +4,7 @@
  * API Base: /api/SupplyOrders
  */
 
-import { get, post, put, deleteRequest, RequestConfig } from '../requests';
+import { get, post, put, deleteRequest, RequestConfig } from '@/api/requests';
 import {
   SupplyOrder,
   CreateSupplyOrderRequest,
@@ -19,7 +19,7 @@ import {
   SupplyOrderListQueryParams,
 } from '@/types/api/supplyOrders';
 import { PaginatedResponse } from '@/types/api/products';
-import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '../hooks';
+import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 
 export const supplyOrderService = {

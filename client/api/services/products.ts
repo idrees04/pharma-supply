@@ -10,7 +10,7 @@
  * API Base: https://mds.vtoxi.com/api/Products
  */
 
-import { get, post, put, deleteRequest, RequestConfig } from '../requests';
+import { get, post, put, deleteRequest, RequestConfig } from '@/api/requests';
 import {
   Product,
   CreateProductRequest,
@@ -24,7 +24,7 @@ import {
   ProductListQueryParams,
   PaginatedResponse,
 } from '@/types/api/products';
-import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '../hooks';
+import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 
 /**

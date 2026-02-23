@@ -12,7 +12,7 @@ api/axios.ts(230,9): error TS1343: The 'import.meta' meta-property is only allow
 api/axios.ts(230,21): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
 api/services/purchaseOrders.ts(26,8): error TS2307: Cannot find module '@/types/api/purchaseOrders' or its corresponding type declarations.
 api/services/purchaseOrders.ts(27,35): error TS2307: Cannot find module '@/types/api/products' or its corresponding type declarations.
-components/purchase-orders/ReceiveItemsForm.tsx(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+components/purchase-orders/ReceiveItemsForm.tsx(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
 components/purchase-orders/ReceiveItemsForm.tsx(19,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
 components/purchase-orders/ReceiveItemsForm.tsx(20,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
 components/purchase-orders/ReceiveItemsForm.tsx(21,26): error TS2307: Cannot find module '@/components/ui/textarea' or its corresponding type declarations.
@@ -91,7 +91,7 @@ components/purchase-orders/ReceiveItemsForm.tsx(295,37): error TS17004: Cannot u
 components/purchase-orders/ReceiveItemsForm.tsx(299,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
 components/purchase-orders/ReceiveItemsForm.tsx(300,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
 components/purchase-orders/ReceiveItemsForm.tsx(305,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
-pages/orders/PurchaseOrderView.tsx(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+pages/orders/PurchaseOrderView.tsx(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
 pages/orders/PurchaseOrderView.tsx(3,60): error TS2307: Cannot find module '@/api/services/purchaseOrders' or its corresponding type declarations.
 pages/orders/PurchaseOrderView.tsx(4,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
 pages/orders/PurchaseOrderView.tsx(5,87): error TS2307: Cannot find module '@/components/ui/card' or its corresponding type declarations.
@@ -275,8 +275,8 @@ pages/orders/PurchaseOrderView.tsx(475,7): error TS17004: Cannot use JSX unless 
 ../node_modules/@tanstack/query-core/build/legacy/queriesObserver.d.ts(11,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
 ../node_modules/@tanstack/query-core/build/legacy/removable.d.ts(2,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
 ../node_modules/@tanstack/query-core/build/legacy/timeoutManager.d.ts(41,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
-../node_modules/react-hook-form/dist/form.d.ts(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
-../node_modules/react-hook-form/dist/types/controller.d.ts(1,13): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
-../node_modules/react-hook-form/dist/types/form.d.ts(1,13): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
-../node_modules/react-hook-form/dist/useFormContext.d.ts(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
-../node_modules/sonner/dist/index.d.ts(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+../node_modules/react-hook-form/dist/form.d.ts(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+../node_modules/react-hook-form/dist/types/controller.d.ts(1,13): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+../node_modules/react-hook-form/dist/types/form.d.ts(1,13): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+../node_modules/react-hook-form/dist/useFormContext.d.ts(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+../node_modules/sonner/dist/index.d.ts(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag

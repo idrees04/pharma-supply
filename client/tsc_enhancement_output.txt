@@ -1,4 +1,4 @@
-components/purchase-orders/ReceiveItemsForm.tsx(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+components/purchase-orders/ReceiveItemsForm.tsx(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
 components/purchase-orders/ReceiveItemsForm.tsx(21,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
 components/purchase-orders/ReceiveItemsForm.tsx(22,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
 components/purchase-orders/ReceiveItemsForm.tsx(23,26): error TS2307: Cannot find module '@/components/ui/textarea' or its corresponding type declarations.
@@ -93,8 +93,8 @@ components/purchase-orders/ReceiveItemsForm.tsx(341,37): error TS17004: Cannot u
 components/purchase-orders/ReceiveItemsForm.tsx(345,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
 components/purchase-orders/ReceiveItemsForm.tsx(346,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
 components/purchase-orders/ReceiveItemsForm.tsx(351,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
-../node_modules/react-hook-form/dist/form.d.ts(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
-../node_modules/react-hook-form/dist/types/controller.d.ts(1,13): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
-../node_modules/react-hook-form/dist/types/form.d.ts(1,13): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
-../node_modules/react-hook-form/dist/useFormContext.d.ts(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
-../node_modules/sonner/dist/index.d.ts(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/echo-lab/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+../node_modules/react-hook-form/dist/form.d.ts(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+../node_modules/react-hook-form/dist/types/controller.d.ts(1,13): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+../node_modules/react-hook-form/dist/types/form.d.ts(1,13): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+../node_modules/react-hook-form/dist/useFormContext.d.ts(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+../node_modules/sonner/dist/index.d.ts(1,8): error TS1259: Module '"d:/Ideal Distributor/Development/Workspace/code move/pharma-supply/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag

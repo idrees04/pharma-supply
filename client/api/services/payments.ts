@@ -11,6 +11,8 @@ import {
     DeletePaymentResponse,
 } from '@/types/api/payments';
 import { PaginatedResponse } from '@/types/api/common';
+import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const paymentService = {
     /**
@@ -81,3 +83,64 @@ export const paymentService = {
         await deleteRequest<DeletePaymentResponse>(`/api/Payments/${id}`, config);
     },
 };
+
+/**
+ * Custom Hooks for Payments
+ */
+
+export function usePaymentList(params?: PaymentListQueryParams) {
+    return useGetQuery<PaginatedResponse<PaymentDto>>(
+        ['payments', params],
+        () => paymentService.getPayments(params),
+        {
+            staleTime: 5 * 60 * 1000,
+        }
+    );
+}
+
+export function usePayment(id: number | null) {
+    return useGetQuery<PaymentDto>(
+        ['payments', id],
+        () => paymentService.getPayment(id!),
+        {
+            enabled: id !== null,
+        }
+    );
+}
+
+export function useCreatePayment() {
+    const queryClient = useQueryClient();
+    return usePostMutation<PaymentDto, CreatePaymentRequest>(
+        (data) => paymentService.createPayment(data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['payments'] });
+            },
+        }
+    );
+}
+
+export function useUpdatePayment(id: number) {
+    const queryClient = useQueryClient();
+    return usePutMutation<PaymentDto, UpdatePaymentRequest>(
+        (data) => paymentService.updatePayment(id, data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['payments'] });
+                queryClient.invalidateQueries({ queryKey: ['payments', id] });
+            },
+        }
+    );
+}
+
+export function useDeletePayment() {
+    const queryClient = useQueryClient();
+    return useDeleteMutation(
+        (id: number) => paymentService.deletePayment(id),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['payments'] });
+            },
+        }
+    );
+}

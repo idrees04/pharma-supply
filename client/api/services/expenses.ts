@@ -11,6 +11,8 @@ import {
     DeleteExpenseResponse,
 } from '@/types/api/expenses';
 import { PaginatedResponse } from '@/types/api/common';
+import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const expenseService = {
     /**
@@ -81,3 +83,64 @@ export const expenseService = {
         await deleteRequest<DeleteExpenseResponse>(`/api/Expenses/${id}`, config);
     },
 };
+
+/**
+ * Custom Hooks for Expenses
+ */
+
+export function useExpenseList(params?: ExpenseListQueryParams) {
+    return useGetQuery<PaginatedResponse<ExpenseDto>>(
+        ['expenses', params],
+        () => expenseService.getExpenses(params),
+        {
+            staleTime: 5 * 60 * 1000,
+        }
+    );
+}
+
+export function useExpense(id: number | null) {
+    return useGetQuery<ExpenseDto>(
+        ['expenses', id],
+        () => expenseService.getExpense(id!),
+        {
+            enabled: id !== null,
+        }
+    );
+}
+
+export function useCreateExpense() {
+    const queryClient = useQueryClient();
+    return usePostMutation<ExpenseDto, CreateExpenseRequest>(
+        (data) => expenseService.createExpense(data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['expenses'] });
+            },
+        }
+    );
+}
+
+export function useUpdateExpense(id: number) {
+    const queryClient = useQueryClient();
+    return usePutMutation<ExpenseDto, UpdateExpenseRequest>(
+        (data) => expenseService.updateExpense(id, data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['expenses'] });
+                queryClient.invalidateQueries({ queryKey: ['expenses', id] });
+            },
+        }
+    );
+}
+
+export function useDeleteExpense() {
+    const queryClient = useQueryClient();
+    return useDeleteMutation(
+        (id: number) => expenseService.deleteExpense(id),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['expenses'] });
+            },
+        }
+    );
+}

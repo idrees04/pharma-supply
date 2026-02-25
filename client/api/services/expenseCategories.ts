@@ -9,6 +9,8 @@ import {
     UpdateExpenseCategoryResponse,
     DeleteExpenseCategoryResponse,
 } from '@/types/api/expenseCategories';
+import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const expenseCategoryService = {
     /**
@@ -65,3 +67,64 @@ export const expenseCategoryService = {
         await deleteRequest<DeleteExpenseCategoryResponse>(`/api/ExpenseCategories/${id}`, config);
     },
 };
+
+/**
+ * Custom Hooks for Expense Categories
+ */
+
+export function useExpenseCategories() {
+    return useGetQuery<ExpenseCategory[]>(
+        ['expenseCategories'],
+        () => expenseCategoryService.getExpenseCategories(),
+        {
+            staleTime: 10 * 60 * 1000,
+        }
+    );
+}
+
+export function useExpenseCategory(id: number | null) {
+    return useGetQuery<ExpenseCategory>(
+        ['expenseCategories', id],
+        () => expenseCategoryService.getExpenseCategory(id!),
+        {
+            enabled: id !== null,
+        }
+    );
+}
+
+export function useCreateExpenseCategory() {
+    const queryClient = useQueryClient();
+    return usePostMutation<ExpenseCategory, CreateExpenseCategoryRequest>(
+        (data) => expenseCategoryService.createExpenseCategory(data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['expenseCategories'] });
+            },
+        }
+    );
+}
+
+export function useUpdateExpenseCategory(id: number) {
+    const queryClient = useQueryClient();
+    return usePutMutation<ExpenseCategory, UpdateExpenseCategoryRequest>(
+        (data) => expenseCategoryService.updateExpenseCategory(id, data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['expenseCategories'] });
+                queryClient.invalidateQueries({ queryKey: ['expenseCategories', id] });
+            },
+        }
+    );
+}
+
+export function useDeleteExpenseCategory() {
+    const queryClient = useQueryClient();
+    return useDeleteMutation(
+        (id: number) => expenseCategoryService.deleteExpenseCategory(id),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['expenseCategories'] });
+            },
+        }
+    );
+}

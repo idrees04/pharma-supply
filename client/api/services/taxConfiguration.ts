@@ -9,6 +9,8 @@ import {
     UpdateTaxConfigurationResponse,
     DeleteTaxConfigurationResponse,
 } from '@/types/api/taxConfiguration';
+import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const taxConfigService = {
     /**
@@ -65,3 +67,64 @@ export const taxConfigService = {
         await deleteRequest<DeleteTaxConfigurationResponse>(`/api/TaxConfiguration/${id}`, config);
     },
 };
+
+/**
+ * Custom Hooks for Tax Configuration
+ */
+
+export function useTaxConfigurations() {
+    return useGetQuery<TaxConfiguration[]>(
+        ['taxConfigurations'],
+        () => taxConfigService.getTaxConfigurations(),
+        {
+            staleTime: 10 * 60 * 1000,
+        }
+    );
+}
+
+export function useTaxConfiguration(id: number | null) {
+    return useGetQuery<TaxConfiguration>(
+        ['taxConfigurations', id],
+        () => taxConfigService.getTaxConfiguration(id!),
+        {
+            enabled: id !== null,
+        }
+    );
+}
+
+export function useCreateTaxConfiguration() {
+    const queryClient = useQueryClient();
+    return usePostMutation<TaxConfiguration, CreateTaxConfigurationRequest>(
+        (data) => taxConfigService.createTaxConfiguration(data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['taxConfigurations'] });
+            },
+        }
+    );
+}
+
+export function useUpdateTaxConfiguration(id: number) {
+    const queryClient = useQueryClient();
+    return usePutMutation<TaxConfiguration, UpdateTaxConfigurationRequest>(
+        (data) => taxConfigService.updateTaxConfiguration(id, data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['taxConfigurations'] });
+                queryClient.invalidateQueries({ queryKey: ['taxConfigurations', id] });
+            },
+        }
+    );
+}
+
+export function useDeleteTaxConfiguration() {
+    const queryClient = useQueryClient();
+    return useDeleteMutation(
+        (id: number) => taxConfigService.deleteTaxConfiguration(id),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['taxConfigurations'] });
+            },
+        }
+    );
+}

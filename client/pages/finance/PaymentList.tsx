@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { useStore, Payment } from "@/hooks/useStore";
 import { useAuth } from "@/context/AuthContext";
-import { DataTable, Column } from "@/components/common/DataTable";
+import { DataTable } from "@/components/common/DataTable";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -15,14 +14,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import PaymentForm from "./PaymentForm";
 import { formatCurrency } from "@/lib/utils";
+import { usePaymentList, useDeletePayment } from "@/api/services/payments";
+import { PaymentDto, PaymentMode } from "@/types/api/payments";
 
 export default function PaymentList() {
-  const { payments, deletePayment } = useStore();
   const { hasPermission } = useAuth();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [params, setParams] = useState({ pageNumber: 1, pageSize: 10, searchTerm: "" });
+  const { data, isLoading } = usePaymentList(params);
+  const { mutate: deletePayment } = useDeletePayment();
+
+  const [selectedPayment, setSelectedPayment] = useState<PaymentDto | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(
+  const [isDeleteConfirming, setIsDeleteConfirming] = useState<number | null>(
     null,
   );
 
@@ -30,62 +33,64 @@ export default function PaymentList() {
   const canUpdate = hasPermission('payments', 'update');
   const canDelete = hasPermission('payments', 'delete');
 
-  const filteredPayments = payments.filter(
-    (payment) =>
-      payment.referenceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.poId.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
-  const getPaymentModeColor = (mode: string) => {
+  const getPaymentModeLabel = (mode: PaymentMode) => {
     switch (mode) {
-      case "Cash":
+      case PaymentMode.Cash: return "Cash";
+      case PaymentMode.Cheque: return "Cheque";
+      case PaymentMode.BankTransfer: return "Bank";
+      case PaymentMode.CreditCard: return "Credit Card";
+      case PaymentMode.DebitCard: return "Debit Card";
+      default: return "Unknown";
+    }
+  };
+
+  const getPaymentModeColor = (mode: PaymentMode) => {
+    switch (mode) {
+      case PaymentMode.Cash:
         return "bg-green-100 text-green-800";
-      case "Cheque":
+      case PaymentMode.Cheque:
         return "bg-blue-100 text-blue-800";
-      case "Bank":
+      case PaymentMode.BankTransfer:
         return "bg-purple-100 text-purple-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
-  const columns: Column<Payment>[] = [
+  const columns = [
     {
-      header: "PO ID",
-      accessor: "poId",
+      header: "Reference",
+      accessor: "referenceNumber",
     },
     {
       header: "Payment Mode",
-      accessor: (row) => (
+      accessor: (row: PaymentDto) => (
         <Badge className={getPaymentModeColor(row.paymentMode)}>
-          {row.paymentMode}
+          {getPaymentModeLabel(row.paymentMode)}
         </Badge>
       ),
     },
     {
-      header: "Reference No",
-      accessor: "referenceNo",
+      header: "Related ID",
+      accessor: (row: PaymentDto) => row.purchaseOrderNumber || row.invoiceNumber || "N/A",
     },
     {
-      header: "Payment Date",
-      accessor: "paymentDate",
+      header: "Date",
+      accessor: (row: PaymentDto) => new Date(row.paymentDate).toLocaleDateString(),
     },
     {
       header: "Amount",
-      accessor: (row) => formatCurrency(row.amount),
+      accessor: (row: PaymentDto) => formatCurrency(row.amount),
+    },
+    {
+      header: "Account",
+      accessor: "accountName",
+      className: "hidden sm:table-cell",
     },
   ];
 
-  const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
-  const cashPayments = payments
-    .filter((p) => p.paymentMode === "Cash")
-    .reduce((sum, p) => sum + p.amount, 0);
-  const chequePayments = payments
-    .filter((p) => p.paymentMode === "Cheque")
-    .reduce((sum, p) => sum + p.amount, 0);
-  const bankPayments = payments
-    .filter((p) => p.paymentMode === "Bank")
-    .reduce((sum, p) => sum + p.amount, 0);
+  const payments = data?.items || [];
+  const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -115,34 +120,39 @@ export default function PaymentList() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Search by PO ID or reference number..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by reference or related order..."
+          value={params.searchTerm}
+          onChange={(e) => setParams(p => ({ ...p, searchTerm: e.target.value, pageNumber: 1 }))}
           className="pl-10"
         />
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard label="Total Payments" value={payments.length.toString()} />
-        <StatCard label="Total Amount" value={formatCurrency(totalPayments)} />
-        <StatCard label="Cash" value={formatCurrency(cashPayments)} />
-        <StatCard label="Cheque" value={formatCurrency(chequePayments)} />
-        <StatCard label="Bank" value={formatCurrency(bankPayments)} />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <StatCard label="Total Payments" value={data?.totalCount.toString() || "0"} />
+        <StatCard label="Listed Amount" value={formatCurrency(totalAmount)} />
+        <StatCard label="Accounts Involved" value={new Set(payments.map(p => p.accountId)).size.toString()} />
       </div>
 
       {/* Table */}
       <div className="bg-card rounded-lg border border-border">
-        <DataTable
-          columns={columns}
-          data={filteredPayments}
-          onEdit={canUpdate ? (payment) => {
-            setSelectedPayment(payment);
-            setIsFormOpen(true);
-          } : undefined}
-          onDelete={canDelete ? (payment) => setIsDeleteConfirming(payment.id) : undefined}
-          emptyMessage="No payments found. Record a new payment to get started."
-        />
+        {isLoading ? (
+          <div className="p-8 text-center">Loading payments...</div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={payments}
+            onEdit={canUpdate ? (payment) => {
+              setSelectedPayment(payment);
+              setIsFormOpen(true);
+            } : undefined}
+            onDelete={canDelete ? (payment) => setIsDeleteConfirming(payment.id) : undefined}
+            totalItems={data?.totalCount}
+            itemsPerPage={params.pageSize}
+            onPageChange={(page) => setParams(p => ({ ...p, pageNumber: page }))}
+            emptyMessage="No payments found. Record a new payment to get started."
+          />
+        )}
       </div>
 
       {/* Form Dialog */}
@@ -192,8 +202,9 @@ export default function PaymentList() {
               <Button
                 variant="destructive"
                 onClick={() => {
-                  deletePayment(isDeleteConfirming);
-                  setIsDeleteConfirming(null);
+                  deletePayment(isDeleteConfirming!, {
+                    onSuccess: () => setIsDeleteConfirming(null)
+                  });
                 }}
               >
                 Delete

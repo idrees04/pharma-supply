@@ -1,10 +1,8 @@
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { dailyExpenseSchema, DailyExpenseFormData } from "@/lib/schemas";
-import { useStore, DailyExpense } from "@/hooks/useStore";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
@@ -14,10 +12,31 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { formatCurrency } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useCreateExpense, useUpdateExpense } from "@/api/services/expenses";
+import { useExpenseCategories } from "@/api/services/expenseCategories";
+import { ExpenseDto, CreateExpenseRequest } from "@/types/api/expenses";
+import { toast } from "sonner";
+
+const expenseSchema = z.object({
+  expenseCategoryId: z.coerce.number().min(1, "Category is required"),
+  expenseDate: z.string().min(1, "Date is required"),
+  amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
+  description: z.string().optional(),
+  paymentMethod: z.string().optional(),
+  referenceNumber: z.string().optional(),
+});
+
+type ExpenseFormData = z.infer<typeof expenseSchema>;
 
 interface DailyExpenseFormProps {
-  initialData?: DailyExpense;
+  initialData?: ExpenseDto;
   onSuccess?: () => void;
 }
 
@@ -25,286 +44,179 @@ export default function DailyExpenseForm({
   initialData,
   onSuccess,
 }: DailyExpenseFormProps) {
-  const { addDailyExpense, updateDailyExpense } = useStore();
-  const form = useForm<DailyExpenseFormData>({
-    resolver: zodResolver(dailyExpenseSchema),
+  const { data: categories } = useExpenseCategories();
+  const { mutate: createExpense, isPending: isCreating } = useCreateExpense();
+  const { mutate: updateExpense, isPending: isUpdating } = useUpdateExpense(initialData?.id || 0);
+
+  const form = useForm<ExpenseFormData>({
+    resolver: zodResolver(expenseSchema),
     defaultValues: initialData
       ? {
-          voucherNo: initialData.voucherNo,
-          date: initialData.date,
-          payTo: initialData.payTo,
-          expenses: initialData.expenses.map((exp) => ({
-            reference: exp.reference,
-            description: exp.description,
-            concernPerson: exp.concernPerson,
-            amount: exp.amount,
-            headWiseCategory: exp.headWiseCategory,
-          })),
-          attachedReceipts: initialData.attachedReceipts,
+          expenseCategoryId: initialData.expenseCategoryId,
+          expenseDate: new Date(initialData.expenseDate).toISOString().split('T')[0],
+          amount: initialData.amount,
+          description: initialData.description || "",
+          paymentMethod: initialData.paymentMethod || "Cash",
+          referenceNumber: initialData.referenceNumber || "",
         }
       : {
-          expenses: [
-            {
-              reference: "",
-              description: "",
-              concernPerson: "",
-              amount: 0,
-              headWiseCategory: "Other",
-            },
-          ],
-          attachedReceipts: 0,
+          expenseCategoryId: 0,
+          expenseDate: new Date().toISOString().split('T')[0],
+          amount: 0,
+          description: "",
+          paymentMethod: "Cash",
+          referenceNumber: "",
         },
   });
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "expenses",
-  });
-
-  const expenses = form.watch("expenses");
-  const totalAmount = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-
-  const onSubmit = (data: DailyExpenseFormData) => {
-    const expenseData: Omit<DailyExpense, "id" | "createdAt"> = {
-      voucherNo: data.voucherNo,
-      date: data.date,
-      payTo: data.payTo,
-      expenses: data.expenses.map((exp, idx) => ({
-        id: `exp-${idx}`,
-        reference: exp.reference,
-        description: exp.description,
-        concernPerson: exp.concernPerson,
-        amount: exp.amount,
-        headWiseCategory: exp.headWiseCategory,
-      })),
-      totalAmount,
-      attachedReceipts: data.attachedReceipts,
+  const onSubmit = (data: ExpenseFormData) => {
+    const payload: CreateExpenseRequest = {
+      ...data,
+      expenseDate: new Date(data.expenseDate).toISOString(),
     };
 
     if (initialData) {
-      updateDailyExpense(initialData.id, expenseData);
+      updateExpense(payload, {
+        onSuccess: () => {
+          toast.success("Expense updated successfully");
+          onSuccess?.();
+        },
+      });
     } else {
-      addDailyExpense(expenseData);
+      createExpense(payload, {
+        onSuccess: () => {
+          toast.success("Expense recorded successfully");
+          onSuccess?.();
+        },
+      });
     }
-    form.reset();
-    onSuccess?.();
   };
+
+  const isPending = isCreating || isUpdating;
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Voucher Header */}
-        <div className="bg-muted/30 p-4 rounded-lg space-y-4">
-          <h3 className="font-semibold">Voucher Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FormField
-              control={form.control}
-              name="voucherNo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Voucher No</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., 3688" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="payTo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Pay To</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Ibrahim Sb" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-
-        {/* Expenses */}
-        <div className="bg-muted/30 p-4 rounded-lg space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Expense Items</h3>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                append({
-                  reference: "",
-                  description: "",
-                  concernPerson: "",
-                  amount: 0,
-                  headWiseCategory: "Other",
-                })
-              }
-              className="gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Item
-            </Button>
-          </div>
-
-          <div className="space-y-3">
-            {fields.map((field, index) => (
-              <div
-                key={field.id}
-                className="p-3 bg-card border border-border rounded-lg space-y-3"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name={`expenses.${index}.reference`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Reference</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Activity" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`expenses.${index}.headWiseCategory`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Category</FormLabel>
-                        <FormControl>
-                          <select
-                            {...field}
-                            className="w-full px-3 py-2 border border-border rounded-md text-sm"
-                          >
-                            <option value="Activity">Activity</option>
-                            <option value="Carriage">Carriage</option>
-                            <option value="Kitchen">Kitchen</option>
-                            <option value="Salary">Salary</option>
-                            <option value="Other">Other</option>
-                          </select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name={`expenses.${index}.description`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs">Description</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Detailed description of expense..."
-                          {...field}
-                          className="min-h-[60px] text-sm"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name={`expenses.${index}.concernPerson`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">
-                          Concern Person
-                        </FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Ibrahim Sb" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`expenses.${index}.amount`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Amount (PKR)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => remove(index)}
-                  className="text-destructive hover:text-destructive gap-2"
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="expenseCategoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category *</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value?.toString()}
                 >
-                  <Trash2 className="w-4 h-4" />
-                  Remove
-                </Button>
-              </div>
-            ))}
-          </div>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categories?.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id.toString()}>
+                        {cat.categoryName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="expenseDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Date *</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
-        {/* Receipts */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Amount *</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="paymentMethod"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment Method</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select method" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Cash">Cash</SelectItem>
+                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="Cheque">Cheque</SelectItem>
+                    <SelectItem value="Credit Card">Credit Card</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <FormField
           control={form.control}
-          name="attachedReceipts"
+          name="referenceNumber"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Attached Receipts</FormLabel>
+              <FormLabel>Reference Number</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="0" {...field} />
+                <Input placeholder="e.g., Voucher # or Invoice #" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        {/* Summary */}
-        <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg">
-          <div className="flex justify-between items-center">
-            <span className="font-semibold">Total Expenses:</span>
-            <span className="text-2xl font-bold text-primary">
-              {formatCurrency(totalAmount)}
-            </span>
-          </div>
-        </div>
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Detailed description of expense..."
+                  {...field}
+                  className="min-h-[100px]"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        {/* Submit Button */}
         <div className="flex gap-3 justify-end pt-4">
-          <Button type="submit" className="gap-2">
-            {initialData ? "Update Voucher" : "Create Voucher"}
+          <Button type="submit" disabled={isPending} className="gap-2">
+            {isPending ? "Saving..." : (initialData ? "Update Expense" : "Record Expense")}
           </Button>
         </div>
       </form>

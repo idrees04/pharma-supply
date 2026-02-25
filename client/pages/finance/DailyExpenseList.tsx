@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { useStore, DailyExpense } from "@/hooks/useStore";
 import { useAuth } from "@/context/AuthContext";
-import { DataTable, Column } from "@/components/common/DataTable";
+import { DataTable } from "@/components/common/DataTable";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -14,16 +13,20 @@ import {
 } from "@/components/ui/dialog";
 import DailyExpenseForm from "./DailyExpenseForm";
 import { formatCurrency } from "@/lib/utils";
+import { useExpenseList, useDeleteExpense } from "@/api/services/expenses";
+import { ExpenseDto } from "@/types/api/expenses";
 
 export default function DailyExpenseList() {
-  const { dailyExpenses, deleteDailyExpense } = useStore();
   const { hasPermission } = useAuth();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedExpense, setSelectedExpense] = useState<DailyExpense | null>(
+  const [params, setParams] = useState({ pageNumber: 1, pageSize: 10, searchTerm: "" });
+  const { data, isLoading } = useExpenseList(params);
+  const { mutate: deleteExpense } = useDeleteExpense();
+
+  const [selectedExpense, setSelectedExpense] = useState<ExpenseDto | null>(
     null,
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(
+  const [isDeleteConfirming, setIsDeleteConfirming] = useState<number | null>(
     null,
   );
 
@@ -31,40 +34,37 @@ export default function DailyExpenseList() {
   const canUpdate = hasPermission('expenses', 'update');
   const canDelete = hasPermission('expenses', 'delete');
 
-  const filteredExpenses = dailyExpenses.filter(
-    (expense) =>
-      expense.voucherNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.payTo.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
-  const columns: Column<DailyExpense>[] = [
+  const columns = [
     {
-      header: "Voucher No",
-      accessor: "voucherNo",
+      header: "Reference",
+      accessor: "referenceNumber",
     },
     {
       header: "Date",
-      accessor: "date",
+      accessor: (row: ExpenseDto) => new Date(row.expenseDate).toLocaleDateString(),
     },
     {
-      header: "Pay To",
-      accessor: "payTo",
+      header: "Category",
+      accessor: "expenseCategoryName",
     },
     {
-      header: "Items",
-      accessor: (row) => row.expenses.length,
+      header: "Amount",
+      accessor: (row: ExpenseDto) => formatCurrency(row.amount),
+    },
+    {
+      header: "Payment Method",
+      accessor: "paymentMethod",
       className: "hidden sm:table-cell",
     },
     {
-      header: "Total Amount",
-      accessor: (row) => formatCurrency(row.totalAmount),
-    },
-    {
-      header: "Receipts",
-      accessor: (row) => row.attachedReceipts,
+      header: "Status",
+      accessor: "status",
       className: "hidden md:table-cell",
     },
   ];
+
+  const expenses = data?.items || [];
+  const totalAmount = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -85,7 +85,7 @@ export default function DailyExpenseList() {
             className="gap-2"
           >
             <Plus className="w-4 h-4" />
-            New Voucher
+            New Expense
           </Button>
         )}
       </div>
@@ -94,9 +94,9 @@ export default function DailyExpenseList() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Search by voucher number or pay to..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by reference or description..."
+          value={params.searchTerm}
+          onChange={(e) => setParams(p => ({ ...p, searchTerm: e.target.value, pageNumber: 1 }))}
           className="pl-10"
         />
       </div>
@@ -104,43 +104,46 @@ export default function DailyExpenseList() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <StatCard
-          label="Total Vouchers"
-          value={dailyExpenses.length.toString()}
+          label="Total Count"
+          value={data?.totalCount.toString() || "0"}
         />
         <StatCard
-          label="Total Expenses"
-          value={formatCurrency(
-            dailyExpenses.reduce((sum, exp) => sum + exp.totalAmount, 0),
-          )}
+          label="Total Amount"
+          value={formatCurrency(totalAmount)}
         />
         <StatCard
-          label="Total Receipts"
-          value={dailyExpenses
-            .reduce((sum, exp) => sum + exp.attachedReceipts, 0)
-            .toString()}
+          label="Categories"
+          value={new Set(expenses.map(e => e.expenseCategoryId)).size.toString()}
         />
       </div>
 
       {/* Table */}
       <div className="bg-card rounded-lg border border-border">
-        <DataTable
-          columns={columns}
-          data={filteredExpenses}
-          onEdit={canUpdate ? (expense) => {
-            setSelectedExpense(expense);
-            setIsFormOpen(true);
-          } : undefined}
-          onDelete={canDelete ? (expense) => setIsDeleteConfirming(expense.id) : undefined}
-          emptyMessage="No expenses found. Create your first voucher to get started."
-        />
+        {isLoading ? (
+          <div className="p-8 text-center">Loading expenses...</div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={expenses}
+            onEdit={canUpdate ? (expense) => {
+              setSelectedExpense(expense);
+              setIsFormOpen(true);
+            } : undefined}
+            onDelete={canDelete ? (expense) => setIsDeleteConfirming(expense.id) : undefined}
+            totalItems={data?.totalCount}
+            itemsPerPage={params.pageSize}
+            onPageChange={(page) => setParams(p => ({ ...p, pageNumber: page }))}
+            emptyMessage="No expenses found. Record your first expense to get started."
+          />
+        )}
       </div>
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {selectedExpense ? "Edit Expense" : "Create New Expense"}
+              {selectedExpense ? "Edit Expense" : "Record New Expense"}
             </DialogTitle>
             <DialogDescription>
               {selectedExpense
@@ -166,9 +169,9 @@ export default function DailyExpenseList() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete Expense Voucher</DialogTitle>
+              <DialogTitle>Delete Expense</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete this expense voucher? This
+                Are you sure you want to delete this expense record? This
                 action cannot be undone.
               </DialogDescription>
             </DialogHeader>
@@ -182,8 +185,9 @@ export default function DailyExpenseList() {
               <Button
                 variant="destructive"
                 onClick={() => {
-                  deleteDailyExpense(isDeleteConfirming);
-                  setIsDeleteConfirming(null);
+                  deleteExpense(isDeleteConfirming!, {
+                    onSuccess: () => setIsDeleteConfirming(null)
+                  });
                 }}
               >
                 Delete

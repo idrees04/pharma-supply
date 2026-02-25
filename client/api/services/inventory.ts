@@ -12,6 +12,8 @@ import {
     UpdateInventoryStockResponse,
 } from '@/types/api/inventory';
 import { PaginatedResponse } from '@/types/api/common';
+import { useGetQuery, usePostMutation, usePutMutation } from '@/api/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const inventoryService = {
     /**
@@ -97,3 +99,61 @@ export const inventoryService = {
         return response.data;
     },
 };
+
+/**
+ * Custom Hooks for Inventory
+ */
+
+export function useInventoryStocks(params?: InventoryListQueryParams) {
+    return useGetQuery<PaginatedResponse<InventoryStockDto>>(
+        ['inventory', 'stocks', params],
+        () => inventoryService.getStocks(params),
+        {
+            staleTime: 5 * 60 * 1000,
+        }
+    );
+}
+
+export function useInventoryBatches(params?: InventoryListQueryParams) {
+    return useGetQuery<PaginatedResponse<ProductBatchDto>>(
+        ['inventory', 'batches', params],
+        () => inventoryService.getBatches(params),
+        {
+            staleTime: 5 * 60 * 1000,
+        }
+    );
+}
+
+export function useCreateProductBatch() {
+    const queryClient = useQueryClient();
+    return usePostMutation<ProductBatchDto, CreateProductBatchRequest>(
+        (data) => inventoryService.createBatch(data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['inventory', 'batches'] });
+            },
+        }
+    );
+}
+
+export function useExpiringBatches() {
+    return useGetQuery<ProductBatchDto[]>(
+        ['inventory', 'batches', 'expiring'],
+        () => inventoryService.getExpiringBatches(),
+        {
+            staleTime: 10 * 60 * 1000,
+        }
+    );
+}
+
+export function useAdjustStock(productId: number) {
+    const queryClient = useQueryClient();
+    return usePutMutation<InventoryStockDto, UpdateInventoryStockRequest>(
+        (data) => inventoryService.adjustStock(productId, data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['inventory', 'stocks'] });
+            },
+        }
+    );
+}

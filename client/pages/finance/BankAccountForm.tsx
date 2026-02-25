@@ -1,7 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useStore, BankAccount } from '@/hooks/useStore';
-import { bankAccountSchema, BankAccountFormData } from '@/lib/schemas';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -22,55 +21,68 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { useCreateAccount, useUpdateAccount } from '@/api/services/accounts';
+import { AccountDto, CreateAccountRequest } from '@/types/api/accounts';
+
+const accountSchema = z.object({
+  accountName: z.string().min(1, 'Account name is required'),
+  bankName: z.string().min(1, 'Bank name is required'),
+  accountNumber: z.string().min(1, 'Account number is required'),
+  accountType: z.string().min(1, 'Account type is required'),
+  openingBalance: z.coerce.number().min(0),
+  isActive: z.boolean().default(true),
+});
+
+type AccountFormData = z.infer<typeof accountSchema>;
 
 interface BankAccountFormProps {
-  account?: BankAccount;
+  account?: AccountDto;
   onClose: () => void;
 }
 
 export default function BankAccountForm({ account, onClose }: BankAccountFormProps) {
-  const addBankAccount = useStore((state) => state.addBankAccount);
-  const updateBankAccount = useStore((state) => state.updateBankAccount);
+  const { mutate: createAccount, isPending: isCreating } = useCreateAccount();
+  const { mutate: updateAccount, isPending: isUpdating } = useUpdateAccount(account?.id || 0);
 
-  const form = useForm<BankAccountFormData>({
-    resolver: zodResolver(bankAccountSchema),
+  const form = useForm<AccountFormData>({
+    resolver: zodResolver(accountSchema),
     defaultValues: account ? {
-      accountName: account.accountName,
-      accountNo: account.accountNo,
-      bankName: account.bankName,
-      balance: account.balance,
-      accountType: account.accountType,
+      accountName: account.accountName || '',
+      accountNumber: account.accountNumber || '',
+      bankName: account.bankName || '',
+      openingBalance: account.openingBalance,
+      accountType: account.accountType || 'Checking',
       isActive: account.isActive,
     } : {
       accountType: 'Checking',
       isActive: true,
-      balance: 0,
+      openingBalance: 0,
     },
   });
 
-  const onSubmit = (data: BankAccountFormData) => {
-    try {
-      const accountData: Omit<BankAccount, 'id' | 'createdAt'> = {
-        accountName: data.accountName,
-        accountNo: data.accountNo,
-        bankName: data.bankName,
-        balance: data.balance,
-        accountType: data.accountType,
-        isActive: data.isActive,
-      };
-      
-      if (account) {
-        updateBankAccount(account.id, accountData);
-        toast.success('Bank account updated successfully');
-      } else {
-        addBankAccount(accountData);
-        toast.success('Bank account created successfully');
-      }
-      onClose();
-    } catch (error) {
-      toast.error('Failed to save bank account');
+  const onSubmit = (data: AccountFormData) => {
+    const payload: CreateAccountRequest = {
+      ...data,
+    };
+
+    if (account) {
+      updateAccount(payload, {
+        onSuccess: () => {
+          toast.success('Bank account updated successfully');
+          onClose();
+        },
+      });
+    } else {
+      createAccount(payload, {
+        onSuccess: () => {
+          toast.success('Bank account created successfully');
+          onClose();
+        },
+      });
     }
   };
+
+  const isPending = isCreating || isUpdating;
 
   return (
     <Form {...form}>
@@ -105,7 +117,7 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
           />
           <FormField
             control={form.control}
-            name="accountNo"
+            name="accountNumber"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Account Number *</FormLabel>
@@ -139,16 +151,16 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
           />
           <FormField
             control={form.control}
-            name="balance"
+            name="openingBalance"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Opening Balance *</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
+                  <Input
+                    type="number"
                     step="0.01"
-                    placeholder="0.00" 
-                    {...field} 
+                    placeholder="0.00"
+                    {...field}
                   />
                 </FormControl>
                 <FormDescription>Initial balance in PKR</FormDescription>
@@ -178,8 +190,8 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? 'Saving...' : account ? 'Update Account' : 'Create Account'}
+          <Button type="submit" disabled={isPending}>
+            {isPending ? 'Saving...' : account ? 'Update Account' : 'Create Account'}
           </Button>
         </div>
       </form>

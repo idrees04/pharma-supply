@@ -10,6 +10,8 @@ import {
     UpdateAccountResponse,
     GetAccountBalancesResponse,
 } from '@/types/api/accounts';
+import { useGetQuery, usePostMutation, usePutMutation } from '@/api/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const accountService = {
     /**
@@ -67,3 +69,62 @@ export const accountService = {
         return response.data;
     },
 };
+
+/**
+ * Custom Hooks for Accounts
+ */
+
+export function useAccountList() {
+    return useGetQuery<AccountDto[]>(
+        ['accounts'],
+        () => accountService.getAccounts(),
+        {
+            staleTime: 5 * 60 * 1000,
+        }
+    );
+}
+
+export function useAccount(id: number | null) {
+    return useGetQuery<AccountDto>(
+        ['accounts', id],
+        () => accountService.getAccount(id!),
+        {
+            enabled: id !== null,
+        }
+    );
+}
+
+export function useCreateAccount() {
+    const queryClient = useQueryClient();
+    return usePostMutation<AccountDto, CreateAccountRequest>(
+        (data) => accountService.createAccount(data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['accounts'] });
+            },
+        }
+    );
+}
+
+export function useUpdateAccount(id: number) {
+    const queryClient = useQueryClient();
+    return usePutMutation<AccountDto, UpdateAccountRequest>(
+        (data) => accountService.updateAccount(id, data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['accounts'] });
+                queryClient.invalidateQueries({ queryKey: ['accounts', id] });
+            },
+        }
+    );
+}
+
+export function useAccountBalances() {
+    return useGetQuery<AccountBalanceDto[]>(
+        ['accounts', 'balances'],
+        () => accountService.getAccountBalances(),
+        {
+            staleTime: 5 * 60 * 1000,
+        }
+    );
+}

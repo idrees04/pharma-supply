@@ -181,6 +181,18 @@ const menuItems: MenuItemType[] = [
         href: "/settings/units",
         module: "products",
       },
+      {
+        icon: <Receipt className="w-4 h-4" />,
+        label: "Expense Categories",
+        href: "/settings/expense-categories",
+        module: "expenses",
+      },
+      {
+        icon: <Shield className="w-4 h-4" />,
+        label: "Tax Configuration",
+        href: "/settings/tax-configuration",
+        module: "products",
+      },
     ],
   },
 ];

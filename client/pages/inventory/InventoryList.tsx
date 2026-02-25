@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { useStore } from '@/hooks/useStore';
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Package, TrendingDown, TrendingUp } from 'lucide-react';
@@ -10,46 +9,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { toast } from 'sonner';
 import { DataTable } from '@/components/common/DataTable';
 import InventoryAdjustmentForm from './InventoryAdjustmentForm';
+import { useInventoryStocks } from '@/api/services/inventory';
+import { InventoryStockDto } from '@/types/api/inventory';
 
 export default function InventoryList() {
   const { hasPermission } = useAuth();
-  const products = useStore((state) => state.products);
-  const inventoryItems = useStore((state) => state.inventoryItems);
-  const updateInventoryItem = useStore((state) => state.updateInventoryItem);
+  const [params, setParams] = useState({ pageNumber: 1, pageSize: 10 });
+  const { data, isLoading } = useInventoryStocks(params);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<typeof inventoryItems[0] | null>(null);
+  const [selectedItem, setSelectedItem] = useState<InventoryStockDto | null>(null);
 
   const canUpdate = hasPermission('inventory', 'update');
 
-  useEffect(() => {
-    const productsWithoutInventory = products.filter(
-      (p) => !inventoryItems.find((i) => i.productId === p.id)
-    );
-
-    productsWithoutInventory.forEach((product) => {
-      const newInventory = {
-        id: Math.random().toString(36).substring(2, 11),
-        productId: product.id,
-        productName: product.brandName,
-        currentStock: 0,
-        reservedStock: 0,
-        availableStock: 0,
-        lastRestockDate: new Date().toISOString().split('T')[0],
-        lastRestockQuantity: 0,
-        createdAt: new Date().toISOString(),
-      };
-      useStore.getState().inventoryItems.push(newInventory);
-    });
-  }, [products, inventoryItems]);
-
-  const handleAdjustment = (item: typeof inventoryItems[0]) => {
-    if (!canUpdate) {
-      toast.error('You do not have permission to adjust inventory');
-      return;
-    }
+  const handleAdjustment = (item: InventoryStockDto) => {
     setSelectedItem(item);
     setIsDialogOpen(true);
   };
@@ -59,42 +33,32 @@ export default function InventoryList() {
     setSelectedItem(null);
   };
 
-  const getLowStockItems = () => {
-    const product = products.find((p) => p.id === selectedItem?.productId);
-    if (!product) return [];
-    return inventoryItems.filter((item) => {
-      const prod = products.find((p) => p.id === item.productId);
-      return prod && item.currentStock <= prod.reorderPoint;
-    });
-  };
-
   const columns = [
-    { header: 'Product', accessor: 'productName' as const },
+    { header: 'Product', accessor: 'productName' },
     {
       header: 'Current Stock',
-      accessor: (item: typeof inventoryItems[0]) => (
-        <div className="font-semibold">{item.currentStock}</div>
+      accessor: (item: InventoryStockDto) => (
+        <div className="font-semibold">{item.totalQuantity}</div>
       ),
     },
     {
       header: 'Reserved',
-      accessor: (item: typeof inventoryItems[0]) => (
-        <div className="text-amber-600">{item.reservedStock}</div>
+      accessor: (item: InventoryStockDto) => (
+        <div className="text-amber-600">{item.reservedQuantity}</div>
       ),
     },
     {
       header: 'Available',
-      accessor: (item: typeof inventoryItems[0]) => (
-        <div className="text-green-600 font-medium">{item.availableStock}</div>
+      accessor: (item: InventoryStockDto) => (
+        <div className="text-green-600 font-medium">{item.availableQuantity}</div>
       ),
     },
-    { header: 'Last Restock', accessor: 'lastRestockDate' as const },
+    { header: 'Last Restock', accessor: (row: InventoryStockDto) => row.lastRestockedDate ? new Date(row.lastRestockedDate).toLocaleDateString() : 'N/A' },
     {
       header: 'Status',
-      accessor: (item: typeof inventoryItems[0]) => {
-        const product = products.find((p) => p.id === item.productId);
-        const isLow = product && item.currentStock <= product.reorderPoint;
-        const isOut = item.currentStock === 0;
+      accessor: (item: InventoryStockDto) => {
+        const isLow = item.availableQuantity <= 10; // Assuming 10 as threshold if not in DTO
+        const isOut = item.totalQuantity === 0;
 
         if (isOut) {
           return <span className="inline-flex items-center gap-1 text-red-600"><TrendingDown className="w-4 h-4" /> Out of Stock</span>;
@@ -107,12 +71,9 @@ export default function InventoryList() {
     },
   ];
 
-  const lowStockCount = inventoryItems.filter((item) => {
-    const product = products.find((p) => p.id === item.productId);
-    return product && item.currentStock <= product.reorderPoint;
-  }).length;
-
-  const outOfStockCount = inventoryItems.filter((item) => item.currentStock === 0).length;
+  const inventoryItems = data?.items || [];
+  const lowStockCount = inventoryItems.filter((item) => item.availableQuantity <= 10).length;
+  const outOfStockCount = inventoryItems.filter((item) => item.totalQuantity === 0).length;
 
   return (
     <div className="space-y-6">
@@ -128,7 +89,7 @@ export default function InventoryList() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-muted-foreground text-sm">Total Products</p>
-              <p className="text-2xl font-bold">{inventoryItems.length}</p>
+              <p className="text-2xl font-bold">{data?.totalCount || 0}</p>
             </div>
             <Package className="w-8 h-8 text-primary/50" />
           </div>
@@ -153,18 +114,22 @@ export default function InventoryList() {
         </div>
       </div>
 
-      {inventoryItems.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center p-8">Loading inventory...</div>
+      ) : inventoryItems.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
           <h3 className="mt-4 text-lg font-semibold">No inventory items</h3>
-          <p className="text-muted-foreground">Add products first to track inventory</p>
+          <p className="text-muted-foreground">Inventory data will appear here once products are received</p>
         </div>
       ) : (
         <DataTable
           columns={columns}
           data={inventoryItems}
           onEdit={canUpdate ? handleAdjustment : undefined}
-          itemsPerPage={10}
+          itemsPerPage={params.pageSize}
+          totalItems={data?.totalCount}
+          onPageChange={(page) => setParams(p => ({ ...p, pageNumber: page }))}
         />
       )}
 

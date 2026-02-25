@@ -42,6 +42,8 @@ import SupplyOrderView from "./pages/supply/SupplyOrderView";
 import UsersPage from "./pages/users/UsersPage";
 import ProductTypesList from "./pages/settings/ProductTypesList";
 import UnitsList from "./pages/settings/UnitsList";
+import ExpenseCategoriesList from "./pages/settings/ExpenseCategoriesList";
+import TaxConfigurationList from "./pages/settings/TaxConfigurationList";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 
@@ -363,6 +365,26 @@ const AppRoutes = () => (
         <ProtectedRoute module="products" permission="read">
           <MainLayout>
             <UnitsList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/settings/expense-categories"
+      element={
+        <ProtectedRoute module="expenses" permission="read">
+          <MainLayout>
+            <ExpenseCategoriesList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/settings/tax-configuration"
+      element={
+        <ProtectedRoute module="products" permission="read">
+          <MainLayout>
+            <TaxConfigurationList />
           </MainLayout>
         </ProtectedRoute>
       }

@@ -1,7 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { paymentSchema, PaymentFormData } from "@/lib/schemas";
-import { useStore, Payment } from "@/hooks/useStore";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,9 +18,26 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useCreatePayment, useUpdatePayment } from "@/api/services/payments";
+import { useAccountList } from "@/api/services/accounts";
+import { usePurchaseOrderList } from "@/api/services/purchaseOrders";
+import { PaymentDto, PaymentMode, PaymentType, CreatePaymentRequest } from "@/types/api/payments";
+import { toast } from "sonner";
+
+const paymentSchema = z.object({
+  purchaseOrderId: z.coerce.number().optional().nullable(),
+  paymentMode: z.coerce.number(),
+  accountId: z.coerce.number().min(1, "Account is required"),
+  referenceNumber: z.string().optional(),
+  paymentDate: z.string().min(1, "Date is required"),
+  amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
+  notes: z.string().optional(),
+});
+
+type PaymentFormData = z.infer<typeof paymentSchema>;
 
 interface PaymentFormProps {
-  initialData?: Payment;
+  initialData?: PaymentDto;
   onSuccess?: () => void;
 }
 
@@ -29,151 +45,205 @@ export default function PaymentForm({
   initialData,
   onSuccess,
 }: PaymentFormProps) {
-  const { addPayment, updatePayment, purchaseOrders } = useStore();
+  const { data: accounts } = useAccountList();
+  const { data: purchaseOrdersData } = usePurchaseOrderList({ pageSize: 100 });
+  const { mutate: createPayment, isPending: isCreating } = useCreatePayment();
+  const { mutate: updatePayment, isPending: isUpdating } = useUpdatePayment(initialData?.id || 0);
+
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
     defaultValues: initialData
       ? {
-          poId: initialData.poId,
+          purchaseOrderId: initialData.purchaseOrderId,
           paymentMode: initialData.paymentMode,
-          referenceNo: initialData.referenceNo,
-          paymentDate: initialData.paymentDate,
+          accountId: initialData.accountId,
+          referenceNumber: initialData.referenceNumber || "",
+          paymentDate: new Date(initialData.paymentDate).toISOString().split('T')[0],
           amount: initialData.amount,
+          notes: initialData.notes || "",
         }
       : {
-          paymentMode: "Bank",
+          paymentMode: PaymentMode.BankTransfer,
+          paymentDate: new Date().toISOString().split('T')[0],
+          amount: 0,
+          notes: "",
         },
   });
 
   const onSubmit = (data: PaymentFormData) => {
-    const paymentData: Omit<Payment, "id" | "createdAt"> = {
-      poId: data.poId,
-      paymentMode: data.paymentMode,
-      referenceNo: data.referenceNo,
-      paymentDate: data.paymentDate,
-      amount: data.amount,
+    const payload: CreatePaymentRequest = {
+      ...data,
+      paymentType: PaymentType.Outgoing, // Defaulting to Outgoing for this form
+      paymentDate: new Date(data.paymentDate).toISOString(),
     };
 
     if (initialData) {
-      updatePayment(initialData.id, paymentData);
+      updatePayment(payload, {
+        onSuccess: () => {
+          toast.success("Payment updated successfully");
+          onSuccess?.();
+        },
+      });
     } else {
-      addPayment(paymentData);
+      createPayment(payload, {
+        onSuccess: () => {
+          toast.success("Payment recorded successfully");
+          onSuccess?.();
+        },
+      });
     }
-    form.reset();
-    onSuccess?.();
   };
+
+  const isPending = isCreating || isUpdating;
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Purchase Order Selection */}
-        <FormField
-          control={form.control}
-          name="poId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Purchase Order</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="purchaseOrderId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Purchase Order</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select PO" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {purchaseOrdersData?.items.map((po) => (
+                      <SelectItem key={po.id} value={po.id.toString()}>
+                        {po.poNumber} - {po.supplierName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="accountId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Account *</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Account" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {accounts?.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id.toString()}>
+                        {acc.accountName} ({acc.bankName})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="paymentMode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment Mode *</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select mode" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={PaymentMode.Cash.toString()}>Cash</SelectItem>
+                    <SelectItem value={PaymentMode.Cheque.toString()}>Cheque</SelectItem>
+                    <SelectItem value={PaymentMode.BankTransfer.toString()}>Bank Transfer</SelectItem>
+                    <SelectItem value={PaymentMode.CreditCard.toString()}>Credit Card</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="paymentDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment Date *</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a purchase order" />
-                  </SelectTrigger>
+                  <Input type="date" {...field} />
                 </FormControl>
-                <SelectContent>
-                  {purchaseOrders.map((po) => (
-                    <SelectItem key={po.id} value={po.id}>
-                      {po.refNo} - {po.supplierName} (
-                      {po.netPayableAmount.toLocaleString()})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        {/* Payment Mode */}
-        <FormField
-          control={form.control}
-          name="paymentMode"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Payment Mode</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Amount *</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="Cash">Cash</SelectItem>
-                  <SelectItem value="Cheque">Cheque</SelectItem>
-                  <SelectItem value="Bank">Bank Transfer</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="referenceNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reference Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., Transaction ID" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        {/* Reference Number */}
         <FormField
           control={form.control}
-          name="referenceNo"
+          name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Reference Number</FormLabel>
+              <FormLabel>Notes</FormLabel>
               <FormControl>
-                <Input
-                  placeholder={`e.g., ${form.watch("paymentMode") === "Cheque" ? "Cheque #" : "Transaction ID"}`}
-                  {...field}
-                />
+                <Input placeholder="Optional notes" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        {/* Payment Date */}
-        <FormField
-          control={form.control}
-          name="paymentDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Payment Date</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Amount */}
-        <FormField
-          control={form.control}
-          name="amount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Amount (PKR)</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Submit Button */}
         <div className="flex gap-3 justify-end pt-4">
-          <Button type="submit" className="gap-2">
-            {initialData ? "Update Payment" : "Record Payment"}
+          <Button type="submit" disabled={isPending} className="gap-2">
+            {isPending ? "Saving..." : (initialData ? "Update Payment" : "Record Payment")}
           </Button>
         </div>
       </form>

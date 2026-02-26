@@ -137,24 +137,6 @@ export interface AuthUser {
   isLocked: boolean;
 }
 
-export interface Tender {
-  id: string;
-  pvmsNo: string;
-  type: string;
-  genericName: string;
-  brandName: string;
-  manufacturerBrand: string;
-  quotationSubmittedBy: string;
-  isAuthorizedDistributor: boolean;
-  packSize: string;
-  retailPrice: number;
-  tradePrice: number;
-  offerPrice: number;
-  gstApplicable: boolean;
-  discountOffered: number;
-  createdAt: string;
-}
-
 export interface PurchaseOrder {
   id: string;
   refNo: string;
@@ -177,33 +159,6 @@ export interface POItem {
   quantity: number;
   rate: number;
   amount: number;
-}
-
-export interface SalesOrder {
-  id: string;
-  orderId: string;
-  hospitalName: string;
-  orderDate: string;
-  receivedDate: string;
-  items: SalesItem[];
-  saleTotal: number;
-  purchaseTotal: number;
-  profit: number;
-  paymentStatus: 'Pending' | 'Partial' | 'Cleared';
-  createdAt: string;
-}
-
-export interface SalesItem {
-  id: string;
-  itemName: string;
-  strength: string;
-  quantity: number;
-  packSize: string;
-  quantityInPacks: number;
-  poRate: number;
-  saleTotal: number;
-  purchaseRate: number;
-  purchaseTotal: number;
 }
 
 export interface DeliveryChallan {
@@ -259,31 +214,6 @@ export interface ExpenseItem {
   headWiseCategory: string;
 }
 
-export interface SalaryVoucher {
-  id: string;
-  voucherNo: string;
-  employeeName: string;
-  date: string;
-  grossSalary: number;
-  allowances: Allowance[];
-  deductions: Deduction[];
-  netSalaryPayable: number;
-  bankName: string;
-  accountNo: string;
-  createdAt: string;
-}
-
-export interface Allowance {
-  id: string;
-  type: string;
-  amount: number;
-}
-
-export interface Deduction {
-  id: string;
-  type: string;
-  amount: number;
-}
 
 export interface SalesTaxInvoice {
   id: string;
@@ -360,23 +290,11 @@ interface AppStore {
   currentUser: AuthUser | null;
   setCurrentUser: (user: AuthUser | null) => void;
 
-  // Tenders
-  tenders: Tender[];
-  addTender: (tender: Omit<Tender, 'id' | 'createdAt'>) => void;
-  updateTender: (id: string, tender: Partial<Tender>) => void;
-  deleteTender: (id: string) => void;
-
   // Purchase Orders
   purchaseOrders: PurchaseOrder[];
   addPurchaseOrder: (po: Omit<PurchaseOrder, 'id' | 'createdAt'>) => void;
   updatePurchaseOrder: (id: string, po: Partial<PurchaseOrder>) => void;
   deletePurchaseOrder: (id: string) => void;
-
-  // Sales Orders
-  salesOrders: SalesOrder[];
-  addSalesOrder: (so: Omit<SalesOrder, 'id' | 'createdAt'>) => void;
-  updateSalesOrder: (id: string, so: Partial<SalesOrder>) => void;
-  deleteSalesOrder: (id: string) => void;
 
   // Delivery Challans
   deliveryChallans: DeliveryChallan[];
@@ -396,11 +314,6 @@ interface AppStore {
   updateDailyExpense: (id: string, expense: Partial<DailyExpense>) => void;
   deleteDailyExpense: (id: string) => void;
 
-  // Salary Vouchers
-  salaryVouchers: SalaryVoucher[];
-  addSalaryVoucher: (voucher: Omit<SalaryVoucher, 'id' | 'createdAt'>) => void;
-  updateSalaryVoucher: (id: string, voucher: Partial<SalaryVoucher>) => void;
-  deleteSalaryVoucher: (id: string) => void;
 
   // Sales Tax Invoices
   taxInvoices: SalesTaxInvoice[];
@@ -526,21 +439,6 @@ export const useStore = create<AppStore>((set) => ({
     })),
   setCurrentUser: (user) => set({ currentUser: user }),
 
-  // Tenders
-  tenders: [],
-  addTender: (tender) =>
-    set((state) => ({
-      tenders: [...state.tenders, { ...tender, id: generateId(), createdAt: new Date().toISOString() }],
-    })),
-  updateTender: (id, tender) =>
-    set((state) => ({
-      tenders: state.tenders.map((t) => (t.id === id ? { ...t, ...tender } : t)),
-    })),
-  deleteTender: (id) =>
-    set((state) => ({
-      tenders: state.tenders.filter((t) => t.id !== id),
-    })),
-
   // Purchase Orders
   purchaseOrders: [],
   addPurchaseOrder: (po) =>
@@ -554,21 +452,6 @@ export const useStore = create<AppStore>((set) => ({
   deletePurchaseOrder: (id) =>
     set((state) => ({
       purchaseOrders: state.purchaseOrders.filter((p) => p.id !== id),
-    })),
-
-  // Sales Orders
-  salesOrders: [],
-  addSalesOrder: (so) =>
-    set((state) => ({
-      salesOrders: [...state.salesOrders, { ...so, id: generateId(), createdAt: new Date().toISOString() }],
-    })),
-  updateSalesOrder: (id, so) =>
-    set((state) => ({
-      salesOrders: state.salesOrders.map((s) => (s.id === id ? { ...s, ...so } : s)),
-    })),
-  deleteSalesOrder: (id) =>
-    set((state) => ({
-      salesOrders: state.salesOrders.filter((s) => s.id !== id),
     })),
 
   // Delivery Challans
@@ -616,20 +499,6 @@ export const useStore = create<AppStore>((set) => ({
       dailyExpenses: state.dailyExpenses.filter((e) => e.id !== id),
     })),
 
-  // Salary Vouchers
-  salaryVouchers: [],
-  addSalaryVoucher: (voucher) =>
-    set((state) => ({
-      salaryVouchers: [...state.salaryVouchers, { ...voucher, id: generateId(), createdAt: new Date().toISOString() }],
-    })),
-  updateSalaryVoucher: (id, voucher) =>
-    set((state) => ({
-      salaryVouchers: state.salaryVouchers.map((v) => (v.id === id ? { ...v, ...voucher } : v)),
-    })),
-  deleteSalaryVoucher: (id) =>
-    set((state) => ({
-      salaryVouchers: state.salaryVouchers.filter((v) => v.id !== id),
-    })),
 
   // Sales Tax Invoices
   taxInvoices: [],

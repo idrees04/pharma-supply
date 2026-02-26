@@ -95,12 +95,6 @@ const menuItems: MenuItemType[] = [
         href: "/orders/purchase",
         module: "purchaseOrders",
       },
-      // {
-      //   icon: <FileText className="w-4 h-4" />,
-      //   label: "Sales Orders",
-      //   href: "/orders/sales",
-      //   module: "salesOrders",
-      // },
     ],
   },
   {
@@ -145,18 +139,6 @@ const menuItems: MenuItemType[] = [
         module: "payments",
       },
     ],
-  },
-  {
-    icon: <Pill className="w-5 h-5" />,
-    label: "Tender",
-    href: "/tender",
-    module: "tenders",
-  },
-  {
-    icon: <Users className="w-5 h-5" />,
-    label: "Payroll",
-    href: "/payroll",
-    module: "salaryVouchers",
   },
   {
     icon: <BarChart3 className="w-5 h-5" />,

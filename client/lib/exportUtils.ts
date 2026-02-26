@@ -31,24 +31,14 @@ export function downloadJSON(data: any, filename: string) {
   downloadBlob(blob, `${filename}.json`);
 }
 
-export function generateSalesReport(salesOrders: any[], taxInvoices: any[]) {
+export function generateSalesReport(taxInvoices: any[]) {
   return {
     reportType: 'Sales Report',
     generatedAt: new Date().toISOString(),
     summary: {
-      totalOrders: salesOrders.length,
       totalInvoices: taxInvoices.length,
-      totalRevenue: salesOrders.reduce((sum, so) => sum + so.saleTotal, 0),
-      totalProfit: salesOrders.reduce((sum, so) => sum + so.profit, 0),
+      totalRevenue: taxInvoices.reduce((sum, inv) => sum + inv.totalNetAmount, 0),
     },
-    orders: salesOrders.map((order) => ({
-      orderId: order.orderId,
-      hospitalName: order.hospitalName,
-      orderDate: order.orderDate,
-      saleTotal: order.saleTotal,
-      profit: order.profit,
-      paymentStatus: order.paymentStatus,
-    })),
     invoices: taxInvoices.map((invoice) => ({
       invoiceNo: invoice.invoiceNo,
       customerName: invoice.customerName,

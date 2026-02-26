@@ -21,29 +21,23 @@ export function useApiSync() {
           suppliersRes,
           hospitalsRes,
           supplyOrdersRes,
-          salesOrdersRes,
           purchaseOrdersRes,
           deliveryChallansRes,
           taxInvoicesRes,
           dailyExpensesRes,
-          salaryVouchersRes,
           bankAccountsRes,
           inventoryRes,
-          tendersRes,
         ] = await Promise.all([
           apiClient.getProducts(),
           apiClient.getSuppliers(),
           apiClient.getHospitals(),
           apiClient.getSupplyOrders(),
-          apiClient.getSalesOrders(),
           apiClient.getPurchaseOrders(),
           apiClient.getDeliveryChallans(),
           apiClient.getTaxInvoices(),
           apiClient.getDailyExpenses(),
-          apiClient.getSalaryVouchers(),
           apiClient.getBankAccounts(),
           apiClient.getInventory(),
-          apiClient.getTenders(),
         ]);
 
         if (productsRes.data) {
@@ -78,13 +72,6 @@ export function useApiSync() {
           });
         }
 
-        if (salesOrdersRes.data) {
-          salesOrdersRes.data.forEach((order: any) => {
-            if (!store.salesOrders.find((o) => o.id === order.id)) {
-              store.addSalesOrder(order);
-            }
-          });
-        }
 
         if (purchaseOrdersRes.data) {
           purchaseOrdersRes.data.forEach((order: any) => {
@@ -118,13 +105,6 @@ export function useApiSync() {
           });
         }
 
-        if (salaryVouchersRes.data) {
-          salaryVouchersRes.data.forEach((voucher: any) => {
-            if (!store.salaryVouchers.find((v) => v.id === voucher.id)) {
-              store.addSalaryVoucher(voucher);
-            }
-          });
-        }
 
         if (bankAccountsRes.data) {
           bankAccountsRes.data.forEach((account: any) => {
@@ -142,13 +122,6 @@ export function useApiSync() {
           });
         }
 
-        if (tendersRes.data) {
-          tendersRes.data.forEach((tender: any) => {
-            if (!store.tenders.find((t) => t.id === tender.id)) {
-              store.addTender(tender);
-            }
-          });
-        }
 
         toast({
           title: 'Data Loaded',

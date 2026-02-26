@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Package, TrendingDown, TrendingUp } from 'lucide-react';
+import { AlertCircle, Package, TrendingDown, TrendingUp, Calendar, Info } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,15 +9,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { DataTable } from '@/components/common/DataTable';
 import InventoryAdjustmentForm from './InventoryAdjustmentForm';
-import { useInventoryStocks } from '@/api/services/inventory';
+import { useInventoryStocks, useExpiringBatches } from '@/api/services/inventory';
 import { InventoryStockDto } from '@/types/api/inventory';
 
 export default function InventoryList() {
   const { hasPermission } = useAuth();
   const [params, setParams] = useState({ pageNumber: 1, pageSize: 10 });
   const { data, isLoading } = useInventoryStocks(params);
+  const { data: expiringBatches } = useExpiringBatches();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryStockDto | null>(null);
 
@@ -32,6 +39,15 @@ export default function InventoryList() {
     setIsDialogOpen(false);
     setSelectedItem(null);
   };
+
+  const expiredCount = useMemo(() => {
+    if (!expiringBatches) return 0;
+    const today = new Date();
+    return expiringBatches.filter(batch => {
+      if (!batch.expiryDate) return false;
+      return new Date(batch.expiryDate) < today && batch.currentQuantity > 0;
+    }).length;
+  }, [expiringBatches]);
 
   const columns = [
     { header: 'Product', accessor: 'productName' },
@@ -57,7 +73,7 @@ export default function InventoryList() {
     {
       header: 'Status',
       accessor: (item: InventoryStockDto) => {
-        const isLow = item.availableQuantity <= 10; // Assuming 10 as threshold if not in DTO
+        const isLow = item.availableQuantity <= 10;
         const isOut = item.totalQuantity === 0;
 
         if (isOut) {
@@ -73,7 +89,6 @@ export default function InventoryList() {
 
   const inventoryItems = data?.items || [];
   const lowStockCount = inventoryItems.filter((item) => item.availableQuantity <= 10).length;
-  const outOfStockCount = inventoryItems.filter((item) => item.totalQuantity === 0).length;
 
   return (
     <div className="space-y-6">
@@ -85,31 +100,43 @@ export default function InventoryList() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card border rounded-lg p-4">
+        <div className="bg-card border rounded-lg p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-muted-foreground text-sm">Total Products</p>
+              <p className="text-muted-foreground text-sm font-medium">Total Active Products</p>
               <p className="text-2xl font-bold">{data?.totalCount || 0}</p>
             </div>
-            <Package className="w-8 h-8 text-primary/50" />
+            <Package className="w-8 h-8 text-primary/40" />
           </div>
         </div>
-        <div className="bg-card border rounded-lg p-4">
+        <div className="bg-card border rounded-lg p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-muted-foreground text-sm">Low Stock</p>
+              <p className="text-muted-foreground text-sm font-medium">Low Stock Alerts</p>
               <p className="text-2xl font-bold text-amber-600">{lowStockCount}</p>
             </div>
-            <TrendingUp className="w-8 h-8 text-amber-600/50" />
+            <TrendingUp className="w-8 h-8 text-amber-600/40" />
           </div>
         </div>
-        <div className="bg-card border rounded-lg p-4">
+        <div className="bg-card border border-red-100 rounded-lg p-4 shadow-sm bg-red-50/30">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-muted-foreground text-sm">Out of Stock</p>
-              <p className="text-2xl font-bold text-red-600">{outOfStockCount}</p>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <p className="text-muted-foreground text-sm font-medium">Expired Products</p>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[250px]">
+                      <p>Total count of products whose expiry date is earlier than today and still have available stock.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-2xl font-bold text-red-600">{expiredCount}</p>
             </div>
-            <TrendingDown className="w-8 h-8 text-red-600/50" />
+            <Calendar className="w-8 h-8 text-red-600/40" />
           </div>
         </div>
       </div>

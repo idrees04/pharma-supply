@@ -132,41 +132,6 @@ export const apiClient = {
     return handleResponse(response);
   },
 
-  // Sales Orders
-  async getSalesOrders() {
-    const response = await fetch(`${API_BASE_URL}/sales-orders`);
-    return handleResponse(response);
-  },
-
-  async getSalesOrder(id: string) {
-    const response = await fetch(`${API_BASE_URL}/sales-orders/${id}`);
-    return handleResponse(response);
-  },
-
-  async createSalesOrder(data: any) {
-    const response = await fetch(`${API_BASE_URL}/sales-orders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-  },
-
-  async updateSalesOrder(id: string, data: any) {
-    const response = await fetch(`${API_BASE_URL}/sales-orders/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-  },
-
-  async deleteSalesOrder(id: string) {
-    const response = await fetch(`${API_BASE_URL}/sales-orders/${id}`, {
-      method: 'DELETE',
-    });
-    return handleResponse(response);
-  },
 
   // Supply Orders
   async getSupplyOrders() {
@@ -348,41 +313,6 @@ export const apiClient = {
     return handleResponse(response);
   },
 
-  // Salary Vouchers
-  async getSalaryVouchers() {
-    const response = await fetch(`${API_BASE_URL}/salary-vouchers`);
-    return handleResponse(response);
-  },
-
-  async getSalaryVoucher(id: string) {
-    const response = await fetch(`${API_BASE_URL}/salary-vouchers/${id}`);
-    return handleResponse(response);
-  },
-
-  async createSalaryVoucher(data: any) {
-    const response = await fetch(`${API_BASE_URL}/salary-vouchers`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-  },
-
-  async updateSalaryVoucher(id: string, data: any) {
-    const response = await fetch(`${API_BASE_URL}/salary-vouchers/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-  },
-
-  async deleteSalaryVoucher(id: string) {
-    const response = await fetch(`${API_BASE_URL}/salary-vouchers/${id}`, {
-      method: 'DELETE',
-    });
-    return handleResponse(response);
-  },
 
   // Bank Accounts
   async getBankAccounts() {
@@ -483,41 +413,6 @@ export const apiClient = {
     return handleResponse(response);
   },
 
-  // Tenders
-  async getTenders() {
-    const response = await fetch(`${API_BASE_URL}/tenders`);
-    return handleResponse(response);
-  },
-
-  async getTender(id: string) {
-    const response = await fetch(`${API_BASE_URL}/tenders/${id}`);
-    return handleResponse(response);
-  },
-
-  async createTender(data: any) {
-    const response = await fetch(`${API_BASE_URL}/tenders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-  },
-
-  async updateTender(id: string, data: any) {
-    const response = await fetch(`${API_BASE_URL}/tenders/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-  },
-
-  async deleteTender(id: string) {
-    const response = await fetch(`${API_BASE_URL}/tenders/${id}`, {
-      method: 'DELETE',
-    });
-    return handleResponse(response);
-  },
 
   // Inventory
   async getInventory() {

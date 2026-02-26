@@ -25,13 +25,10 @@ import { toast } from "sonner";
 
 export default function Reports() {
   const {
-    tenders,
     purchaseOrders,
-    salesOrders,
     deliveryChallans,
     payments,
     dailyExpenses,
-    salaryVouchers,
     taxInvoices,
     bankAccounts,
     internalTransfers,
@@ -42,7 +39,7 @@ export default function Reports() {
 
   const handleExportSalesReport = () => {
     try {
-      const reportData = generateSalesReport(salesOrders, taxInvoices);
+      const reportData = generateSalesReport([], taxInvoices);
       downloadJSON(reportData, `sales-report-${new Date().toISOString().split('T')[0]}`);
       toast.success('Sales report exported successfully');
     } catch (error) {
@@ -87,37 +84,31 @@ export default function Reports() {
 
   const handleExportOrdersCSV = () => {
     try {
-      const csvData = salesOrders.map((order) => ({
-        'Order ID': order.orderId,
-        'Hospital': order.hospitalName,
-        'Order Date': order.orderDate,
-        'Revenue': order.saleTotal,
-        'Cost': order.purchaseTotal,
-        'Profit': order.profit,
-        'Status': order.paymentStatus,
+      const csvData = taxInvoices.map((inv) => ({
+        'Invoice ID': inv.invoiceNo,
+        'Customer': inv.customerName,
+        'Date': inv.invoiceDate,
+        'Amount': inv.totalNetAmount,
       }));
-      downloadCSV(csvData, `sales-orders-${new Date().toISOString().split('T')[0]}`);
-      toast.success('Orders exported as CSV');
+      downloadCSV(csvData, `tax-invoices-${new Date().toISOString().split('T')[0]}`);
+      toast.success('Invoices exported as CSV');
     } catch (error) {
-      toast.error('Failed to export orders');
+      toast.error('Failed to export invoices');
     }
   };
 
   // Calculate metrics
-  const totalSales = salesOrders.reduce((sum, so) => sum + so.saleTotal, 0);
-  const totalPurchase = salesOrders.reduce(
-    (sum, so) => sum + so.purchaseTotal,
+  const totalSales = taxInvoices.reduce((sum, inv) => sum + inv.totalNetAmount, 0);
+  const totalPurchase = purchaseOrders.reduce(
+    (sum, po) => sum + po.netPayableAmount,
     0,
   );
-  const totalProfit = salesOrders.reduce((sum, so) => sum + so.profit, 0);
   const totalExpenses = dailyExpenses.reduce(
     (sum, exp) => sum + exp.totalAmount,
     0,
   );
-  const totalPayroll = salaryVouchers.reduce(
-    (sum, sv) => sum + sv.netSalaryPayable,
-    0,
-  );
+  const totalProfit = totalSales - totalPurchase - totalExpenses;
+  const totalPayroll = 0; // Payroll removed
   const totalDelivered = deliveryChallans.reduce(
     (sum, dc) => sum + dc.items.reduce((s, item) => s + item.quantity, 0),
     0,
@@ -129,24 +120,24 @@ export default function Reports() {
   const expenseRatio =
     totalSales > 0 ? ((totalExpenses / totalSales) * 100).toFixed(2) : "0.00";
 
-  // Get top hospitals by sales
-  const topHospitals = [...salesOrders]
-    .sort((a, b) => b.saleTotal - a.saleTotal)
+  // Get top performed invoices by amount
+  const topInvoices = [...taxInvoices]
+    .sort((a, b) => b.totalNetAmount - a.totalNetAmount)
     .slice(0, 5);
 
-  // Get payment status breakdown
+  // Get invoice payment status breakdown (simulated from taxInvoices as a placeholder)
   const paymentStatusBreakdown = {
-    cleared: salesOrders.filter((so) => so.paymentStatus === "Cleared").length,
-    partial: salesOrders.filter((so) => so.paymentStatus === "Partial").length,
-    pending: salesOrders.filter((so) => so.paymentStatus === "Pending").length,
+    cleared: taxInvoices.length,
+    partial: 0,
+    pending: 0,
   };
 
   // Get top performing items
   const itemSalesMap = new Map<string, number>();
-  salesOrders.forEach((so) => {
-    so.items.forEach((item) => {
-      const key = item.itemName;
-      itemSalesMap.set(key, (itemSalesMap.get(key) || 0) + item.saleTotal);
+  taxInvoices.forEach((inv) => {
+    inv.items.forEach((item) => {
+      const key = item.product;
+      itemSalesMap.set(key, (itemSalesMap.get(key) || 0) + item.amount);
     });
   });
 
@@ -285,12 +276,12 @@ export default function Reports() {
               <h3 className="text-lg font-semibold mb-4">Financial Summary</h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                  <span>Total Orders</span>
-                  <span className="font-semibold">{salesOrders.length}</span>
+                  <span>Total Purchase Orders</span>
+                  <span className="font-semibold">{purchaseOrders.length}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                  <span>Tenders Created</span>
-                  <span className="font-semibold">{tenders.length}</span>
+                  <span>Supply Orders</span>
+                  <span className="font-semibold">{useStore.getState().supplyOrders.length}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
                   <span>Invoices Generated</span>
@@ -344,34 +335,34 @@ export default function Reports() {
         {/* Sales Analysis Tab */}
         <TabsContent value="sales" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top Hospitals */}
+            {/* Top Invoices */}
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">
-                Top Hospitals by Sales
+                Top Invoices by Amount
               </h3>
               <div className="space-y-3">
-                {topHospitals.length > 0 ? (
-                  topHospitals.map((hospital, idx) => (
+                {topInvoices.length > 0 ? (
+                  topInvoices.map((inv, idx) => (
                     <div
                       key={idx}
                       className="flex items-center justify-between p-3 bg-muted rounded-lg"
                     >
                       <div className="flex-1">
                         <p className="font-medium text-sm">
-                          {hospital.hospitalName}
+                          {inv.customerName}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {hospital.orderId}
+                          {inv.invoiceNo}
                         </p>
                       </div>
                       <span className="font-semibold">
-                        {formatCurrency(hospital.saleTotal)}
+                        {formatCurrency(inv.totalNetAmount)}
                       </span>
                     </div>
                   ))
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    No sales data available
+                    No invoice data available
                   </p>
                 )}
               </div>
@@ -417,7 +408,7 @@ export default function Reports() {
                   {formatCurrency(totalSales)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  From {salesOrders.length} orders
+                  From {taxInvoices.length} invoices
                 </p>
               </div>
               <div>
@@ -486,27 +477,17 @@ export default function Reports() {
               </div>
             </Card>
 
-            {/* Payroll Summary */}
+            {/* Payroll Removed */}
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Payroll Summary</h3>
+              <h3 className="text-lg font-semibold mb-4">Operations Summary</h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm">Total Employees</span>
-                  <span className="font-semibold">{salaryVouchers.length}</span>
+                  <span className="text-sm">Total Suppliers</span>
+                  <span className="font-semibold">{suppliers.length}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm">Total Payroll</span>
-                  <span className="font-semibold">
-                    {formatCurrency(totalPayroll)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm">Avg Salary</span>
-                  <span className="font-semibold">
-                    {formatCurrency(
-                      totalPayroll / (salaryVouchers.length || 1),
-                    )}
-                  </span>
+                  <span className="text-sm">Total Products</span>
+                  <span className="font-semibold">{products.length}</span>
                 </div>
               </div>
             </Card>

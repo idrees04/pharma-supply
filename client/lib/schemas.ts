@@ -164,24 +164,6 @@ export const userSchema = z.object({
 
 export type UserFormData = z.infer<typeof userSchema>;
 
-// Tender Schema
-export const tenderSchema = z.object({
-  pvmsNo: z.string().min(1, "PVMS No is required"),
-  type: z.string().min(1, "Type is required"),
-  genericName: z.string().min(1, "Generic Name is required"),
-  brandName: z.string().min(1, "Brand Name is required"),
-  manufacturerBrand: z.string().min(1, "Manufacturer Brand is required"),
-  quotationSubmittedBy: z.string().min(1, "Quotation Submitted By is required"),
-  isAuthorizedDistributor: z.boolean().default(false),
-  packSize: z.string().min(1, "Pack Size is required"),
-  retailPrice: z.coerce.number().positive("Retail Price must be positive"),
-  tradePrice: z.coerce.number().positive("Trade Price must be positive"),
-  offerPrice: z.coerce.number().positive("Offer Price must be positive"),
-  gstApplicable: z.boolean().default(false),
-  discountOffered: z.coerce.number().min(0, "Discount must be non-negative"),
-});
-
-export type TenderFormData = z.infer<typeof tenderSchema>;
 
 // Purchase Order Schema
 export const poItemSchema = z.object({
@@ -240,29 +222,6 @@ export const receiveItemsSchema = z.object({
 export type ReceiveItemsFormData = z.infer<typeof receiveItemsSchema>;
 export type ReceiveItemLineFormData = z.infer<typeof receiveItemLineSchema>;
 
-// Sales Order Schema
-export const salesItemSchema = z.object({
-  itemName: z.string().min(1, "Item Name is required"),
-  strength: z.string().min(1, "Strength is required"),
-  quantity: z.coerce.number().positive("Quantity must be positive"),
-  packSize: z.string().min(1, "Pack Size is required"),
-  quantityInPacks: z.coerce
-    .number()
-    .positive("Quantity in Packs must be positive"),
-  poRate: z.coerce.number().positive("PO Rate must be positive"),
-  purchaseRate: z.coerce.number().positive("Purchase Rate must be positive"),
-});
-
-export const salesOrderSchema = z.object({
-  orderId: z.string().min(1, "Order ID is required"),
-  hospitalName: z.string().min(1, "Hospital Name is required"),
-  orderDate: z.string().min(1, "Order Date is required"),
-  receivedDate: z.string().min(1, "Received Date is required"),
-  items: z.array(salesItemSchema).min(1, "At least one item is required"),
-  paymentStatus: z.enum(["Pending", "Partial", "Cleared"]),
-});
-
-export type SalesOrderFormData = z.infer<typeof salesOrderSchema>;
 
 // Delivery Challan Schema
 export const dcItemSchema = z.object({
@@ -321,29 +280,6 @@ export const dailyExpenseSchema = z.object({
 
 export type DailyExpenseFormData = z.infer<typeof dailyExpenseSchema>;
 
-// Salary Voucher Schema
-export const allowanceSchema = z.object({
-  type: z.string().min(1, "Allowance type is required"),
-  amount: z.coerce.number().min(0, "Amount must be non-negative"),
-});
-
-export const deductionSchema = z.object({
-  type: z.string().min(1, "Deduction type is required"),
-  amount: z.coerce.number().min(0, "Amount must be non-negative"),
-});
-
-export const salaryVoucherSchema = z.object({
-  voucherNo: z.string().min(1, "Voucher No is required"),
-  employeeName: z.string().min(1, "Employee Name is required"),
-  date: z.string().min(1, "Date is required"),
-  grossSalary: z.coerce.number().positive("Gross Salary must be positive"),
-  allowances: z.array(allowanceSchema).optional(),
-  deductions: z.array(deductionSchema).optional(),
-  bankName: z.string().min(1, "Bank Name is required"),
-  accountNo: z.string().min(1, "Account No is required"),
-});
-
-export type SalaryVoucherFormData = z.infer<typeof salaryVoucherSchema>;
 
 // Sales Tax Invoice Schema
 export const invoiceItemSchema = z.object({

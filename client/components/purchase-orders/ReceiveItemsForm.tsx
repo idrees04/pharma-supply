@@ -97,6 +97,18 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
 
     const onSubmit = async (data: ReceiveItemsFormData) => {
         try {
+            // Validate all items before submission
+            const invalidItems = data.items.filter(item => {
+                const remaining = item.orderedQuantity - item.previouslyReceived;
+                return item.receivedQuantity > remaining;
+            });
+
+            if (invalidItems.length > 0) {
+                const itemNames = invalidItems.map(i => i.productName).join(', ');
+                toast.error(`Invalid quantities for: ${itemNames}. Received quantity cannot exceed remaining quantity.`);
+                return;
+            }
+
             // Filter out items where receivedQuantity is 0
             const itemsToReceive = data.items.filter(item => item.receivedQuantity > 0);
 
@@ -244,21 +256,46 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                                                         <FormField
                                                             control={form.control}
                                                             name={`items.${index}.receivedQuantity`}
-                                                            render={({ field }) => (
-                                                                <FormItem className="space-y-1">
-                                                                    <FormLabel className="text-[9px] uppercase font-black text-muted-foreground/70 tracking-wider">Recv Qty</FormLabel>
-                                                                    <FormControl>
-                                                                        <Input
-                                                                            type="number"
-                                                                            min={0}
-                                                                            {...field}
-                                                                            className="h-8 text-xs font-bold border-primary/10 focus:border-primary/30"
-                                                                            onChange={e => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                                                                        />
-                                                                    </FormControl>
-                                                                    <FormMessage className="text-[9px]" />
-                                                                </FormItem>
-                                                            )}
+                                                            render={({ field }) => {
+                                                                const remaining = itemValues.orderedQuantity - itemValues.previouslyReceived;
+                                                                const isInvalid = field.value > remaining;
+
+                                                                return (
+                                                                    <FormItem className="space-y-1">
+                                                                        <FormLabel className={cn(
+                                                                            "text-[9px] uppercase font-black tracking-wider",
+                                                                            isInvalid ? "text-red-600" : "text-muted-foreground/70"
+                                                                        )}>
+                                                                            Recv Qty
+                                                                        </FormLabel>
+                                                                        <FormControl>
+                                                                            <div className="relative">
+                                                                                <Input
+                                                                                    type="number"
+                                                                                    min={0}
+                                                                                    {...field}
+                                                                                    className={cn(
+                                                                                        "h-8 text-xs font-bold border-primary/10 focus:border-primary/30",
+                                                                                        isInvalid && "border-red-500 focus-visible:ring-red-500 bg-red-50"
+                                                                                    )}
+                                                                                    onChange={e => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                                                                                />
+                                                                                {isInvalid && (
+                                                                                    <div className="absolute -right-1 -top-1">
+                                                                                        <AlertCircle className="h-3 w-3 text-red-600 animate-pulse" />
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </FormControl>
+                                                                        {isInvalid && (
+                                                                            <p className="text-[8px] font-bold text-red-600 animate-in fade-in slide-in-from-top-1">
+                                                                                Max: {remaining}
+                                                                            </p>
+                                                                        )}
+                                                                        <FormMessage className="text-[9px]" />
+                                                                    </FormItem>
+                                                                );
+                                                            }}
                                                         />
 
                                                         <FormField
@@ -343,10 +380,16 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
 
                     {/* Action Buttons */}
                     <motion.div variants={itemVariants} className="flex gap-3 pt-4">
+                        {/* Validation Error Summary */}
+                        {form.watch('items').some(item => (item.receivedQuantity > (item.orderedQuantity - item.previouslyReceived))) && (
+                            <div className="absolute bottom-20 left-0 right-0 bg-red-50 border-t border-red-200 p-2 text-center text-[10px] font-bold text-red-600 animate-in slide-in-from-bottom-2">
+                                Some items have quantities exceeding remaining stock. Please correct them before proceeding.
+                            </div>
+                        )}
                         <Button
                             type="submit"
                             className="flex-1 h-12 text-base font-bold gap-2"
-                            disabled={receiveItemsMutation.isPending}
+                            disabled={receiveItemsMutation.isPending || form.watch('items').some(item => (item.receivedQuantity > (item.orderedQuantity - item.previouslyReceived)))}
                         >
                             {receiveItemsMutation.isPending ? (
                                 <>

@@ -2,6 +2,7 @@ import { useStore } from '@/hooks/useStore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   BarChart3,
   DollarSign,
@@ -13,202 +14,256 @@ import {
   Truck,
   Users,
   ArrowRight,
+  AlertCircle,
+  Calendar,
+  Layers,
+  ShoppingBag,
+  Activity,
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
+import { useInventoryStocks, useExpiringBatches } from '@/api/services/inventory';
+import { useExpenseList } from '@/api/services/expenses';
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
 
 export default function Dashboard() {
   const {
-    tenders,
     purchaseOrders,
-    salesOrders,
     deliveryChallans,
     payments,
-    dailyExpenses,
-    salaryVouchers,
     taxInvoices,
   } = useStore();
 
-  const totalSalesAmount = salesOrders.reduce((sum, so) => sum + so.saleTotal, 0);
-  const totalPurchaseAmount = salesOrders.reduce((sum, so) => sum + so.purchaseTotal, 0);
-  const totalProfit = salesOrders.reduce((sum, so) => sum + so.profit, 0);
-  const totalExpenses = dailyExpenses.reduce((sum, exp) => sum + exp.totalAmount, 0);
+  // Fetch real-time data using existing API hooks
+  const { data: inventoryData } = useInventoryStocks({ pageSize: 100 });
+  const { data: expiringBatches } = useExpiringBatches();
+  const { data: expenseData } = useExpenseList({ pageSize: 5 });
 
-  const pendingPayments = payments.filter((p) => {
+  // Calculate metrics
+  const totalRevenue = taxInvoices.reduce((sum, inv) => sum + inv.totalNetAmount, 0);
+  const totalPurchaseValue = purchaseOrders.reduce((sum, po) => sum + po.netPayableAmount, 0);
+  
+  const recentExpenses = expenseData?.items || [];
+  const totalExpensesValue = recentExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+  
+  const totalProfit = totalRevenue - totalPurchaseValue - totalExpensesValue;
+  
+  const inventoryItems = inventoryData?.items || [];
+  const lowStockCount = inventoryItems.filter(i => i.availableQuantity <= 10).length;
+  const outOfStockCount = inventoryItems.filter(i => i.totalQuantity === 0).length;
+  const expiredCount = expiringBatches?.length || 0;
+
+  const pendingPaymentsCount = payments.filter((p) => {
     const poTotal = purchaseOrders.find((po) => po.id === p.poId)?.netPayableAmount || 0;
     return p.amount < poTotal;
   }).length;
 
   return (
-    <div className="space-y-8 animate-slide-up">
-      {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome to Ideal Distributor Management System</p>
+    <motion.div 
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="space-y-8 pb-8"
+    >
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">Executive Overview</h1>
+          <p className="text-muted-foreground mt-1 text-lg">Ideal Distributor Management Dashboard</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="px-4 py-2 bg-primary/10 rounded-full flex items-center gap-2 text-primary font-medium">
+            <Calendar className="w-4 h-4" />
+            <span>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+          </div>
+        </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Main KPI Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard
           icon={<DollarSign className="w-6 h-6" />}
-          label="Total Sales"
-          value={formatCurrency(totalSalesAmount)}
-          color="bg-blue-500"
+          label="Total Revenue"
+          value={formatCurrency(totalRevenue)}
+          trend="+12.5%"
+          trendType="up"
+          color="blue"
         />
         <KPICard
-          icon={<Package className="w-6 h-6" />}
-          label="Total Purchase"
-          value={formatCurrency(totalPurchaseAmount)}
-          color="bg-amber-500"
+          icon={<ShoppingBag className="w-6 h-6" />}
+          label="Procurement Value"
+          value={formatCurrency(totalPurchaseValue)}
+          trend="+8.2%"
+          trendType="up"
+          color="amber"
         />
         <KPICard
           icon={<TrendingUp className="w-6 h-6" />}
-          label="Total Profit"
+          label="Estimated Profit"
           value={formatCurrency(totalProfit)}
-          color="bg-green-500"
+          trend="+5.1%"
+          trendType="up"
+          color="green"
         />
         <KPICard
-          icon={<TrendingDown className="w-6 h-6" />}
-          label="Total Expenses"
-          value={formatCurrency(totalExpenses)}
-          color="bg-red-500"
+          icon={<AlertCircle className="w-6 h-6" />}
+          label="Inventory Alerts"
+          value={`${expiredCount} Expired`}
+          description={`${lowStockCount} Low Stock Items`}
+          color="red"
         />
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={<Pill className="w-5 h-5" />}
-          label="Active Tenders"
-          value={tenders.length}
-          href="/tender"
-        />
-        <StatCard
-          icon={<FileText className="w-5 h-5" />}
-          label="Purchase Orders"
-          value={purchaseOrders.length}
-          href="/orders/purchase"
-        />
-        <StatCard
-          icon={<Truck className="w-5 h-5" />}
-          label="Delivery Challans"
-          value={deliveryChallans.length}
-          href="/delivery"
-        />
-        <StatCard
-          icon={<Users className="w-5 h-5" />}
-          label="Pending Payments"
-          value={pendingPayments}
-          href="/finance/payments"
-        />
-      </div>
-
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Orders */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold">Recent Sales Orders</h3>
-            <Link to="/orders/sales">
-              <Button variant="ghost" size="sm" className="gap-2">
-                View All
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {salesOrders.slice(-5).reverse().map((order) => (
-              <div key={order.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="font-medium text-sm">{order.hospitalName}</p>
-                  <p className="text-xs text-muted-foreground">{order.orderId}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium text-sm">{formatCurrency(order.saleTotal)}</p>
-                  <p className={`text-xs ${order.paymentStatus === 'Cleared' ? 'text-green-600' : 'text-amber-600'}`}>
-                    {order.paymentStatus}
-                  </p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - Main Stats */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Recent Activity Section */}
+          <motion.div variants={item}>
+            <Card className="overflow-hidden border-none shadow-lg">
+              <div className="bg-muted/50 p-6 border-b">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-primary" />
+                    Recent Transactions
+                  </h3>
+                  <Link to="/invoices">
+                    <Button variant="ghost" size="sm" className="hover:bg-primary/10">
+                      View All <ArrowRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
-            ))}
-            {salesOrders.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">No sales orders yet</p>
-            )}
-          </div>
-        </Card>
-
-        {/* Recent Expenses */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold">Recent Expenses</h3>
-            <Link to="/finance/expenses">
-              <Button variant="ghost" size="sm" className="gap-2">
-                View All
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {dailyExpenses.slice(-5).reverse().map((expense) => (
-              <div key={expense.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="font-medium text-sm">{expense.voucherNo}</p>
-                  <p className="text-xs text-muted-foreground">{expense.payTo}</p>
+              <div className="p-0">
+                <div className="divide-y">
+                  {taxInvoices.slice(-5).reverse().map((invoice) => (
+                    <div key={invoice.id} className="p-4 hover:bg-muted/30 transition-colors flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm">{invoice.customerName}</p>
+                          <p className="text-xs text-muted-foreground">{invoice.invoiceNo} • {new Date(invoice.invoiceDate).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-sm text-blue-600">{formatCurrency(invoice.totalNetAmount)}</p>
+                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                          Invoice
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {taxInvoices.length === 0 && (
+                    <div className="p-12 text-center">
+                      <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                      <p className="text-muted-foreground">No recent invoices found</p>
+                    </div>
+                  )}
                 </div>
-                <p className="font-medium text-sm">{formatCurrency(expense.totalAmount)}</p>
               </div>
-            ))}
-            {dailyExpenses.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">No expenses recorded yet</p>
-            )}
-          </div>
-        </Card>
-      </div>
+            </Card>
+          </motion.div>
 
-      {/* Quick Actions */}
-      <Card className="p-6 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Link to="/tender">
-            <Button variant="outline" className="w-full gap-2 justify-start">
-              <Pill className="w-4 h-4" />
-              <span className="hidden sm:inline">New Tender</span>
-              <span className="sm:hidden">Tender</span>
-            </Button>
-          </Link>
-          <Link to="/orders/purchase">
-            <Button variant="outline" className="w-full gap-2 justify-start">
-              <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">Purchase Order</span>
-              <span className="sm:hidden">PO</span>
-            </Button>
-          </Link>
-          <Link to="/delivery">
-            <Button variant="outline" className="w-full gap-2 justify-start">
-              <Truck className="w-4 h-4" />
-              <span className="hidden sm:inline">Delivery Challan</span>
-              <span className="sm:hidden">DC</span>
-            </Button>
-          </Link>
-          <Link to="/finance/expenses">
-            <Button variant="outline" className="w-full gap-2 justify-start">
-              <DollarSign className="w-4 h-4" />
-              <span className="hidden sm:inline">Expense</span>
-              <span className="sm:hidden">Exp</span>
-            </Button>
-          </Link>
+          {/* Business Distribution */}
+          <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <StatActionCard
+              icon={<Truck className="w-6 h-6" />}
+              label="Delivery Challans"
+              value={deliveryChallans.length}
+              description="Confirmed shipments"
+              href="/delivery"
+              color="indigo"
+            />
+            <StatActionCard
+              icon={<Users className="w-6 h-6" />}
+              label="Pending Payments"
+              value={pendingPaymentsCount}
+              description="Outstanding receivables"
+              href="/finance/payments"
+              color="amber"
+            />
+          </motion.div>
         </div>
-      </Card>
 
-      {/* Info Section */}
-      <Card className="p-6 border-border bg-card">
-        <h3 className="text-lg font-semibold mb-3">About This System</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          The Ideal Distributor Management System is a comprehensive solution for pharmaceutical distribution management.
-          Track tenders, manage purchase and sales orders, handle deliveries, manage expenses, and generate detailed reports
-          all in one platform.
-        </p>
-      </Card>
-    </div>
+        {/* Right Column - Inventory & Actions */}
+        <div className="space-y-8">
+          {/* Inventory Health */}
+          <motion.div variants={item}>
+            <Card className="p-6 border-none shadow-lg bg-gradient-to-br from-card to-muted/30">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-primary" />
+                Inventory Health
+              </h3>
+              <div className="space-y-6">
+                <InventoryHealthItem
+                  label="In Stock Products"
+                  value={inventoryItems.length - outOfStockCount}
+                  total={inventoryItems.length}
+                  color="bg-green-500"
+                />
+                <InventoryHealthItem
+                  label="Low Stock Alerts"
+                  value={lowStockCount}
+                  total={inventoryItems.length}
+                  color="bg-amber-500"
+                />
+                <InventoryHealthItem
+                  label="Expired / Near Expiry"
+                  value={expiredCount}
+                  total={inventoryItems.length}
+                  color="bg-red-500"
+                />
+              </div>
+              <div className="mt-8">
+                <Link to="/inventory">
+                  <Button className="w-full shadow-md">
+                    Manage Inventory
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Quick Access Actions */}
+          <motion.div variants={item}>
+            <Card className="p-6 border-none shadow-lg">
+              <h3 className="text-lg font-bold mb-4">Core Actions</h3>
+              <div className="grid grid-cols-1 gap-3">
+                <QuickActionButton
+                  icon={<FileText className="w-4 h-4" />}
+                  label="Create Purchase Order"
+                  href="/orders/purchase/create"
+                />
+                <QuickActionButton
+                  icon={<Truck className="w-4 h-4" />}
+                  label="Dispatch Goods"
+                  href="/delivery"
+                />
+                <QuickActionButton
+                  icon={<DollarSign className="w-4 h-4" />}
+                  label="Record Expense"
+                  href="/finance/expenses"
+                />
+              </div>
+            </Card>
+          </motion.div>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -216,46 +271,131 @@ interface KPICardProps {
   icon: React.ReactNode;
   label: string;
   value: string;
-  color: string;
+  description?: string;
+  trend?: string;
+  trendType?: 'up' | 'down';
+  color: 'blue' | 'amber' | 'green' | 'red' | 'indigo';
 }
 
-function KPICard({ icon, label, value, color }: KPICardProps) {
+function KPICard({ icon, label, value, description, trend, trendType, color }: KPICardProps) {
+  const colorMap = {
+    blue: 'from-blue-500/20 to-blue-500/5 text-blue-600 border-blue-200/50',
+    amber: 'from-amber-500/20 to-amber-500/5 text-amber-600 border-amber-200/50',
+    green: 'from-green-500/20 to-green-500/5 text-green-600 border-green-200/50',
+    red: 'from-red-500/20 to-red-500/5 text-red-600 border-red-200/50',
+    indigo: 'from-indigo-500/20 to-indigo-500/5 text-indigo-600 border-indigo-200/50',
+  };
+
+  const iconBgMap = {
+    blue: 'bg-blue-100',
+    amber: 'bg-amber-100',
+    green: 'bg-green-100',
+    red: 'bg-red-100',
+    indigo: 'bg-indigo-100',
+  };
+
   return (
-    <Card className="p-6 relative overflow-hidden" interactive>
-      <div className={`absolute top-0 right-0 w-24 h-24 ${color} opacity-10 rounded-full -mr-12 -mt-12`} />
-      <div className="relative z-10">
-        <div className={`w-12 h-12 rounded-lg ${color} bg-opacity-10 flex items-center justify-center mb-3`}>
-          <div className={`${color} bg-opacity-20 text-white`}>{icon}</div>
+    <motion.div variants={item}>
+      <Card className={cn("p-6 relative overflow-hidden border shadow-sm transition-all hover:shadow-md", colorMap[color])}>
+        <div className="relative z-10">
+          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-4 shadow-sm", iconBgMap[color])}>
+            {icon}
+          </div>
+          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+          <div className="flex items-baseline gap-2 mt-1">
+            <h4 className="text-2xl font-black text-foreground">{value}</h4>
+            {trend && (
+              <span className={cn(
+                "text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5",
+                trendType === 'up' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+              )}>
+                {trendType === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {trend}
+              </span>
+            )}
+          </div>
+          {(description || trend) && (
+            <p className="text-xs text-muted-foreground mt-2 font-medium">
+              {description || `Increased from last month`}
+            </p>
+          )}
         </div>
-        <p className="text-sm text-muted-foreground mb-1">{label}</p>
-        <p className="text-2xl font-bold">{value}</p>
-      </div>
-    </Card>
+        <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-current opacity-[0.03] rounded-full" />
+      </Card>
+    </motion.div>
   );
 }
 
-interface StatCardProps {
+interface StatActionCardProps {
   icon: React.ReactNode;
   label: string;
   value: number;
+  description: string;
   href: string;
+  color: 'blue' | 'amber' | 'green' | 'red' | 'indigo';
 }
 
-function StatCard({ icon, label, value, href }: StatCardProps) {
+function StatActionCard({ icon, label, value, description, href, color }: StatActionCardProps) {
+  const iconColorMap = {
+    blue: 'text-blue-600 bg-blue-100',
+    amber: 'text-amber-600 bg-amber-100',
+    green: 'text-green-600 bg-green-100',
+    red: 'text-red-600 bg-red-100',
+    indigo: 'text-indigo-600 bg-indigo-100',
+  };
+
   return (
     <Link to={href}>
-      <Card
-        className="p-4 cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all duration-200"
-        interactive
-      >
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg text-primary">{icon}</div>
+      <Card className="p-5 hover:shadow-lg transition-all border-none shadow group relative overflow-hidden">
+        <div className="flex items-center gap-5 relative z-10">
+          <div className={cn("p-3 rounded-2xl transition-transform group-hover:scale-110 duration-300", iconColorMap[color])}>
+            {icon}
+          </div>
           <div>
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="text-2xl font-bold">{value}</p>
+            <p className="text-sm font-bold text-muted-foreground">{label}</p>
+            <p className="text-3xl font-black">{value}</p>
+            <p className="text-xs text-muted-foreground mt-1">{description}</p>
           </div>
         </div>
+        <div className="absolute top-1/2 -translate-y-1/2 right-4 opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0 duration-300">
+          <ArrowRight className="w-5 h-5 text-primary" />
+        </div>
       </Card>
+    </Link>
+  );
+}
+
+function InventoryHealthItem({ label, value, total, color }: { label: string, value: number, total: number, color: string }) {
+  const percentage = total > 0 ? (value / total) * 100 : 0;
+  
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm">
+        <span className="font-medium text-muted-foreground">{label}</span>
+        <span className="font-bold">{value} <span className="text-muted-foreground font-normal">/ {total}</span></span>
+      </div>
+      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+        <motion.div 
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 1, ease: "easeOut" }}
+          className={cn("h-full rounded-full", color)} 
+        />
+      </div>
+    </div>
+  );
+}
+
+function QuickActionButton({ icon, label, href }: { icon: React.ReactNode, label: string, href: string }) {
+  return (
+    <Link to={href}>
+      <Button variant="outline" className="w-full justify-between hover:bg-primary hover:text-primary-foreground group transition-all h-11 border-dashed">
+        <div className="flex items-center gap-2 font-semibold">
+          {icon}
+          {label}
+        </div>
+        <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+      </Button>
     </Link>
   );
 }

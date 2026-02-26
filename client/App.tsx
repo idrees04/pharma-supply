@@ -16,18 +16,15 @@ import { ClickSpark } from "@/components/effects/ClickSpark";
 import Dashboard from "./pages/Dashboard";
 import LoginPage from "./pages/Login";
 import { StrictMode } from "react";
-import TenderList from "./pages/tender/TenderList";
 import PurchaseOrderList from "./pages/orders/PurchaseOrderList";
 import PurchaseOrderForm from "./pages/orders/PurchaseOrderForm";
 import PurchaseOrderView from "./pages/orders/PurchaseOrderView";
-import SalesOrderList from "./pages/orders/SalesOrderList";
 import DeliveryChallanList from "./pages/delivery/DeliveryChallanList";
 import SalesTaxInvoiceList from "./pages/invoices/SalesTaxInvoiceList";
 import DailyExpenseList from "./pages/finance/DailyExpenseList";
 import PaymentList from "./pages/finance/PaymentList";
 import BankAccountList from "./pages/finance/BankAccountList";
 import InternalTransferList from "./pages/finance/InternalTransferList";
-import SalaryVoucherList from "./pages/payroll/SalaryVoucherList";
 import Reports from "./pages/reports/Reports";
 import ProductList from "./pages/inventory/ProductList";
 import InventoryList from "./pages/inventory/InventoryList";
@@ -207,16 +204,6 @@ const AppRoutes = () => (
         }
       />
     </Route>
-    <Route
-      path="/tender"
-      element={
-        <ProtectedRoute module="tenders" permission="read">
-          <MainLayout>
-            <TenderList />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
     <Route path="/orders/purchase">
       <Route
         index
@@ -259,16 +246,6 @@ const AppRoutes = () => (
         }
       />
     </Route>
-    <Route
-      path="/orders/sales"
-      element={
-        <ProtectedRoute module="salesOrders" permission="read">
-          <MainLayout>
-            <SalesOrderList />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
     <Route
       path="/delivery"
       element={
@@ -325,16 +302,6 @@ const AppRoutes = () => (
         <ProtectedRoute module="transfers" permission="read">
           <MainLayout>
             <InternalTransferList />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/payroll"
-      element={
-        <ProtectedRoute module="salaryVouchers" permission="read">
-          <MainLayout>
-            <SalaryVoucherList />
           </MainLayout>
         </ProtectedRoute>
       }

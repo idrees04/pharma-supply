@@ -1,4 +1,6 @@
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -20,19 +22,21 @@ import {
 import { toast } from 'sonner';
 import { useAdjustStock } from '@/api/services/inventory';
 import { InventoryStockDto } from '@/types/api/inventory';
+import { AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface InventoryAdjustmentFormProps {
   inventoryItem: InventoryStockDto;
   onClose: () => void;
 }
 
-type AdjustmentType = 'stock_in' | 'stock_out';
+const adjustmentSchema = z.object({
+  type: z.enum(['stock_in', 'stock_out']),
+  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+  reason: z.string().optional(),
+});
 
-interface AdjustmentData {
-  type: AdjustmentType;
-  quantity: number;
-  reason: string;
-}
+type AdjustmentData = z.infer<typeof adjustmentSchema>;
 
 export default function InventoryAdjustmentForm({
   inventoryItem,
@@ -41,6 +45,7 @@ export default function InventoryAdjustmentForm({
   const { mutate: adjustStock, isPending } = useAdjustStock(inventoryItem.productId);
 
   const form = useForm<AdjustmentData>({
+    resolver: zodResolver(adjustmentSchema),
     defaultValues: {
       type: 'stock_in',
       quantity: 0,
@@ -51,13 +56,22 @@ export default function InventoryAdjustmentForm({
   const adjustmentType = form.watch('type');
   const quantity = Number(form.watch('quantity')) || 0;
 
+  // Real-time validation for Stock Out
+  const isInvalidStockOut = adjustmentType === 'stock_out' && quantity > inventoryItem.availableQuantity;
+
   const handleAdjustment = (data: AdjustmentData) => {
+    // Additional safeguard
+    if (data.type === 'stock_out' && data.quantity > inventoryItem.availableQuantity) {
+      toast.error('Cannot remove more than available stock');
+      return;
+    }
+
     const adjQuantity = data.type === 'stock_in' ? data.quantity : -data.quantity;
 
     adjustStock(
       {
         quantity: adjQuantity,
-        notes: data.reason,
+        notes: data.reason || '',
       },
       {
         onSuccess: () => {
@@ -90,7 +104,10 @@ export default function InventoryAdjustmentForm({
             </div>
             <div>
               <p className="text-xs text-muted-foreground">After Adjustment</p>
-              <p className="text-xl font-bold">
+              <p className={cn(
+                "text-xl font-bold",
+                isInvalidStockOut ? "text-red-600" : "text-foreground"
+              )}>
                 {adjustmentType === 'stock_in'
                   ? inventoryItem.totalQuantity + quantity
                   : Math.max(0, inventoryItem.totalQuantity - quantity)}
@@ -98,6 +115,16 @@ export default function InventoryAdjustmentForm({
             </div>
           </div>
         </div>
+
+        {isInvalidStockOut && (
+          <div className="bg-red-50 border border-red-200 p-3 rounded-md flex items-start gap-2 text-red-700 text-sm animate-in fade-in slide-in-from-top-1">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-bold">Invalid Stock Out Quantity</p>
+              <p>You cannot remove {quantity} units. Only {inventoryItem.availableQuantity} units are available in stock.</p>
+            </div>
+          </div>
+        )}
 
         <FormField
           control={form.control}
@@ -132,7 +159,13 @@ export default function InventoryAdjustmentForm({
             <FormItem>
               <FormLabel>Quantity *</FormLabel>
               <FormControl>
-                <Input type="number" min="1" placeholder="Enter quantity" {...field} />
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="Enter quantity"
+                  {...field}
+                  className={cn(isInvalidStockOut && "border-red-500 focus-visible:ring-red-500")}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -161,7 +194,7 @@ export default function InventoryAdjustmentForm({
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isPending || quantity <= 0}>
+          <Button type="submit" disabled={isPending || quantity <= 0 || isInvalidStockOut}>
             {isPending ? 'Adjusting...' : 'Apply Adjustment'}
           </Button>
         </div>

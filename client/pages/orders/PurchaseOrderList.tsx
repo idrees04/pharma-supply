@@ -117,10 +117,12 @@ export default function PurchaseOrderList() {
     {
       header: 'Order Date',
       accessor: (row) => new Date(row.orderDate).toLocaleDateString(),
+      mobileHidden: true,
     },
     {
       header: 'Expected Delivery',
       accessor: (row) => new Date(row.expectedDeliveryDate).toLocaleDateString(),
+      mobileHidden: true,
     },
     {
       header: 'Total Amount',

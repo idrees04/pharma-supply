@@ -132,26 +132,26 @@ export default function Dashboard() {
         <div className="lg:col-span-2 space-y-8">
           {/* Recent Activity Section */}
           <motion.div variants={item}>
-            <Card className="overflow-hidden border-none shadow-lg">
-              <div className="bg-muted/50 p-6 border-b">
+            <Card className="overflow-hidden border-none shadow-lg dark:surface-card">
+              <div className="bg-muted/50 dark:bg-muted/10 p-6 border-b border-border/50">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold flex items-center gap-2">
                     <Activity className="w-5 h-5 text-primary" />
                     Recent Transactions
                   </h3>
                   <Link to="/invoices">
-                    <Button variant="ghost" size="sm" className="hover:bg-primary/10">
+                    <Button variant="ghost" size="sm" className="hover:bg-primary/10 transition-colors">
                       View All <ArrowRight className="w-4 h-4 ml-1" />
                     </Button>
                   </Link>
                 </div>
               </div>
               <div className="p-0">
-                <div className="divide-y">
+                <div className="divide-y divide-border/50">
                   {taxInvoices.slice(-5).reverse().map((invoice) => (
-                    <div key={invoice.id} className="p-4 hover:bg-muted/30 transition-colors flex items-center justify-between">
+                    <div key={invoice.id} className="p-4 hover:bg-muted/30 dark:hover:bg-muted/10 transition-colors flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
                           <FileText className="w-5 h-5" />
                         </div>
                         <div>
@@ -160,8 +160,8 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-sm text-blue-600">{formatCurrency(invoice.totalNetAmount)}</p>
-                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                        <p className="font-bold text-sm text-blue-600 dark:text-blue-400">{formatCurrency(invoice.totalNetAmount)}</p>
+                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">
                           Invoice
                         </span>
                       </div>
@@ -279,27 +279,27 @@ interface KPICardProps {
 
 function KPICard({ icon, label, value, description, trend, trendType, color }: KPICardProps) {
   const colorMap = {
-    blue: 'from-blue-500/20 to-blue-500/5 text-blue-600 border-blue-200/50',
-    amber: 'from-amber-500/20 to-amber-500/5 text-amber-600 border-amber-200/50',
-    green: 'from-green-500/20 to-green-500/5 text-green-600 border-green-200/50',
-    red: 'from-red-500/20 to-red-500/5 text-red-600 border-red-200/50',
-    indigo: 'from-indigo-500/20 to-indigo-500/5 text-indigo-600 border-indigo-200/50',
+    blue: 'from-blue-500/20 to-blue-500/5 text-blue-600 dark:text-blue-400 border-blue-200/50 dark:border-blue-500/20',
+    amber: 'from-amber-500/20 to-amber-500/5 text-amber-600 dark:text-amber-400 border-amber-200/50 dark:border-amber-500/20',
+    green: 'from-green-500/20 to-green-500/5 text-green-600 dark:text-green-400 border-green-200/50 dark:border-green-500/20',
+    red: 'from-red-500/20 to-red-500/5 text-red-600 dark:text-red-400 border-red-200/50 dark:border-red-500/20',
+    indigo: 'from-indigo-500/20 to-indigo-500/5 text-indigo-600 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-500/20',
   };
 
   const iconBgMap = {
-    blue: 'bg-blue-100',
-    amber: 'bg-amber-100',
-    green: 'bg-green-100',
-    red: 'bg-red-100',
-    indigo: 'bg-indigo-100',
+    blue: 'bg-blue-100 dark:bg-blue-500/20',
+    amber: 'bg-amber-100 dark:bg-amber-500/20',
+    green: 'bg-green-100 dark:bg-green-500/20',
+    red: 'bg-red-100 dark:bg-red-500/20',
+    indigo: 'bg-indigo-100 dark:bg-indigo-500/20',
   };
 
   return (
     <motion.div variants={item}>
-      <Card className={cn("p-6 relative overflow-hidden border shadow-sm transition-all hover:shadow-md", colorMap[color])}>
+      <Card className={cn("p-6 relative overflow-hidden border shadow-sm transition-all hover:shadow-md dark:surface-card", colorMap[color])}>
         <div className="relative z-10">
           <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-4 shadow-sm", iconBgMap[color])}>
-            {icon}
+            <div className="dark:text-current">{icon}</div>
           </div>
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
           <div className="flex items-baseline gap-2 mt-1">
@@ -307,7 +307,7 @@ function KPICard({ icon, label, value, description, trend, trendType, color }: K
             {trend && (
               <span className={cn(
                 "text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5",
-                trendType === 'up' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                trendType === 'up' ? "bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400" : "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400"
               )}>
                 {trendType === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                 {trend}
@@ -337,16 +337,16 @@ interface StatActionCardProps {
 
 function StatActionCard({ icon, label, value, description, href, color }: StatActionCardProps) {
   const iconColorMap = {
-    blue: 'text-blue-600 bg-blue-100',
-    amber: 'text-amber-600 bg-amber-100',
-    green: 'text-green-600 bg-green-100',
-    red: 'text-red-600 bg-red-100',
-    indigo: 'text-indigo-600 bg-indigo-100',
+    blue: 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/20',
+    amber: 'text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/20',
+    green: 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-500/20',
+    red: 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-500/20',
+    indigo: 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-500/20',
   };
 
   return (
     <Link to={href}>
-      <Card className="p-5 hover:shadow-lg transition-all border-none shadow group relative overflow-hidden">
+      <Card className="p-5 hover:shadow-lg transition-all border-none shadow group relative overflow-hidden dark:surface-card">
         <div className="flex items-center gap-5 relative z-10">
           <div className={cn("p-3 rounded-2xl transition-transform group-hover:scale-110 duration-300", iconColorMap[color])}>
             {icon}

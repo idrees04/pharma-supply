@@ -2,6 +2,7 @@ import { ReactNode, useState, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { UserNav } from "./UserNav";
+import { ThemeToggle } from "./ThemeToggle";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Menu,
@@ -232,7 +233,8 @@ export function MainLayout({ children }: MainLayoutProps) {
           </Link>
 
           {/* User Nav - Visible on all screens */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
+            <ThemeToggle />
             <UserNav />
             {/* Mobile Menu Trigger */}
             <Sheet>
@@ -308,41 +310,45 @@ function SidebarMenuItem({
 
   if (hasChildren) {
     return (
-      <div>
+      <div className="mb-1">
         <button
           onClick={onToggle}
           className={cn(
-            "w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-colors",
+            "w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200",
             "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
             "text-sidebar-foreground",
+            isOpen && "bg-sidebar-accent/50"
           )}
         >
           <div className="flex items-center gap-3">
-            {item.icon}
+            <div className={cn("transition-colors", isOpen ? "text-primary" : "text-muted-foreground")}>
+              {item.icon}
+            </div>
             <span>{item.label}</span>
           </div>
           {isOpen ? (
-            <ChevronUp className="w-4 h-4" />
+            <ChevronUp className="w-4 h-4 text-primary" />
           ) : (
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
           )}
         </button>
 
         {isOpen && (
-          <div className="pl-2 mt-1 space-y-1">
+          <div className="pl-4 mt-1 space-y-1 relative">
+            <div className="absolute left-6 top-0 bottom-2 w-px bg-border/50" />
             {item.children.map((child, idx) => (
               <Link
                 key={idx}
                 to={child.href || "#"}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-2 rounded-md text-sm transition-colors",
+                  "flex items-center gap-3 px-4 py-2 rounded-md text-sm transition-all duration-200 ml-4",
                   "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                   location === child.href
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground",
+                    ? "bg-primary/10 text-primary font-bold dark:sidebar-item-active"
+                    : "text-sidebar-foreground/70",
                 )}
               >
-                {child.icon}
+                <div className={cn("w-1.5 h-1.5 rounded-full", location === child.href ? "bg-primary" : "bg-muted-foreground/30")} />
                 <span>{child.label}</span>
               </Link>
             ))}
@@ -356,14 +362,16 @@ function SidebarMenuItem({
     <Link
       to={item.href || "#"}
       className={cn(
-        "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-colors",
+        "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 mb-1",
         "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         isActive
-          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+          ? "bg-primary/10 text-primary font-bold dark:sidebar-item-active border-r-2 border-primary"
           : "text-sidebar-foreground",
       )}
     >
-      {item.icon}
+      <div className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground")}>
+        {item.icon}
+      </div>
       <span>{item.label}</span>
     </Link>
   );

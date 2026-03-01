@@ -36,15 +36,26 @@ import {
   Settings2,
   Search,
   ChevronFirst,
-  ChevronLast
+  ChevronLast,
+  ChevronDown,
+  ChevronUp,
+  MoreHorizontal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface Column<T> {
   header: string;
   accessor: keyof T | ((row: T) => React.ReactNode);
   className?: string;
   id?: string;
+  mobileHidden?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -59,6 +70,7 @@ interface DataTableProps<T> {
   showSearch?: boolean;
   showColumnVisibility?: boolean;
   onRowClick?: (item: T) => void;
+  renderExpandedRow?: (item: T) => React.ReactNode;
 }
 
 export function DataTable<T extends { id?: string | number }>({
@@ -73,10 +85,20 @@ export function DataTable<T extends { id?: string | number }>({
   showSearch = true,
   showColumnVisibility = true,
   onRowClick,
+  renderExpandedRow,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState('');
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [expandedRows, setExpandedRows] = React.useState<Record<string | number, boolean>>({});
+
+  const toggleRowExpansion = (id: string | number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedRows(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
   // Memoize columns for TanStack Table
   const columns = React.useMemo<ColumnDef<T>[]>(() => {
@@ -87,23 +109,75 @@ export function DataTable<T extends { id?: string | number }>({
         id,
         header: ({ column }) => {
           return (
-            <div className={cn("flex items-center gap-1 cursor-pointer select-none", col.className)} onClick={() => column.toggleSorting()}>
+            <div
+              className={cn(
+                "flex items-center gap-1 cursor-pointer select-none group",
+                col.className,
+                col.mobileHidden && "hidden md:flex"
+              )}
+              onClick={() => column.toggleSorting()}
+            >
               {col.header}
-              <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+              <ArrowUpDown className="ml-1 h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
             </div>
           );
         },
         accessorFn: typeof col.accessor === 'function' ? col.accessor : (row) => row[col.accessor as keyof T],
         cell: ({ row, getValue }) => {
           const value = getValue();
-          if (typeof col.accessor === 'function') {
-            // If it's a function, we re-execute it with the row data to preserve original behavior
-            return col.accessor(row.original);
-          }
-          return (value as React.ReactNode) || '-';
+          const content = typeof col.accessor === 'function'
+            ? col.accessor(row.original)
+            : (value as React.ReactNode) || '-';
+
+          return (
+            <div className={cn(
+              "transition-all duration-200",
+              col.mobileHidden && "hidden md:block"
+            )}>
+              {typeof content === 'string' && content.length > 30 ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="max-w-[200px] truncate cursor-help">
+                        {content}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">{content}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                content
+              )}
+            </div>
+          );
         },
       };
     });
+
+    // Add expansion trigger if there are hidden columns or custom renderer
+    const hasHiddenColumns = userColumns.some(c => c.mobileHidden);
+    if (hasHiddenColumns || renderExpandedRow) {
+      cols.unshift({
+        id: 'expander',
+        header: () => <div className="w-8 md:hidden" />,
+        cell: ({ row }) => (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 md:hidden"
+            onClick={(e) => toggleRowExpansion(row.original.id!, e)}
+          >
+            {expandedRows[row.original.id!] ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        ),
+      });
+    }
 
     // Add Actions column if onEdit or onDelete is provided
     if (onEdit || onDelete) {
@@ -120,7 +194,7 @@ export function DataTable<T extends { id?: string | number }>({
                   e.stopPropagation();
                   onEdit(row.original);
                 }}
-                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
               >
                 <Edit2 className="w-4 h-4" />
               </Button>
@@ -133,7 +207,7 @@ export function DataTable<T extends { id?: string | number }>({
                   e.stopPropagation();
                   onDelete(row.original);
                 }}
-                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-red-50"
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-red-50 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -144,7 +218,7 @@ export function DataTable<T extends { id?: string | number }>({
     }
 
     return cols;
-  }, [userColumns, onEdit, onDelete]);
+  }, [userColumns, onEdit, onDelete, expandedRows, renderExpandedRow]);
 
   const table = useReactTable({
     data,
@@ -241,21 +315,61 @@ export function DataTable<T extends { id?: string | number }>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  className={cn(
-                    "hover:bg-muted/50 transition-colors border-b last:border-0",
-                    onRowClick && "cursor-pointer"
-                  )}
-                  onClick={() => onRowClick?.(row.original)}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-3">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
+                <React.Fragment key={row.id}>
+                  <TableRow
+                    data-state={row.getIsSelected() && 'selected'}
+                    className={cn(
+                      "hover:bg-muted/50 transition-colors border-b last:border-0 group/row",
+                      onRowClick && "cursor-pointer"
+                    )}
+                    onClick={() => onRowClick?.(row.original)}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="py-3 px-4">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+
+                  {/* Expanded Content for Mobile */}
+                  <AnimatePresence>
+                    {expandedRows[row.original.id!] && (
+                      <TableRow className="bg-muted/20 border-b">
+                        <TableCell colSpan={columns.length} className="p-0">
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                          >
+                            <div className="p-4 space-y-3">
+                              {/* Hidden columns display */}
+                              <div className="grid grid-cols-1 gap-2 md:hidden">
+                                {userColumns
+                                  .filter(col => col.mobileHidden)
+                                  .map((col, idx) => {
+                                    const val = typeof col.accessor === 'function'
+                                      ? col.accessor(row.original)
+                                      : (row.original[col.accessor as keyof T] as React.ReactNode);
+
+                                    return (
+                                      <div key={idx} className="flex justify-between items-start border-b border-border/40 pb-2 last:border-0">
+                                        <span className="text-xs font-bold text-muted-foreground uppercase">{col.header}</span>
+                                        <div className="text-sm font-medium">{val || '-'}</div>
+                                      </div>
+                                    );
+                                  })}
+                              </div>
+                              {/* Custom expanded content */}
+                              {renderExpandedRow && renderExpandedRow(row.original)}
+                            </div>
+                          </motion.div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </AnimatePresence>
+                </React.Fragment>
               ))
             ) : (
               <TableRow>

@@ -27,7 +27,7 @@ export const SparkParticles = ({ x, y }: SparkParticlesProps) => {
                     width: '6px',
                     height: '6px',
                     borderRadius: '50%',
-                    backgroundColor: 'var(--brand, #3b82f6)',
+                    backgroundColor: 'hsl(var(--primary))',
                     position: 'absolute',
                     transform: 'translate(-50%, -50%)',
                 }}
@@ -58,7 +58,7 @@ export const SparkParticles = ({ x, y }: SparkParticlesProps) => {
                             width: '4px',
                             height: '4px',
                             borderRadius: '50%',
-                            backgroundColor: 'var(--brand, #3b82f6)',
+                            backgroundColor: 'hsl(var(--primary))',
                             position: 'absolute',
                             transform: 'translate(-50%, -50%)',
                         }}

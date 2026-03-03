@@ -1,4 +1,4 @@
-import { ReactNode, useState, useMemo } from "react";
+import { ReactNode, useState, useMemo, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { UserNav } from "./UserNav";
@@ -22,6 +22,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -31,6 +37,8 @@ interface MenuItemType {
   icon: React.ReactNode;
   label: string;
   href?: string;
+  exact?: boolean;
+  tooltip?: string;
   /** Module for permission check - if set, item is hidden when user lacks access */
   module?: string;
   children?: MenuItemType[];
@@ -52,6 +60,7 @@ const menuItems: MenuItemType[] = [
         icon: <Package className="w-4 h-4" />,
         label: "Stock Levels",
         href: "/inventory",
+        exact: true,
         module: "inventory",
       },
       {
@@ -88,12 +97,14 @@ const menuItems: MenuItemType[] = [
         icon: <FileText className="w-4 h-4" />,
         label: "Supply Orders",
         href: "/supply-orders",
+        tooltip: "Orders supplied to customers",
         module: "supplyOrders",
       },
       {
         icon: <FileText className="w-4 h-4" />,
         label: "Purchase Orders",
         href: "/orders/purchase",
+        tooltip: "Orders created for company procurement",
         module: "purchaseOrders",
       },
     ],
@@ -215,6 +226,27 @@ export function MainLayout({ children }: MainLayoutProps) {
     [canAccess]
   );
 
+  // Automatically expand parent menu based on current route
+  useEffect(() => {
+    for (const item of visibleMenuItems) {
+      if (item.children) {
+        for (const child of item.children) {
+          if (child.href) {
+            const isMatch = child.exact
+              ? location.pathname === child.href
+              : child.href === '/'
+                ? location.pathname === '/'
+                : location.pathname === child.href || location.pathname.startsWith(`${child.href}/`);
+            if (isMatch) {
+              setOpenSubmenu(item.label);
+              return;
+            }
+          }
+        }
+      }
+    }
+  }, [location.pathname, visibleMenuItems]);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -305,74 +337,125 @@ function SidebarMenuItem({
   onToggle,
   location,
 }: SidebarMenuItemProps) {
-  const isActive = item.href && location.startsWith(item.href);
+  const isActive = item.href
+    ? item.exact
+      ? location === item.href
+      : item.href === '/'
+        ? location === '/'
+        : location === item.href || location.startsWith(`${item.href}/`)
+    : false;
   const hasChildren = item.children && item.children.length > 0;
 
-  if (hasChildren) {
-    return (
-      <div className="mb-1">
-        <button
-          onClick={onToggle}
-          className={cn(
-            "w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200",
-            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            "text-sidebar-foreground",
-            isOpen && "bg-sidebar-accent/50"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <div className={cn("transition-colors", isOpen ? "text-primary" : "text-muted-foreground")}>
-              {item.icon}
+  const renderContent = () => {
+    if (hasChildren) {
+      return (
+        <div className="mb-1">
+          <button
+            onClick={onToggle}
+            className={cn(
+              "w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200",
+              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              "text-sidebar-foreground",
+              isOpen && "bg-sidebar-accent/50"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <div className={cn("transition-colors", isOpen ? "text-primary" : "text-muted-foreground")}>
+                {item.icon}
+              </div>
+              <span>{item.label}</span>
             </div>
-            <span>{item.label}</span>
-          </div>
-          {isOpen ? (
-            <ChevronUp className="w-4 h-4 text-primary" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          )}
-        </button>
+            {isOpen ? (
+              <ChevronUp className="w-4 h-4 text-primary" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
 
-        {isOpen && (
-          <div className="pl-4 mt-1 space-y-1 relative">
-            <div className="absolute left-6 top-0 bottom-2 w-px bg-border/50" />
-            {item.children.map((child, idx) => (
-              <Link
-                key={idx}
-                to={child.href || "#"}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-2 rounded-md text-sm transition-all duration-200 ml-4",
-                  "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  location === child.href
-                    ? "bg-primary/10 text-primary font-bold dark:sidebar-item-active"
-                    : "text-sidebar-foreground/70",
-                )}
-              >
-                <div className={cn("w-1.5 h-1.5 rounded-full", location === child.href ? "bg-primary" : "bg-muted-foreground/30")} />
-                <span>{child.label}</span>
-              </Link>
-            ))}
-          </div>
+          {isOpen && (
+            <div className="pl-4 mt-1 space-y-1 relative">
+              <div className="absolute left-6 top-0 bottom-2 w-px bg-border/50" />
+              {item.children!.map((child, idx) => {
+                const isChildActive = child.href
+                  ? child.exact
+                    ? location === child.href
+                    : child.href === '/'
+                      ? location === '/'
+                      : location === child.href || location.startsWith(`${child.href}/`)
+                  : false;
+
+                const childLink = (
+                  <Link
+                    key={idx}
+                    to={child.href || "#"}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-2 rounded-md text-sm transition-all duration-200 ml-4",
+                      "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      isChildActive
+                        ? "bg-primary/10 text-primary font-bold dark:sidebar-item-active"
+                        : "text-sidebar-foreground/70",
+                    )}
+                  >
+                    <div className={cn("w-1.5 h-1.5 rounded-full", isChildActive ? "bg-primary" : "bg-muted-foreground/30")} />
+                    <span>{child.label}</span>
+                  </Link>
+                );
+
+                if (child.tooltip) {
+                  return (
+                    <TooltipProvider key={idx} delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {childLink}
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          <p>{child.tooltip}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                }
+                return childLink;
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <Link
+        to={item.href || "#"}
+        className={cn(
+          "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 mb-1",
+          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          isActive
+            ? "bg-primary/10 text-primary font-bold dark:sidebar-item-active border-r-2 border-primary"
+            : "text-sidebar-foreground",
         )}
-      </div>
+      >
+        <div className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground")}>
+          {item.icon}
+        </div>
+        <span>{item.label}</span>
+      </Link>
+    );
+  };
+
+  if (item.tooltip && !hasChildren) {
+    return (
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {renderContent()}
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{item.tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 
-  return (
-    <Link
-      to={item.href || "#"}
-      className={cn(
-        "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 mb-1",
-        "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-        isActive
-          ? "bg-primary/10 text-primary font-bold dark:sidebar-item-active border-r-2 border-primary"
-          : "text-sidebar-foreground",
-      )}
-    >
-      <div className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground")}>
-        {item.icon}
-      </div>
-      <span>{item.label}</span>
-    </Link>
-  );
+  return renderContent();
 }

@@ -220,8 +220,28 @@ export function DataTable<T extends { id?: string | number }>({
     return cols;
   }, [userColumns, onEdit, onDelete, expandedRows, renderExpandedRow]);
 
+  // Default client-side sorting by ID descending (latest first)
+  const sortedData = React.useMemo(() => {
+    if (!data || !Array.isArray(data)) return [];
+    
+    // Create a shallow copy to avoid mutating the original prop
+    const copy = [...data];
+    
+    // Only apply default sort if no explicit sorting state is set in the table
+    if (sorting.length === 0) {
+      copy.sort((a, b) => {
+        // If both objects have an 'id' property of type number
+        if (typeof a.id === 'number' && typeof b.id === 'number') {
+          return b.id - a.id;
+        }
+        return 0; // Fallback if no numeric ID
+      });
+    }
+    return copy;
+  }, [data, sorting]);
+
   const table = useReactTable({
-    data,
+    data: sortedData,
     columns,
     state: {
       sorting,

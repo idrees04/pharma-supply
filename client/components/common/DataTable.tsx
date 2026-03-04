@@ -109,12 +109,15 @@ export function DataTable<T extends { id?: string | number }>({
   };
 
   // Memoize columns for TanStack Table
-  const columns = React.useMemo<ColumnDef<T>[]>(() => {
+  const columns = React.useMemo<ColumnDef<T, unknown>[]>(() => {
     const cols: ColumnDef<T>[] = userColumns.map((col, index) => {
       const id = col.id || (typeof col.accessor === 'string' ? col.accessor : `col-${index}`);
 
       return {
         id,
+        meta: {
+          label: col.header,
+        } satisfies { label: string },
         header: ({ column }) => {
           return (
             <div
@@ -309,6 +312,9 @@ export function DataTable<T extends { id?: string | number }>({
                   .getAllColumns()
                   .filter((column) => column.getCanHide())
                   .map((column) => {
+                    const columnTitle =
+                      (column.columnDef.meta as { label?: string })?.label ?? column.id;
+
                     return (
                       <DropdownMenuCheckboxItem
                         key={column.id}
@@ -316,7 +322,7 @@ export function DataTable<T extends { id?: string | number }>({
                         checked={column.getIsVisible()}
                         onCheckedChange={(value) => column.toggleVisibility(!!value)}
                       >
-                        {column.id}
+                        {columnTitle}
                       </DropdownMenuCheckboxItem>
                     );
                   })}

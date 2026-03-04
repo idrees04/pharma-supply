@@ -29,6 +29,7 @@ export default function HospitalList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [hospitalToDelete, setHospitalToDelete] = useState<Hospital | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -107,6 +108,9 @@ export default function HospitalList() {
   };
 
   const handleClose = () => {
+    if (!selectedHospital) {
+      setRefreshTrigger(prev => prev + 1);
+    }
     setIsDialogOpen(false);
     setSelectedHospital(null);
     queryClient.invalidateQueries({ queryKey: ['hospitals'] });
@@ -118,6 +122,11 @@ export default function HospitalList() {
   };
 
   const columns: Column<Hospital>[] = useMemo(() => [
+    {
+      header: 'ID',
+      accessor: 'id',
+
+    },
     {
       header: 'Hospital Name',
       accessor: (row: Hospital) => (
@@ -227,6 +236,7 @@ export default function HospitalList() {
           emptyMessage="No hospitals found matching your search."
           showSearch={false}
           onRowClick={(h) => navigate(`/hospitals/${h.id}`)}
+          resetSortTrigger={refreshTrigger}
         />
       </div>
 

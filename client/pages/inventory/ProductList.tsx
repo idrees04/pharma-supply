@@ -29,6 +29,7 @@ export default function ProductList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<number | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -103,6 +104,9 @@ export default function ProductList() {
   };
 
   const handleCloseDialog = () => {
+    if (!selectedProductId) {
+      setRefreshTrigger(prev => prev + 1);
+    }
     setIsDialogOpen(false);
     setSelectedProductId(undefined);
     if (searchParams.has('edit')) {
@@ -113,6 +117,11 @@ export default function ProductList() {
   };
 
   const columns: Column<Product>[] = useMemo(() => [
+    {
+      header: 'ID',
+      accessor: 'id',
+
+    },
     {
       header: 'Product Name',
       accessor: (row: Product) => (
@@ -230,6 +239,7 @@ export default function ProductList() {
           emptyMessage="No products found."
           showSearch={false}
           onRowClick={(p) => navigate(`/inventory/products/${p.id}`)}
+          resetSortTrigger={refreshTrigger}
         />
       </div>
 

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { AlertCircle, CreditCard, Plus } from 'lucide-react';
 import BankAccountForm from './BankAccountForm';
-import { DataTable } from '@/components/common/DataTable';
+import { DataTable, Column } from '@/components/common/DataTable';
 import { formatCurrency } from '@/lib/utils';
 import { useAccountList } from '@/api/services/accounts';
 import { AccountDto } from '@/types/api/accounts';
@@ -18,6 +18,7 @@ import { AccountDto } from '@/types/api/accounts';
 export default function BankAccountList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<AccountDto | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { hasPermission } = useAuth();
   const { data: accounts, isLoading } = useAccountList();
 
@@ -30,6 +31,9 @@ export default function BankAccountList() {
   };
 
   const handleClose = () => {
+    if (!selectedAccount) {
+      setRefreshTrigger(prev => prev + 1);
+    }
     setIsDialogOpen(false);
     setSelectedAccount(null);
   };
@@ -37,7 +41,8 @@ export default function BankAccountList() {
   const bankAccounts = accounts || [];
   const totalBalance = bankAccounts.reduce((sum, acc) => sum + acc.currentBalance, 0);
 
-  const columns = [
+  const columns: Column<AccountDto>[] = [
+    { header: 'ID', accessor: 'id', className: 'w-[80px]' },
     { header: 'Account Name', accessor: 'accountName' },
     { header: 'Bank', accessor: 'bankName' },
     { header: 'Account No', accessor: 'accountNumber' },
@@ -95,6 +100,7 @@ export default function BankAccountList() {
           data={bankAccounts}
           onEdit={canUpdate ? handleEdit : undefined}
           itemsPerPage={10}
+          resetSortTrigger={refreshTrigger}
         />
       )}
 

@@ -26,6 +26,7 @@ export default function SalaryVoucherList() {
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(
     null,
   );
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const canCreate = hasPermission('salaryVouchers', 'create');
   const canUpdate = hasPermission('salaryVouchers', 'update');
@@ -38,6 +39,11 @@ export default function SalaryVoucherList() {
   );
 
   const columns: Column<SalaryVoucher>[] = [
+    {
+      header: 'ID',
+      accessor: 'id',
+
+    },
     {
       header: "Voucher No",
       accessor: "voucherNo",
@@ -186,6 +192,7 @@ export default function SalaryVoucherList() {
           } : undefined}
           onDelete={canDelete ? (voucher) => setIsDeleteConfirming(voucher.id) : undefined}
           emptyMessage="No salary vouchers found. Create your first voucher to get started."
+          resetSortTrigger={refreshTrigger}
         />
       </div>
 
@@ -207,6 +214,9 @@ export default function SalaryVoucherList() {
             onSuccess={() => {
               setIsFormOpen(false);
               setSelectedVoucher(null);
+              if (!selectedVoucher) {
+                setRefreshTrigger(prev => prev + 1);
+              }
             }}
           />
         </DialogContent>

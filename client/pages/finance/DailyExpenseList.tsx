@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { DataTable } from "@/components/common/DataTable";
+import { DataTable, Column } from "@/components/common/DataTable";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -29,15 +29,21 @@ export default function DailyExpenseList() {
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<number | null>(
     null,
   );
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const canCreate = hasPermission('expenses', 'create');
   const canUpdate = hasPermission('expenses', 'update');
   const canDelete = hasPermission('expenses', 'delete');
 
-  const columns = [
+  const columns: Column<ExpenseDto>[] = [
+    {
+      header: 'ID',
+      accessor: 'id',
+
+    },
     {
       header: "Reference",
-      accessor: "referenceNumber",
+      accessor: (row: any) => row.referenceNumber || '-',
     },
     {
       header: "Date",
@@ -53,7 +59,7 @@ export default function DailyExpenseList() {
     },
     {
       header: "Payment Method",
-      accessor: "paymentMethod",
+      accessor: (row: any) => row.paymentMethod || '-',
       className: "hidden sm:table-cell",
     },
     {
@@ -130,10 +136,8 @@ export default function DailyExpenseList() {
               setIsFormOpen(true);
             } : undefined}
             onDelete={canDelete ? (expense) => setIsDeleteConfirming(expense.id) : undefined}
-            totalItems={data?.totalCount}
-            itemsPerPage={params.pageSize}
-            onPageChange={(page) => setParams(p => ({ ...p, pageNumber: page }))}
             emptyMessage="No expenses found. Record your first expense to get started."
+            resetSortTrigger={refreshTrigger}
           />
         )}
       </div>
@@ -156,6 +160,9 @@ export default function DailyExpenseList() {
             onSuccess={() => {
               setIsFormOpen(false);
               setSelectedExpense(null);
+              if (!selectedExpense) {
+                setRefreshTrigger(prev => prev + 1);
+              }
             }}
           />
         </DialogContent>

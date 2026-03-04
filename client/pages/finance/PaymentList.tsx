@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { DataTable } from "@/components/common/DataTable";
+import { DataTable, Column } from "@/components/common/DataTable";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ export default function PaymentList() {
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<number | null>(
     null,
   );
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const canCreate = hasPermission('payments', 'create');
   const canUpdate = hasPermission('payments', 'update');
@@ -57,7 +58,12 @@ export default function PaymentList() {
     }
   };
 
-  const columns = [
+  const columns: Column<PaymentDto>[] = [
+    {
+      header: 'ID',
+      accessor: 'id',
+
+    },
     {
       header: "Reference",
       accessor: "referenceNumber",
@@ -151,6 +157,7 @@ export default function PaymentList() {
             itemsPerPage={params.pageSize}
             onPageChange={(page) => setParams(p => ({ ...p, pageNumber: page }))}
             emptyMessage="No payments found. Record a new payment to get started."
+            resetSortTrigger={refreshTrigger}
           />
         )}
       </div>
@@ -173,6 +180,9 @@ export default function PaymentList() {
             onSuccess={() => {
               setIsFormOpen(false);
               setSelectedPayment(null);
+              if (!selectedPayment) {
+                setRefreshTrigger(prev => prev + 1);
+              }
             }}
           />
         </DialogContent>

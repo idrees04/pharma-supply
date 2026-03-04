@@ -15,6 +15,7 @@ export default function DeliveryChallanList() {
   const [selectedDC, setSelectedDC] = useState<DeliveryChallan | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const canCreate = hasPermission('deliveryChallans', 'create');
   const canUpdate = hasPermission('deliveryChallans', 'update');
@@ -28,6 +29,11 @@ export default function DeliveryChallanList() {
   );
 
   const columns: Column<DeliveryChallan>[] = [
+    {
+      header: 'ID',
+      accessor: 'id',
+
+    },
     {
       header: 'DC No',
       accessor: 'dcNo',
@@ -111,6 +117,7 @@ export default function DeliveryChallanList() {
           } : undefined}
           onDelete={canDelete ? (dc) => setIsDeleteConfirming(dc.id) : undefined}
           emptyMessage="No delivery challans found. Create your first DC to get started."
+          resetSortTrigger={refreshTrigger}
         />
       </div>
 
@@ -128,6 +135,9 @@ export default function DeliveryChallanList() {
             onSuccess={() => {
               setIsFormOpen(false);
               setSelectedDC(null);
+              if (!selectedDC) {
+                setRefreshTrigger(prev => prev + 1);
+              }
             }}
           />
         </DialogContent>

@@ -27,6 +27,7 @@ export default function PurchaseOrderList() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -104,6 +105,11 @@ export default function PurchaseOrderList() {
 
   // 5. Define Columns
   const columns: Column<PurchaseOrder>[] = useMemo(() => [
+    {
+      header: 'ID',
+      accessor: 'id',
+
+    },
     {
       header: 'PO Number',
       accessor: (row) => (
@@ -210,6 +216,7 @@ export default function PurchaseOrderList() {
           emptyMessage="No purchase orders found."
           showSearch={false}
           onRowClick={(row) => navigate(`/orders/purchase/view/${row.id}`)}
+          resetSortTrigger={refreshTrigger}
         />
       </div>
 

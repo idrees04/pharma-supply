@@ -71,6 +71,7 @@ interface DataTableProps<T> {
   showColumnVisibility?: boolean;
   onRowClick?: (item: T) => void;
   renderExpandedRow?: (item: T) => React.ReactNode;
+  resetSortTrigger?: number;
 }
 
 export function DataTable<T extends { id?: string | number }>({
@@ -86,11 +87,18 @@ export function DataTable<T extends { id?: string | number }>({
   showColumnVisibility = true,
   onRowClick,
   renderExpandedRow,
+  resetSortTrigger,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState('');
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [expandedRows, setExpandedRows] = React.useState<Record<string | number, boolean>>({});
+
+  React.useEffect(() => {
+    if (resetSortTrigger && resetSortTrigger > 0) {
+      setSorting([]);
+    }
+  }, [resetSortTrigger]);
 
   const toggleRowExpansion = (id: string | number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -220,13 +228,14 @@ export function DataTable<T extends { id?: string | number }>({
     return cols;
   }, [userColumns, onEdit, onDelete, expandedRows, renderExpandedRow]);
 
+
   // Default client-side sorting by ID descending (latest first)
   const sortedData = React.useMemo(() => {
     if (!data || !Array.isArray(data)) return [];
-    
+
     // Create a shallow copy to avoid mutating the original prop
     const copy = [...data];
-    
+
     // Only apply default sort if no explicit sorting state is set in the table
     if (sorting.length === 0) {
       copy.sort((a, b) => {
@@ -317,13 +326,13 @@ export function DataTable<T extends { id?: string | number }>({
         </div>
       )}
 
-      <div className="border border-border rounded-xl overflow-hidden bg-background shadow-sm">
-        <Table>
+      <div className="border border-border rounded-xl overflow-x-auto overflow-y-hidden bg-background shadow-sm w-full relative group/table-wrapper">
+        <Table className="w-full min-w-[600px] md:min-w-full">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="bg-muted/30 hover:bg-muted/30 border-b">
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="h-11 font-bold text-foreground">
+                  <TableHead key={header.id} className="h-11 font-bold text-foreground whitespace-nowrap min-w-[120px] px-4 sticky top-0 bg-muted/90 backdrop-blur-sm z-10 before:absolute before:inset-0 before:-z-10 before:bg-background/50">
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}

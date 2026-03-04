@@ -16,6 +16,7 @@ export default function SalesTaxInvoiceList() {
   const [selectedInvoice, setSelectedInvoice] = useState<SalesTaxInvoice | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const canCreate = hasPermission('invoices', 'create');
   const canUpdate = hasPermission('invoices', 'update');
@@ -28,6 +29,11 @@ export default function SalesTaxInvoiceList() {
   );
 
   const columns: Column<SalesTaxInvoice>[] = [
+    {
+      header: 'ID',
+      accessor: 'id',
+
+    },
     {
       header: 'Invoice No',
       accessor: 'invoiceNo',
@@ -106,6 +112,7 @@ export default function SalesTaxInvoiceList() {
           } : undefined}
           onDelete={canDelete ? (invoice) => setIsDeleteConfirming(invoice.id) : undefined}
           emptyMessage="No invoices found. Create your first invoice to get started."
+          resetSortTrigger={refreshTrigger}
         />
       </div>
 
@@ -123,6 +130,9 @@ export default function SalesTaxInvoiceList() {
             onSuccess={() => {
               setIsFormOpen(false);
               setSelectedInvoice(null);
+              if (!selectedInvoice) {
+                setRefreshTrigger(prev => prev + 1);
+              }
             }}
           />
         </DialogContent>

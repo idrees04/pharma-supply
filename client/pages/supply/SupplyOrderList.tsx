@@ -29,6 +29,7 @@ export default function SupplyOrderList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [soToDelete, setSoToDelete] = useState<SupplyOrder | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // 1. Fetch data
   const { data: soData, isLoading } = useSupplyOrderList({
@@ -99,6 +100,11 @@ export default function SupplyOrderList() {
   };
 
   const columns: Column<SupplyOrder>[] = useMemo(() => [
+    {
+      header: 'ID',
+      accessor: 'id',
+
+    },
     {
       header: 'SO Number',
       accessor: (row) => (
@@ -207,6 +213,7 @@ export default function SupplyOrderList() {
           emptyMessage="No supply orders found."
           showSearch={false}
           onRowClick={(row) => navigate(`/supply-orders/view/${row.id}`)}
+          resetSortTrigger={refreshTrigger}
         />
       </div>
 

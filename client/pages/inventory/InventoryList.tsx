@@ -15,7 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { DataTable } from '@/components/common/DataTable';
+import { DataTable, Column } from '@/components/common/DataTable';
 import InventoryAdjustmentForm from './InventoryAdjustmentForm';
 import { useInventoryStocks, useExpiringBatches } from '@/api/services/inventory';
 import { InventoryStockDto } from '@/types/api/inventory';
@@ -27,6 +27,7 @@ export default function InventoryList() {
   const { data: expiringBatches } = useExpiringBatches();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryStockDto | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const canUpdate = hasPermission('inventory', 'update');
 
@@ -38,6 +39,9 @@ export default function InventoryList() {
   const handleClose = () => {
     setIsDialogOpen(false);
     setSelectedItem(null);
+    if (!selectedItem) {
+      setRefreshTrigger(prev => prev + 1);
+    }
   };
 
   const expiredCount = useMemo(() => {
@@ -49,7 +53,8 @@ export default function InventoryList() {
     }).length;
   }, [expiringBatches]);
 
-  const columns = [
+  const columns: Column<InventoryStockDto>[] = [
+    { header: 'ID', accessor: 'id', className: 'w-[80px]' },
     { header: 'Product', accessor: 'productName' },
     {
       header: 'Current Stock',
@@ -155,8 +160,7 @@ export default function InventoryList() {
           data={inventoryItems}
           onEdit={canUpdate ? handleAdjustment : undefined}
           itemsPerPage={params.pageSize}
-          totalItems={data?.totalCount}
-          onPageChange={(page) => setParams(p => ({ ...p, pageNumber: page }))}
+          resetSortTrigger={refreshTrigger}
         />
       )}
 

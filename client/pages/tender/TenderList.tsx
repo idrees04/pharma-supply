@@ -16,6 +16,7 @@ export default function TenderList() {
   const [selectedTender, setSelectedTender] = useState<Tender | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const canCreate = hasPermission('tenders', 'create');
   const canUpdate = hasPermission('tenders', 'update');
@@ -29,6 +30,11 @@ export default function TenderList() {
   );
 
   const columns: Column<Tender>[] = [
+    {
+      header: 'ID',
+      accessor: 'id',
+
+    },
     {
       header: 'PVMS No',
       accessor: 'pvmsNo',
@@ -111,6 +117,7 @@ export default function TenderList() {
           } : undefined}
           onDelete={canDelete ? (tender) => setIsDeleteConfirming(tender.id) : undefined}
           emptyMessage="No tenders found. Create your first tender to get started."
+          resetSortTrigger={refreshTrigger}
         />
       </div>
 
@@ -128,6 +135,9 @@ export default function TenderList() {
             onSuccess={() => {
               setIsFormOpen(false);
               setSelectedTender(null);
+              if (!selectedTender) {
+                setRefreshTrigger(prev => prev + 1);
+              }
             }}
           />
         </DialogContent>

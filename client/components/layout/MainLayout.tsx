@@ -217,6 +217,7 @@ function filterMenuItems(
 
 export function MainLayout({ children }: MainLayoutProps) {
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { canAccess } = useAuth();
 
@@ -269,7 +270,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             <ThemeToggle />
             <UserNav />
             {/* Mobile Menu Trigger */}
-            <Sheet>
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild className="md:hidden">
                 <Button variant="ghost" size="icon">
                   <Menu className="w-5 h-5" />
@@ -288,6 +289,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                         )
                       }
                       location={location.pathname}
+                      onClose={() => setIsMobileMenuOpen(false)}
                     />
                   ))}
                 </div>
@@ -329,6 +331,7 @@ interface SidebarMenuItemProps {
   isOpen: boolean;
   onToggle: () => void;
   location: string;
+  onClose?: () => void;
 }
 
 function SidebarMenuItem({
@@ -336,6 +339,7 @@ function SidebarMenuItem({
   isOpen,
   onToggle,
   location,
+  onClose,
 }: SidebarMenuItemProps) {
   const isActive = item.href
     ? item.exact
@@ -388,6 +392,7 @@ function SidebarMenuItem({
                   <Link
                     key={idx}
                     to={child.href || "#"}
+                    onClick={onClose}
                     className={cn(
                       "flex items-center gap-3 px-4 py-2 rounded-md text-sm transition-all duration-200 ml-4",
                       "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -426,6 +431,7 @@ function SidebarMenuItem({
     return (
       <Link
         to={item.href || "#"}
+        onClick={onClose}
         className={cn(
           "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 mb-1",
           "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",

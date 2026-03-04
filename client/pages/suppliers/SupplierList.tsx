@@ -29,6 +29,7 @@ export default function SupplierList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -107,6 +108,9 @@ export default function SupplierList() {
   };
 
   const handleClose = () => {
+    if (!selectedSupplier) {
+      setRefreshTrigger(prev => prev + 1);
+    }
     setIsDialogOpen(false);
     setSelectedSupplier(null);
     queryClient.invalidateQueries({ queryKey: ['suppliers'] });
@@ -118,6 +122,11 @@ export default function SupplierList() {
   };
 
   const columns: Column<Supplier>[] = useMemo(() => [
+    {
+      header: 'ID',
+      accessor: 'id',
+
+    },
     {
       header: 'Supplier Name',
       accessor: (row: Supplier) => (
@@ -230,6 +239,7 @@ export default function SupplierList() {
           emptyMessage="No suppliers found. Add your first supplier to get started."
           showSearch={false}
           onRowClick={(s) => navigate(`/suppliers/${s.id}`)}
+          resetSortTrigger={refreshTrigger}
         />
       </div>
 

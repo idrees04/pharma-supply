@@ -18,6 +18,7 @@ import { formatCurrency } from '@/lib/utils';
 export default function InternalTransferList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState<typeof internalTransfers[0] | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { hasPermission } = useAuth();
   const internalTransfers = useStore((state) => state.internalTransfers);
   const bankAccounts = useStore((state) => state.bankAccounts);
@@ -58,6 +59,9 @@ export default function InternalTransferList() {
   };
 
   const handleClose = () => {
+    if (!selectedTransfer) {
+      setRefreshTrigger(prev => prev + 1);
+    }
     setIsDialogOpen(false);
     setSelectedTransfer(null);
   };
@@ -72,6 +76,11 @@ export default function InternalTransferList() {
   };
 
   const columns = [
+    {
+      header: 'ID',
+      accessor: 'id' as const,
+
+    },
     {
       header: 'From Account',
       accessor: (transfer: typeof internalTransfers[0]) => getAccountName(transfer.fromAccountId),
@@ -134,6 +143,7 @@ export default function InternalTransferList() {
           onEdit={canUpdate ? handleEdit : undefined}
           onDelete={canDelete ? handleDelete : undefined}
           itemsPerPage={10}
+          resetSortTrigger={refreshTrigger}
         />
       )}
 

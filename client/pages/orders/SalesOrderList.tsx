@@ -17,6 +17,7 @@ export default function SalesOrderList() {
   const [selectedSO, setSelectedSO] = useState<SalesOrder | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const canCreate = hasPermission('salesOrders', 'create');
   const canUpdate = hasPermission('salesOrders', 'update');
@@ -40,6 +41,11 @@ export default function SalesOrderList() {
   };
 
   const columns: Column<SalesOrder>[] = [
+    {
+      header: 'ID',
+      accessor: 'id',
+
+    },
     {
       header: 'Order ID',
       accessor: 'orderId',
@@ -126,6 +132,7 @@ export default function SalesOrderList() {
           } : undefined}
           onDelete={canDelete ? (so) => setIsDeleteConfirming(so.id) : undefined}
           emptyMessage="No sales orders found. Create your first SO to get started."
+          resetSortTrigger={refreshTrigger}
         />
       </div>
 
@@ -143,6 +150,9 @@ export default function SalesOrderList() {
             onSuccess={() => {
               setIsFormOpen(false);
               setSelectedSO(null);
+              if (!selectedSO) {
+                setRefreshTrigger(prev => prev + 1);
+              }
             }}
           />
         </DialogContent>

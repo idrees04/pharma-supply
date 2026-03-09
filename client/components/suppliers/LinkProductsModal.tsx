@@ -174,13 +174,20 @@ export const LinkProductsModal: React.FC<LinkProductsModalProps> = ({ isOpen, on
     // Filter products locally
     const filteredProducts = useMemo(() => {
         if (!productsData?.items) return [];
-        if (!searchTerm) return productsData.items;
+
         const lower = searchTerm.toLowerCase();
-        return productsData.items.filter((p: any) =>
-            p.productName.toLowerCase().includes(lower) ||
-            p.productCode.toLowerCase().includes(lower)
-        );
-    }, [productsData, searchTerm]);
+
+        const filtered = !searchTerm
+            ? [...productsData.items]
+            : productsData.items.filter((p: Product) =>
+                p.productName.toLowerCase().includes(lower) ||
+                p.productCode.toLowerCase().includes(lower)
+            );
+
+        // Sort by Product ID DESC
+        return filtered.sort((a: Product, b: Product) => b.id - a.id);
+
+    }, [productsData?.items, searchTerm]);
 
     const selectedCount = Object.keys(selectedItems).length;
 

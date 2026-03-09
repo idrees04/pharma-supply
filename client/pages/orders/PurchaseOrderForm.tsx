@@ -44,7 +44,9 @@ export default function PurchaseOrderForm() {
   // 1. Fetch Data
   const { data: existingPO, isPending: isLoadingPO } = usePurchaseOrder(poId);
   const { data: suppliers = [], isPending: isLoadingSuppliers } = useActiveSuppliers();
-
+  const sortedSuppliers = useMemo(() => {
+    return [...suppliers].sort((a, b) => b.id - a.id);
+  }, [suppliers]);
   // 2. Form Setup
   const form = useForm<PurchaseOrderFormData>({
     resolver: zodResolver(purchaseOrderSchema),
@@ -295,7 +297,7 @@ export default function PurchaseOrderForm() {
                           </FormLabel>
                           <FormControl>
                             <SearchableSelect
-                              items={suppliers.map(s => ({ value: s.id, label: s.supplierName }))}
+                              items={sortedSuppliers.map(s => ({ value: s.id, label: s.supplierName }))}
                               value={field.value}
                               onValueChange={(val) => handleSupplierChange(Number(val))}
                               placeholder="Choose Supplier"

@@ -36,11 +36,9 @@ import {
 import { useProductSuppliersByProduct } from '@/api/services/productSuppliers';
 import { useGetHospitals } from '@/hooks/useHospitals';
 import { useProductList } from '@/api/services/products';
-import { useActiveSuppliers } from '@/api/services/suppliers';
 import { formatCurrency, cn } from '@/lib/utils';
 import { CreateSupplyOrderRequest, UpdateSupplyOrderRequest } from '@/types/api/supplyOrders';
 import { Product } from '@/types/api/products';
-import { ProductSupplier } from '@/types/api/productSuppliers';
 
 interface SupplyOrderFormProps {
   supplyOrderId?: number;
@@ -299,11 +297,17 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
   const { data: existingSO, isPending: isLoadingSO } = useSupplyOrder(supplyOrderId || null);
   const { data: hospitalsData, isPending: isLoadingHospitals } = useGetHospitals({ pageSize: 1000, pageNumber: 1 });
   const { data: productsData, isPending: isLoadingProducts } = useProductList({ pageSize: 1000, pageNumber: 1 });
-  const { data: suppliers = [], isPending: isLoadingSuppliers } = useActiveSuppliers();
   const { data: statuses = [] } = useSupplyOrderStatuses();
 
   const hospitals = hospitalsData?.data?.items || [];
   const products = productsData?.items || [];
+  const sortedHospitals = useMemo(() => {
+    return [...hospitals].sort((a, b) => b.id - a.id);
+  }, [hospitals]);
+
+  const sortedProducts = useMemo(() => {
+    return [...products].sort((a, b) => b.id - a.id);
+  }, [products]);
 
   // 2. Form Setup
   const form = useForm<SupplyOrderFormData>({
@@ -494,7 +498,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                         </FormLabel>
                         <FormControl>
                           <SearchableSelect
-                            items={hospitals.map(h => ({ value: h.id, label: h.hospitalName }))}
+                            items={sortedHospitals.map(h => ({ value: h.id, label: h.hospitalName }))}
                             value={field.value}
                             onValueChange={(val) => field.onChange(Number(val))}
                             placeholder="Choose Hospital"
@@ -698,7 +702,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                           field={field}
                           form={form}
                           isEditMode={isEditMode}
-                          products={products}
+                          products={sortedProducts}
                           isLoadingProducts={isLoadingProducts}
                           onRemove={remove}
                           handleProductChange={handleProductChange}

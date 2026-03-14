@@ -329,7 +329,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="mt-6 text-center text-sm text-muted-foreground">
-          <p>© 2025 Pharmaceutical Distributor Management System</p>
+          <p>© 2026 Pharmaceutical Distributor Management System</p>
         </div>
       </div>
     </div>

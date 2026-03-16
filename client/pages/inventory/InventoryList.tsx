@@ -75,6 +75,8 @@ export default function InventoryList() {
       ),
     },
     { header: 'Last Restock', accessor: (row: InventoryStockDto) => row.lastRestockedDate ? new Date(row.lastRestockedDate).toLocaleDateString() : 'N/A' },
+    { header: 'Last Dispatch', accessor: (row: InventoryStockDto) => row.lastDispatchedDate ? new Date(row.lastDispatchedDate).toLocaleDateString() : 'N/A' },
+
     {
       header: 'Status',
       accessor: (item: InventoryStockDto) => {

@@ -19,8 +19,6 @@ export interface Product {
   manufacturer: string;
   productTypeId: number;
   productTypeName: string;
-  category: string;
-  subCategory: string;
   unitId: number;
   unitName: string;
   standardPurchaseRate: number;
@@ -47,8 +45,6 @@ export interface CreateProductRequest {
   productCode: string;
   manufacturer: string;
   productTypeId: number;
-  category: string;
-  subCategory: string;
   unitId: number;
   standardPurchaseRate: number;
   standardSaleRate: number;
@@ -71,8 +67,6 @@ export interface UpdateProductRequest {
   genericName: string;
   manufacturer: string;
   productTypeId: number;
-  category: string;
-  subCategory: string;
   unitId: number;
   standardPurchaseRate: number;
   standardSaleRate: number;

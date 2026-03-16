@@ -7,8 +7,6 @@ export const productSchema = z.object({
   productCode: z.string().min(1, "Product Code is required"),
   manufacturer: z.string().min(1, "Manufacturer is required"),
   productTypeId: z.coerce.number().int().min(1, "Product Type is required"),
-  category: z.string().min(1, "Category is required"),
-  subCategory: z.string().min(1, "Sub Category is required"),
   unitId: z.coerce.number().int().min(1, "Unit of Measure is required"),
   standardPurchaseRate: z.coerce
     .number()

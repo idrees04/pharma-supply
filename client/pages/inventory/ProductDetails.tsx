@@ -226,14 +226,6 @@ export default function ProductDetails() {
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inventory Unit</p>
                                         <p className="font-bold text-slate-800">{product.unitName}</p>
                                     </div>
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hierarchy</p>
-                                        <p className="font-bold text-slate-800">{product.category}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Segment</p>
-                                        <p className="font-bold text-slate-800">{product.subCategory}</p>
-                                    </div>
                                 </div>
 
                                 <Separator className="my-8" />

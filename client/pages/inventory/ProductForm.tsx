@@ -73,8 +73,6 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
       productCode: '',
       manufacturer: '',
       productTypeId: 1,
-      category: '',
-      subCategory: '',
       unitId: 0,
       standardPurchaseRate: 0,
       standardSaleRate: 0,
@@ -127,8 +125,6 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
         productCode: existingProduct.productCode,
         manufacturer: existingProduct.manufacturer,
         productTypeId: existingProduct.productTypeId,
-        category: existingProduct.category,
-        subCategory: existingProduct.subCategory,
         unitId: existingProduct.unitId,
         standardPurchaseRate: existingProduct.standardPurchaseRate,
         standardSaleRate: existingProduct.standardSaleRate,
@@ -306,32 +302,6 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
                         {...field}
                         className="transition-all duration-200 focus:scale-[1.01]"
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Pain Relief" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="subCategory"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sub Category *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Analgesic" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

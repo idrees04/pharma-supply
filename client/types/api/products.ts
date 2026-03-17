@@ -34,6 +34,7 @@ export interface Product {
   availableQuantity: number;
   isActive: boolean;
 }
+// productCode
 
 /**
  * Request body for creating a product (POST /api/Products)

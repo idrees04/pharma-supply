@@ -472,9 +472,7 @@ export default function ProductList() {
     {
       header: 'Status',
       accessor: (row) => (
-        <Badge
-          //variant={row.isActive ? 'success' : 'destructive'} 
-          className="text-[10px]">
+        <Badge variant={row.isActive ? 'secondary' : 'destructive'} className="text-[10px]">
           {row.isActive ? 'Active' : 'Inactive'}
         </Badge>
       ),

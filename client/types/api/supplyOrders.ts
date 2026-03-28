@@ -39,19 +39,19 @@ export interface SupplyOrder {
   hospitalName: string;
   orderDate: string;
   requiredByDate: string;
-  fulfilledDate: string;
+  fulfilledDate: string | null;
   status: number;
   subTotal: number;
   taxAmount: number;
   discountAmount: number;
   totalAmount: number;
   requestedBy: string;
-  approvedBy: string;
-  approvedDate: string;
-  shippingAddress: string;
-  notes: string;
-  invoiceId: number;
-  items: SupplyOrderItem[];
+  approvedBy: string | null;
+  approvedDate: string | null;
+  shippingAddress: string | null;
+  notes: string | null;
+  invoiceId: number | null;
+  items: SupplyOrderItem[] | null;
 }
 
 /**

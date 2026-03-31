@@ -62,4 +62,5 @@ export type GetAccountsResponse = ApiResponse<AccountDto[]>;
 export type GetAccountResponse = ApiResponse<AccountDto>;
 export type CreateAccountResponse = ApiResponse<AccountDto>;
 export type UpdateAccountResponse = ApiResponse<AccountDto>;
+export type DeleteAccountResponse = ApiResponse<string>;
 export type GetAccountBalancesResponse = ApiResponse<AccountBalanceDto[]>;

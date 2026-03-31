@@ -11,23 +11,47 @@ import {
 import { AlertCircle, CreditCard, Plus } from 'lucide-react';
 import BankAccountForm from './BankAccountForm';
 import { DataTable, Column } from '@/components/common/DataTable';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { formatCurrency } from '@/lib/utils';
-import { useAccountList } from '@/api/services/accounts';
+import { useAccountList, useDeleteAccount } from '@/api/services/accounts';
 import { AccountDto } from '@/types/api/accounts';
+import { toast } from 'sonner';
 
 export default function BankAccountList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<AccountDto | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<AccountDto | null>(null);
   const { hasPermission } = useAuth();
   const { data: accounts, isLoading } = useAccountList();
+  const { mutate: deleteAccount, isPending: isDeleting } = useDeleteAccount();
 
   const canCreate = hasPermission('bankAccounts', 'create');
   const canUpdate = hasPermission('bankAccounts', 'update');
+  const canDelete = hasPermission('bankAccounts', 'delete');
 
   const handleEdit = (account: AccountDto) => {
     setSelectedAccount(account);
     setIsDialogOpen(true);
+  };
+
+  const handleDeleteRequest = (account: AccountDto) => {
+    setDeleteTarget(account);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteTarget) return;
+
+    deleteAccount(deleteTarget.id, {
+      onSuccess: () => {
+        toast.success(`Account "${deleteTarget.accountName}" deleted successfully.`);
+        setDeleteTarget(null);
+        setRefreshTrigger(prev => prev + 1);
+      },
+      onError: (error) => {
+        toast.error(`Failed to delete account: ${error.message}`);
+      },
+    });
   };
 
   const handleClose = () => {
@@ -86,24 +110,19 @@ export default function BankAccountList() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="p-8 text-center">Loading accounts...</div>
-      ) : bankAccounts.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
-          <h3 className="mt-4 text-lg font-semibold">No bank accounts yet</h3>
-          <p className="text-muted-foreground">Add your first bank account to get started</p>
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={bankAccounts}
-          onEdit={canUpdate ? handleEdit : undefined}
-          itemsPerPage={10}
-          resetSortTrigger={refreshTrigger}
-        />
-      )}
 
+      <DataTable
+        columns={columns}
+        data={bankAccounts}
+        isLoading={isLoading}
+        onEdit={canUpdate ? handleEdit : undefined}
+        onDelete={canDelete ? handleDeleteRequest : undefined}
+        itemsPerPage={10}
+        showSearch={true}
+        emptyMessage="No bank accounts found matching your search."
+        resetSortTrigger={refreshTrigger}
+      />
+      {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
@@ -115,6 +134,23 @@ export default function BankAccountList() {
           <BankAccountForm account={selectedAccount || undefined} onClose={handleClose} />
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title="Delete Bank Account"
+        description={
+          <>
+            Are you sure you want to delete <strong>{deleteTarget?.accountName}</strong>?
+            This action cannot be undone and will permanently remove this account record.
+          </>
+        }
+        onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
+        confirmText="Delete Account"
+        variant="destructive"
+      />
     </div>
   );
 }

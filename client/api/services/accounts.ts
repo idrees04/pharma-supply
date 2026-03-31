@@ -1,4 +1,4 @@
-import { get, post, put, RequestConfig } from '@/api/requests';
+import { get, post, put, deleteRequest, RequestConfig } from '@/api/requests';
 import {
     AccountDto,
     AccountBalanceDto,
@@ -8,9 +8,10 @@ import {
     GetAccountResponse,
     CreateAccountResponse,
     UpdateAccountResponse,
+    DeleteAccountResponse,
     GetAccountBalancesResponse,
 } from '@/types/api/accounts';
-import { useGetQuery, usePostMutation, usePutMutation } from '@/api/hooks';
+import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 
 export const accountService = {
@@ -59,6 +60,14 @@ export const accountService = {
             config
         );
         return response.data;
+    },
+
+    /**
+     * Delete an account by ID
+     * DELETE /api/Accounts/{id}
+     */
+    deleteAccount: async (id: number, config?: RequestConfig): Promise<void> => {
+        await deleteRequest<DeleteAccountResponse>(`/api/Accounts/${id}`, config);
     },
 
     /**
@@ -114,6 +123,20 @@ export function useUpdateAccount(id: number) {
             onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: ['accounts'] });
                 queryClient.invalidateQueries({ queryKey: ['accounts', id] });
+            },
+        }
+    );
+}
+
+export function useDeleteAccount() {
+    const queryClient = useQueryClient();
+    return useDeleteMutation<void, number>(
+        (id: number) => accountService.deleteAccount(id),
+        {
+            onSuccess: (_result, id) => {
+                queryClient.removeQueries({ queryKey: ['accounts', id] });
+                queryClient.invalidateQueries({ queryKey: ['accounts'] });
+                queryClient.invalidateQueries({ queryKey: ['accounts', 'balances'] });
             },
         }
     );

@@ -25,7 +25,6 @@ import { toast } from "sonner";
 import { useCreateAccount, useUpdateAccount, accountService } from "@/api/services/accounts";
 import { AccountDto, CreateAccountRequest, UpdateAccountRequest, AccountType } from "@/types/api/accounts";
 import { bankAccountSchema, BankAccountFormData } from "@/lib/schemas";
-import { Loader2, CalendarIcon } from "lucide-react";
 import { useGetQuery } from "@/api/hooks";
 
 interface BankAccountFormProps {
@@ -49,7 +48,7 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
     },
   });
 
-  // Fetch account details if editing to ensure fresh data
+  // Fetch account details if editing
   const { data: accountDetail, isPending: isFetchingDetails } = useGetQuery<AccountDto>(
     ["accounts", account?.id],
     () => accountService.getAccount(account!.id),
@@ -73,29 +72,26 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
     }
   }, [accountDetail, form]);
 
-  // Create account mutation
   const { mutate: createAccount, isPending: isCreating } = useCreateAccount();
-
-  // Update account mutation
   const { mutate: updateAccount, isPending: isUpdating } = useUpdateAccount(account?.id || 0);
 
   const isEditMode = !!account?.id;
   const isSubmitting = isCreating || isUpdating || (isEditMode && isFetchingDetails);
 
   const onSubmit = (data: BankAccountFormData) => {
-    if (account) {
+    if (isEditMode) {
       const payload: UpdateAccountRequest = {
         accountName: data.accountName,
         accountNumber: data.accountNumber,
         bankName: data.bankName,
         bankBranch: data.bankBranch,
         description: data.description || '',
-        isActive: data.isActive,
+        isActive: !!data.isActive,
       };
 
       updateAccount(payload, {
         onSuccess: () => {
-          toast.success("Bank account updated successfully");
+          toast.success("Account updated successfully");
           onClose();
         },
         onError: (error: any) => {
@@ -113,18 +109,18 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
     } else {
       const payload: CreateAccountRequest = {
         accountName: data.accountName,
-        accountType: data.accountType,
+        accountType: data.accountType || AccountType.Bank,
         accountNumber: data.accountNumber,
         bankName: data.bankName,
         bankBranch: data.bankBranch,
-        openingBalance: data.openingBalance,
-        openingBalanceDate: new Date(data.openingBalanceDate).toISOString(),
+        openingBalance: data.openingBalance || 0,
+        openingBalanceDate: new Date(data.openingBalanceDate || new Date()).toISOString(),
         description: data.description || '',
       };
 
       createAccount(payload, {
         onSuccess: () => {
-          toast.success("Bank account created successfully");
+          toast.success("Account registered successfully");
           onClose();
         },
         onError: (error: any) => {
@@ -135,17 +131,18 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
               form.setError(fieldKey, { message: message as string });
             });
           } else {
-            toast.error(error.userMessage || "Failed to create account");
+            toast.error(error.userMessage || "Failed to register account");
           }
         },
       });
     }
   };
 
-  if (account && isFetchingDetails) {
+  // Loading state (same as HospitalForm)
+  if (isEditMode && isFetchingDetails) {
     return (
-      <div className="flex justify-center items-center p-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex justify-center items-center p-8">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
       </div>
     );
   }
@@ -153,6 +150,7 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* 2‑column grid, exactly like HospitalForm */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -161,20 +159,21 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
               <FormItem>
                 <FormLabel>Account Name *</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Main Operating Account" {...field} />
+                  <Input placeholder="e.g., Operating Reserve" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="accountType"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Account Type *</FormLabel>
-                <Select 
-                  onValueChange={(val) => field.onChange(parseInt(val))} 
+                <Select
+                  onValueChange={(val) => field.onChange(parseInt(val))}
                   defaultValue={field.value?.toString()}
                   disabled={isEditMode}
                 >
@@ -185,13 +184,14 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
                   </FormControl>
                   <SelectContent>
                     <SelectItem value={AccountType.Cash.toString()}>Cash</SelectItem>
-                    <SelectItem value={AccountType.Bank.toString()}>Bank</SelectItem>
+                    <SelectItem value={AccountType.Bank.toString()}>Bank Account</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="bankName"
@@ -199,12 +199,13 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
               <FormItem>
                 <FormLabel>Bank Name *</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., First National Bank" {...field} />
+                  <Input placeholder="e.g., Standard Chartered" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="bankBranch"
@@ -212,12 +213,13 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
               <FormItem>
                 <FormLabel>Bank Branch *</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Downtown Branch" {...field} />
+                  <Input placeholder="e.g., I.I Chundrigar Road" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="accountNumber"
@@ -225,12 +227,13 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
               <FormItem>
                 <FormLabel>Account Number *</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., 1234567890" {...field} />
+                  <Input placeholder="IBAN or Account Number" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="openingBalance"
@@ -250,6 +253,7 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="openingBalanceDate"
@@ -257,48 +261,25 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
               <FormItem>
                 <FormLabel>Opening Balance Date *</FormLabel>
                 <FormControl>
-                  <div className="relative">
-                    <Input
-                      type="date"
-                      {...field}
-                      disabled={isEditMode}
-                      className="pl-10"
-                    />
-                    <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  </div>
+                  <Input type="date" {...field} disabled={isEditMode} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="isActive"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 h-[72px] self-end space-y-0">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-sm">Account Active</FormLabel>
-                </div>
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
+
+          {/* Description spans both columns, like Address in HospitalForm */}
           <FormField
             control={form.control}
             name="description"
             render={({ field }) => (
-              <FormItem className="col-span-full">
+              <FormItem className="md:col-span-2">
                 <FormLabel>Description</FormLabel>
                 <FormControl>
-                  <Textarea 
-                    placeholder="Additional details..." 
-                    className="resize-none h-20"
-                    {...field} 
+                  <Textarea
+                    placeholder="Operational remarks or purpose of this ledger..."
+                    className="resize-none"
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
@@ -307,6 +288,29 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
           />
         </div>
 
+        {/* Active status – same style as HospitalForm */}
+        <FormField
+          control={form.control}
+          name="isActive"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel>Active</FormLabel>
+                <FormDescription>
+                  Account is available for financial transactions
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        {/* Action buttons */}
         <div className="flex justify-end gap-2 pt-4">
           <Button
             type="button"
@@ -319,10 +323,10 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? (
               <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {account ? "Updating..." : "Creating..."}
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                {isEditMode ? "Updating..." : "Creating..."}
               </span>
-            ) : account ? (
+            ) : isEditMode ? (
               "Update Account"
             ) : (
               "Create Account"

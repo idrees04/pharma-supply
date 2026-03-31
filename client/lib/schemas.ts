@@ -133,14 +133,14 @@ import { AccountType } from "@/types/api/accounts";
 
 export const bankAccountSchema = z.object({
   accountName: z.string().min(1, "Account Name is required"),
-  accountType: z.coerce.number().pipe(z.nativeEnum(AccountType)),
+  accountType: z.coerce.number().pipe(z.nativeEnum(AccountType)).optional(),
   accountNumber: z.string().min(1, "Account Number is required"),
   bankName: z.string().min(1, "Bank Name is required"),
   bankBranch: z.string().min(1, "Bank Branch is required"),
-  openingBalance: z.coerce.number().min(0, "Opening balance must be 0 or greater"),
-  openingBalanceDate: z.string().min(1, "Opening Balance Date is required"),
+  openingBalance: z.coerce.number().min(0, "Opening balance must be 0 or greater").optional(),
+  openingBalanceDate: z.string().min(1, "Opening Balance Date is required").optional(),
   description: z.string().max(500, "Description must be under 500 characters").default(""),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean().default(true).optional(),
 });
 
 export type BankAccountFormData = z.infer<typeof bankAccountSchema>;

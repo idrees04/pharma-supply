@@ -262,3 +262,28 @@ export function useReceiveItems() {
     }
   );
 }
+
+/**
+ * useCreatePartialOrder — Creates a partial order for a purchase order
+ *
+ * POST /api/PurchaseOrders/{id}/partial-order
+ *
+ * This is typically chained after a bulk-link operation:
+ * 1. POST /api/ProductSuppliers/bulk-link
+ * 2. POST /api/PurchaseOrders/{id}/partial-order
+ *
+ * @param purchaseOrderId - The purchase order to create a partial order for
+ */
+export function useCreatePartialOrder(purchaseOrderId: number) {
+  const queryClient = useQueryClient();
+
+  return usePostMutation<PurchaseOrder, PartialOrderRequest>(
+    (data) => purchaseOrderService.createPartialOrder(purchaseOrderId, data),
+    {
+      onSuccess: (updated) => {
+        queryClient.setQueryData(['purchaseOrders', purchaseOrderId], updated);
+        queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+      },
+    }
+  );
+}

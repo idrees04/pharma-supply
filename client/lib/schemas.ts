@@ -128,13 +128,18 @@ export type SupplyOrderFormData = z.infer<typeof supplyOrderSchema>;
 export type UpdateSupplyOrderFormData = z.infer<typeof updateSupplyOrderSchema>;
 export type SupplyOrderItemFormData = z.infer<typeof supplyOrderItemSchema>;
 
-// Bank Account Schema
+// Bank Account Schema - Matches AccountDto / CreateAccountRequest
+import { AccountType } from "@/types/api/accounts";
+
 export const bankAccountSchema = z.object({
   accountName: z.string().min(1, "Account Name is required"),
-  accountNo: z.string().min(1, "Account No is required"),
+  accountType: z.coerce.number().pipe(z.nativeEnum(AccountType)),
+  accountNumber: z.string().min(1, "Account Number is required"),
   bankName: z.string().min(1, "Bank Name is required"),
-  balance: z.coerce.number().min(0, "Balance must be non-negative"),
-  accountType: z.enum(["Checking", "Savings"]),
+  bankBranch: z.string().min(1, "Bank Branch is required"),
+  openingBalance: z.coerce.number().min(0, "Opening balance must be 0 or greater"),
+  openingBalanceDate: z.string().min(1, "Opening Balance Date is required"),
+  description: z.string().max(500, "Description must be under 500 characters").default(""),
   isActive: z.boolean().default(true),
 });
 

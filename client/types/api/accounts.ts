@@ -1,63 +1,95 @@
 import { ApiResponse } from './common';
 
-// Enums (from spec)
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+/**
+ * Account type enum matching the API's integer-based codes.
+ * API returns `accountType: 1` (Cash), `2` (Bank), etc.
+ */
 export enum AccountType {
-    Unknown = 0,
     Cash = 1,
     Bank = 2,
-    // Add missing values as needed
 }
 
-export enum AccountStatus {
-    Active = 1,
-    Inactive = 2,
-    Suspended = 3,
-}
+/** Human-readable labels for AccountType */
+export const AccountTypeLabels: Record<AccountType, string> = {
+    [AccountType.Cash]: 'Cash',
+    [AccountType.Bank]: 'Bank',
+};
 
-// DTOs
+// ─── DTOs ────────────────────────────────────────────────────────────────────
+
+/**
+ * Account DTO — exact shape returned by:
+ *   GET /api/Accounts
+ *   GET /api/Accounts/{id}
+ *   POST /api/Accounts (response)
+ *   PUT /api/Accounts/{id} (response)
+ */
 export interface AccountDto {
     id: number;
-    accountName: string | null;
+    accountName: string;
     accountType: AccountType;
-    accountNumber: string | null;
-    bankName: string | null;
-    bankBranch: string | null;
+    accountNumber: string;
+    bankName: string;
+    bankBranch: string;
     currentBalance: number;
     openingBalance: number;
-    openingBalanceDate: string | null; // ISO date
-    description: string | null;
+    openingBalanceDate: string;    // ISO 8601 date string
+    description: string;
     isActive: boolean;
 }
 
+/**
+ * Account Balance DTO — returned by:
+ *   GET /api/Accounts/balances
+ */
 export interface AccountBalanceDto {
     accountId: number;
-    accountName: string | null;
+    accountName: string;
     accountType: AccountType;
     currentBalance: number;
 }
 
-// Request DTOs
+// ─── Request DTOs ────────────────────────────────────────────────────────────
+
+/**
+ * Create Account Request — POST /api/Accounts
+ *
+ * Fields match the exact API contract:
+ *   accountName, accountType, accountNumber, bankName,
+ *   bankBranch, openingBalance, openingBalanceDate, description
+ */
 export interface CreateAccountRequest {
-    accountName: string | null;
+    accountName: string;
     accountType: AccountType;
-    accountNumber?: string | null;
-    bankName?: string | null;
-    bankBranch?: string | null;
-    openingBalance?: number;
-    openingBalanceDate?: string | null; // ISO date
-    description?: string | null;
+    accountNumber: string;
+    bankName: string;
+    bankBranch: string;
+    openingBalance: number;
+    openingBalanceDate: string;    // ISO 8601 date string
+    description: string;
 }
 
+/**
+ * Update Account Request — PUT /api/Accounts/{id}
+ *
+ * Fields match the exact API contract:
+ *   accountName, accountNumber, bankName, bankBranch, description, isActive
+ *
+ * Note: accountType, openingBalance, openingBalanceDate are NOT updatable
+ */
 export interface UpdateAccountRequest {
-    accountName?: string | null;
-    accountNumber?: string | null;
-    bankName?: string | null;
-    bankBranch?: string | null;
-    description?: string | null;
-    isActive?: boolean;
+    accountName: string;
+    accountNumber: string;
+    bankName: string;
+    bankBranch: string;
+    description: string;
+    isActive: boolean;
 }
 
-// Response types
+// ─── Response Types ──────────────────────────────────────────────────────────
+
 export type GetAccountsResponse = ApiResponse<AccountDto[]>;
 export type GetAccountResponse = ApiResponse<AccountDto>;
 export type CreateAccountResponse = ApiResponse<AccountDto>;

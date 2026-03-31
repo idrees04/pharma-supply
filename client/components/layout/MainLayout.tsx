@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { UserNav } from "./UserNav";
 import { ThemeToggle } from "./ThemeToggle";
+import { NotificationBell } from "./NotificationBell";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Menu,
@@ -19,6 +20,9 @@ import {
   ChevronUp,
   Shield,
   Settings,
+  Logs,
+  Bell,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -154,9 +158,34 @@ const menuItems: MenuItemType[] = [
   },
   {
     icon: <BarChart3 className="w-5 h-5" />,
-    label: "Reports",
-    href: "/reports",
+    label: "Reports & Analytics",
     module: "reports",
+    children: [
+      {
+        icon: <BarChart3 className="w-4 h-4" />,
+        label: "Reports",
+        href: "/reports",
+        module: "reports",
+      },
+      {
+        icon: <TrendingUp className="w-4 h-4" />,
+        label: "Analytics",
+        href: "/analytics",
+        module: "reports",
+      },
+    ],
+  },
+  {
+    icon: <Bell className="w-5 h-5" />,
+    label: "Notifications",
+    href: "/notifications",
+    // Accessible to all authenticated users
+  },
+  {
+    icon: <Logs className="w-5 h-5" />,
+    label: "Audit Logs",
+    href: "/audit-logs",
+    module: "auditLogs",
   },
   {
     icon: <Settings className="w-5 h-5" />,
@@ -186,6 +215,12 @@ const menuItems: MenuItemType[] = [
         label: "Tax Configuration",
         href: "/settings/tax-configuration",
         module: "products",
+      },
+      {
+        icon: <Settings className="w-4 h-4" />,
+        label: "System Configuration",
+        href: "/settings/system-configuration",
+        module: "systemConfiguration",
       },
     ],
   },
@@ -268,6 +303,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           {/* User Nav - Visible on all screens */}
           <div className="flex items-center gap-2 md:gap-4">
             <ThemeToggle />
+            <NotificationBell />
             <UserNav />
             {/* Mobile Menu Trigger */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>

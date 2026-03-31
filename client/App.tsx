@@ -42,6 +42,10 @@ import ProductTypesList from "./pages/settings/ProductTypesList";
 import UnitsList from "./pages/settings/UnitsList";
 import ExpenseCategoriesList from "./pages/settings/ExpenseCategoriesList";
 import TaxConfigurationList from "./pages/settings/TaxConfigurationList";
+import SystemConfigurationList from "./pages/settings/SystemConfigurationList";
+import AuditLogList from "./pages/audit/AuditLogList";
+import NotificationCenter from "./pages/notifications/NotificationCenter";
+import Analytics from "./pages/analytics/Analytics";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 
@@ -318,6 +322,36 @@ const AppRoutes = () => (
       }
     />
     <Route
+      path="/audit-logs"
+      element={
+        <ProtectedRoute module="auditLogs" permission="read">
+          <MainLayout>
+            <AuditLogList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/notifications"
+      element={
+        <ProtectedRoute>
+          <MainLayout>
+            <NotificationCenter />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/analytics"
+      element={
+        <ProtectedRoute module="reports" permission="read">
+          <MainLayout>
+            <Analytics />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
       path="/settings/product-types"
       element={
         <ProtectedRoute module="products" permission="read">
@@ -353,6 +387,16 @@ const AppRoutes = () => (
         <ProtectedRoute module="products" permission="read">
           <MainLayout>
             <TaxConfigurationList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/settings/system-configuration"
+      element={
+        <ProtectedRoute module="systemConfiguration" permission="read">
+          <MainLayout>
+            <SystemConfigurationList />
           </MainLayout>
         </ProtectedRoute>
       }

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { SYSTEM_CONFIGURATION_DATA_TYPES } from '@/types/api/systemConfiguration';
+
 // Product Schema - Matches API specification
 export const productSchema = z.object({
   productName: z.string().min(1, "Product Name is required"),
@@ -327,3 +329,93 @@ export const unitSchema = z.object({
 });
 
 export type UnitFormData = z.infer<typeof unitSchema>;
+
+export const systemConfigurationSchema = z
+  .object({
+    configKey: z
+      .string()
+      .trim()
+      .min(1, "Configuration key is required")
+      .max(100, "Configuration key must be 100 characters or fewer")
+      .regex(/^[A-Za-z0-9._-]+$/, "Use letters, numbers, dots, hyphens, or underscores only"),
+    displayName: z
+      .string()
+      .trim()
+      .min(1, "Display name is required")
+      .max(100, "Display name must be 100 characters or fewer"),
+    category: z
+      .string()
+      .trim()
+      .min(1, "Category is required")
+      .max(100, "Category must be 100 characters or fewer"),
+    description: z
+      .string()
+      .trim()
+      .max(500, "Description must be 500 characters or fewer")
+      .optional()
+      .default(""),
+    dataType: z.enum(SYSTEM_CONFIGURATION_DATA_TYPES),
+    configValue: z.string().trim().min(1, "Configuration value is required"),
+    isEncrypted: z.boolean().default(false),
+    isEditable: z.boolean().default(true),
+    isActive: z.boolean().default(true),
+  })
+  .superRefine((value, ctx) => {
+    const normalizedType = value.dataType.toLowerCase();
+
+    if (normalizedType === "number" && Number.isNaN(Number(value.configValue))) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter a valid numeric value",
+        path: ["configValue"],
+      });
+    }
+
+    if (
+      normalizedType === "boolean" &&
+      value.configValue !== "true" &&
+      value.configValue !== "false"
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Boolean values must be true or false",
+        path: ["configValue"],
+      });
+    }
+
+    if (
+      normalizedType === "email" &&
+      !z.string().email().safeParse(value.configValue).success
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter a valid email address",
+        path: ["configValue"],
+      });
+    }
+
+    if (
+      normalizedType === "url" &&
+      !z.string().url().safeParse(value.configValue).success
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter a valid URL",
+        path: ["configValue"],
+      });
+    }
+
+    if (normalizedType === "json") {
+      try {
+        JSON.parse(value.configValue);
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Enter valid JSON",
+          path: ["configValue"],
+        });
+      }
+    }
+  });
+
+export type SystemConfigurationFormData = z.infer<typeof systemConfigurationSchema>;

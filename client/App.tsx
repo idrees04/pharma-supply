@@ -42,6 +42,7 @@ import ProductTypesList from "./pages/settings/ProductTypesList";
 import UnitsList from "./pages/settings/UnitsList";
 import ExpenseCategoriesList from "./pages/settings/ExpenseCategoriesList";
 import TaxConfigurationList from "./pages/settings/TaxConfigurationList";
+import SystemConfigurationPage from "./pages/settings/SystemConfigurationPage";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 
@@ -353,6 +354,16 @@ const AppRoutes = () => (
         <ProtectedRoute module="products" permission="read">
           <MainLayout>
             <TaxConfigurationList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/settings/system-configuration"
+      element={
+        <ProtectedRoute module="systemConfiguration" permission="read">
+          <MainLayout>
+            <SystemConfigurationPage />
           </MainLayout>
         </ProtectedRoute>
       }

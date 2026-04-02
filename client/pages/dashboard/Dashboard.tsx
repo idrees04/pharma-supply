@@ -1,10 +1,10 @@
 import React from 'react';
 import { useDashboardData } from '@/hooks/dashboard';
 import SummaryCards from './components/SummaryCards';
-import SalesChart from './components/SalesChart';
+import MonthlySalesChart from './components/MonthlySalesChart';
 import TopProducts from './components/TopProducts';
 import LowStockTable from './components/LowStockTable';
-import PendingPayments from './components/PendingPayments';
+import PendingPaymentsTable from './components/PendingPayments';
 import { motion } from 'framer-motion';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,22 +36,23 @@ const DashboardPage: React.FC = () => {
       transition={{ duration: 0.5 }}
       className="p-6 space-y-6"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <SummaryCards />
-      </div>
+      {/* Summary Cards - responsive grid (will wrap to 4 per row on large screens) */}
+      <SummaryCards />
 
+      {/* First row: Chart + Top Products */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <SalesChart />
+          <MonthlySalesChart />
         </div>
         <div>
           <TopProducts />
         </div>
       </div>
 
+      {/* Second row: Low Stock + Pending Payments */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <LowStockTable />
-        <PendingPayments />
+        <PendingPaymentsTable />
       </div>
     </motion.div>
   );
@@ -60,8 +61,8 @@ const DashboardPage: React.FC = () => {
 const DashboardSkeleton: React.FC = () => {
   return (
     <div className="p-6 space-y-6 animate-pulse">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[...Array(8)].map((_, i) => (
           <div key={i} className="h-32 bg-gray-200 rounded-xl" />
         ))}
       </div>

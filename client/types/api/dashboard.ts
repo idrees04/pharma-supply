@@ -1,58 +1,55 @@
 // modules/dashboard/types/dashboard.types.ts
 
-// Summary Card
+// Summary data from /api/Dashboard/summary
+// Generic API response wrapper (used internally by the service)
+
+
 export interface DashboardSummary {
-    totalSales: number;
-    totalPurchases: number;
-    netProfit: number;
-    ordersCount: number;
-    salesTrend: number;
-    purchasesTrend: number;
-    profitTrend: number;
-    ordersTrend: number;
-    lastUpdated: string; // ISO date string
+    totalHospitals: number;
+    activeHospitals: number;
+    totalSuppliers: number;
+    activeSuppliers: number;
+    totalProducts: number;
+    lowStockProducts: number;
+    pendingSupplyOrders: number;
+    pendingPurchaseOrders: number;
+    totalCashBalance: number;
+    totalBankBalance: number;
+    outstandingReceivables: number;
+    outstandingPayables: number;
 }
 
-// Sales vs Purchases Chart Data Point
-export interface SalesPurchaseDataPoint {
-    date: string;
+// Monthly sales vs purchases
+export interface MonthlySalesPurchase {
+    month: string;          // e.g., "2025-03"
     sales: number;
     purchases: number;
 }
 
-// Top Product
+// Top selling product
 export interface TopProduct {
-    id: string;
-    name: string;
-    imageUrl?: string | null;
-    quantitySold: number;
-    revenue: number;
-    trend: number;
+    productName: string;
+    productCode: string;
+    totalQuantitySold: number;
+    totalRevenue: number;
 }
 
-// Low Stock Alert
-export interface LowStockProduct {
-    id: string;
-    name: string;
-    currentStock: number;
+// Low stock alert
+export interface LowStockAlert {
+    productName: string;
+    productCode: string;
+    availableQuantity: number;
     reorderLevel: number;
-    criticalLevel?: number;
 }
 
-// Pending Payment
-export interface PendingPayment {
-    id: string;
-    customerName: string;
-    amount: number;
-    dueDate: string; // ISO date
-    status: 'pending' | 'overdue';
+// Pending payment alert
+export interface PendingPaymentAlert {
+    invoiceNumber: string;
+    hospitalName: string;
+    dueDate: string;        // ISO date
+    outstandingAmount: number;
+    daysOverdue: number;
 }
 
-// Combined dashboard data type (optional)
-export interface DashboardData {
-    summary: DashboardSummary;
-    salesPurchases: SalesPurchaseDataPoint[];
-    topProducts: TopProduct[];
-    lowStock: LowStockProduct[];
-    pendingPayments: PendingPayment[];
-}
+// Generic API response wrapper (used internally)
+export * from '@/types/api/common';

@@ -1,12 +1,12 @@
 import React from 'react';
-import { useLowStock } from '@/hooks/dashboard';
+import { useLowStockAlerts } from '@/hooks/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
 
 const LowStockTable: React.FC = () => {
-    const { data, isLoading, error } = useLowStock();
+    const { data, isLoading, error } = useLowStockAlerts();
 
     if (isLoading) return <LowStockSkeleton />;
     if (error) return <LowStockError />;
@@ -27,19 +27,21 @@ const LowStockTable: React.FC = () => {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Product</TableHead>
-                                <TableHead>Stock</TableHead>
+                                <TableHead>Code</TableHead>
+                                <TableHead>Available</TableHead>
                                 <TableHead>Reorder Level</TableHead>
                                 <TableHead>Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {data.map((product) => (
-                                <TableRow key={product.id}>
-                                    <TableCell className="font-medium">{product.name}</TableCell>
-                                    <TableCell>{product.currentStock}</TableCell>
-                                    <TableCell>{product.reorderLevel}</TableCell>
+                            {data.map((alert) => (
+                                <TableRow key={alert.productCode}>
+                                    <TableCell className="font-medium">{alert.productName}</TableCell>
+                                    <TableCell>{alert.productCode}</TableCell>
+                                    <TableCell>{alert.availableQuantity}</TableCell>
+                                    <TableCell>{alert.reorderLevel}</TableCell>
                                     <TableCell>
-                                        {product.currentStock <= (product.criticalLevel ?? 0) ? (
+                                        {alert.availableQuantity <= alert.reorderLevel / 2 ? (
                                             <span className="flex items-center gap-1 text-red-600">
                                                 <AlertTriangle className="w-4 h-4" /> Critical
                                             </span>
@@ -57,7 +59,7 @@ const LowStockTable: React.FC = () => {
     );
 };
 
-const LowStockSkeleton: React.FC = () => (
+const LowStockSkeleton = () => (
     <Card className="animate-pulse">
         <CardHeader className="h-16 bg-gray-200" />
         <CardContent>
@@ -70,15 +72,15 @@ const LowStockSkeleton: React.FC = () => (
     </Card>
 );
 
-const LowStockError: React.FC = () => (
+const LowStockError = () => (
     <Card>
         <CardContent className="flex items-center justify-center h-64 text-red-500">
-            Failed to load low stock data.
+            Failed to load low stock alerts.
         </CardContent>
     </Card>
 );
 
-const EmptyState: React.FC<{ message: string }> = ({ message }) => (
+const EmptyState = ({ message }: { message: string }) => (
     <Card>
         <CardContent className="flex items-center justify-center h-64 text-gray-500">
             {message}

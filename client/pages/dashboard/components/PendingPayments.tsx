@@ -1,17 +1,17 @@
 import React from 'react';
-import { usePendingPayments } from '@/hooks/dashboard';
+import { usePendingPaymentAlerts } from '@/hooks/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { motion } from 'framer-motion';
-import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/formatters';
-import { formatRelativeDate } from '@/utils/dateUtils';
+import { formatRelativeDays } from '@/utils/dateUtils';
+import { Badge } from '@/components/ui/badge';
 
-const PendingPayments: React.FC = () => {
-    const { data, isLoading, error } = usePendingPayments();
+const PendingPaymentsTable: React.FC = () => {
+    const { data, isLoading, error } = usePendingPaymentAlerts();
 
-    if (isLoading) return <PendingPaymentsSkeleton />;
-    if (error) return <PendingPaymentsError />;
+    if (isLoading) return <PendingSkeleton />;
+    if (error) return <PendingError />;
     if (!data || data.length === 0) return <EmptyState message="No pending payments." />;
 
     return (
@@ -22,29 +22,31 @@ const PendingPayments: React.FC = () => {
         >
             <Card>
                 <CardHeader>
-                    <CardTitle>Pending Payments</CardTitle>
+                    <CardTitle>Pending Payment Alerts</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Amount</TableHead>
+                                <TableHead>Invoice #</TableHead>
+                                <TableHead>Hospital</TableHead>
                                 <TableHead>Due Date</TableHead>
+                                <TableHead>Outstanding</TableHead>
                                 <TableHead>Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {data.map((payment) => (
-                                <TableRow key={payment.id}>
-                                    <TableCell className="font-medium">{payment.customerName}</TableCell>
-                                    <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                                    <TableCell>{formatRelativeDate(payment.dueDate)}</TableCell>
+                                <TableRow key={payment.invoiceNumber}>
+                                    <TableCell className="font-medium">{payment.invoiceNumber}</TableCell>
+                                    <TableCell>{payment.hospitalName}</TableCell>
+                                    <TableCell>{new Date(payment.dueDate).toLocaleDateString()}</TableCell>
+                                    <TableCell>{formatCurrency(payment.outstandingAmount)}</TableCell>
                                     <TableCell>
-                                        {payment.status === 'overdue' ? (
-                                            <Badge variant="destructive">Overdue</Badge>
+                                        {payment.daysOverdue > 0 ? (
+                                            <Badge variant="destructive">{formatRelativeDays(payment.daysOverdue)}</Badge>
                                         ) : (
-                                            <Badge variant="outline">Pending</Badge>
+                                            <Badge variant="outline">Due soon</Badge>
                                         )}
                                     </TableCell>
                                 </TableRow>
@@ -57,7 +59,7 @@ const PendingPayments: React.FC = () => {
     );
 };
 
-const PendingPaymentsSkeleton: React.FC = () => (
+const PendingSkeleton = () => (
     <Card className="animate-pulse">
         <CardHeader className="h-16 bg-gray-200" />
         <CardContent>
@@ -70,7 +72,7 @@ const PendingPaymentsSkeleton: React.FC = () => (
     </Card>
 );
 
-const PendingPaymentsError: React.FC = () => (
+const PendingError = () => (
     <Card>
         <CardContent className="flex items-center justify-center h-64 text-red-500">
             Failed to load pending payments.
@@ -78,7 +80,7 @@ const PendingPaymentsError: React.FC = () => (
     </Card>
 );
 
-const EmptyState: React.FC<{ message: string }> = ({ message }) => (
+const EmptyState = ({ message }: { message: string }) => (
     <Card>
         <CardContent className="flex items-center justify-center h-64 text-gray-500">
             {message}
@@ -86,4 +88,4 @@ const EmptyState: React.FC<{ message: string }> = ({ message }) => (
     </Card>
 );
 
-export default PendingPayments;
+export default PendingPaymentsTable;

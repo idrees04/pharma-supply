@@ -23,6 +23,7 @@ const rolePermissions: Record<UserRole, ModulePermissions> = {
     bankAccounts: ["create", "read", "update", "delete"],
     inventory: ["create", "read", "update", "delete"],
     reports: ["read"],
+    systemConfiguration: ["create", "read", "update", "delete"],
     users: ["create", "read", "update", "delete"],
   },
   manager: {

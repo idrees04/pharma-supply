@@ -1,26 +1,45 @@
-import { ApiResponse } from './common';
+import type { ApiResponse } from '@/types/api/common';
 
-// DTOs
+export const SYSTEM_CONFIGURATION_DATA_TYPES = [
+  'string',
+  'number',
+  'boolean',
+  'email',
+  'url',
+  'json',
+  'password',
+] as const;
+
+export type SystemConfigurationDataType = (typeof SYSTEM_CONFIGURATION_DATA_TYPES)[number];
+
 export interface SystemConfiguration {
-    id: number;
-    configKey: string;
-    configValue: string;
-    displayName: string | null;
-    description: string | null;
-    dataType: string | null;
-    category: string | null;
-    isEncrypted: boolean;
-    isEditable: boolean;
-    isActive: boolean;
+  id: number;
+  configKey: string;
+  configValue: string;
+  displayName: string | null;
+  description: string | null;
+  dataType: SystemConfigurationDataType | null;
+  category: string | null;
+  isEncrypted: boolean;
+  isEditable: boolean;
+  isActive: boolean;
 }
 
-// Request DTOs
-export type CreateSystemConfigurationRequest = Omit<SystemConfiguration, 'id' | 'isActive'> & {
-    isActive?: boolean;
-};
-export type UpdateSystemConfigurationRequest = Partial<Omit<SystemConfiguration, 'id'>>;
+export interface SystemConfigurationMutationInput {
+  configKey: string;
+  configValue: string;
+  displayName: string | null;
+  description: string | null;
+  dataType: SystemConfigurationDataType | null;
+  category: string | null;
+  isEncrypted: boolean;
+  isEditable: boolean;
+  isActive?: boolean;
+}
 
-// Response types
+export type CreateSystemConfigurationRequest = SystemConfigurationMutationInput;
+export type UpdateSystemConfigurationRequest = Partial<SystemConfigurationMutationInput>;
+
 export type GetSystemConfigurationsResponse = ApiResponse<SystemConfiguration[]>;
 export type GetSystemConfigurationResponse = ApiResponse<SystemConfiguration>;
 export type CreateSystemConfigurationResponse = ApiResponse<SystemConfiguration>;

@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import SalaryVoucherForm from "./SalaryVoucherForm";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from '@/utils/formatters';
 
 export default function SalaryVoucherList() {
   const { salaryVouchers, deleteSalaryVoucher } = useStore();

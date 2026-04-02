@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProductForm from './ProductForm';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { DataTable, Column } from '@/components/common/DataTable';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { productService } from '@/api/services/products';
@@ -32,6 +32,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/utils/formatters';
 
 const ITEMS_PER_PAGE = 10;
 const DEBOUNCE_DELAY = 300;

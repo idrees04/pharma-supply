@@ -187,6 +187,12 @@ const menuItems: MenuItemType[] = [
         href: "/settings/tax-configuration",
         module: "products",
       },
+      {
+        icon: <Settings className="w-4 h-4" />,
+        label: "System Configuration",
+        href: "/settings/system-configuration",
+        module: "systemConfiguration",
+      },
     ],
   },
 ];

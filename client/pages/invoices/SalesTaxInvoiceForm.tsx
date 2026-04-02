@@ -14,7 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/utils/formatters';
 
 interface SalesTaxInvoiceFormProps {
   initialData?: SalesTaxInvoice;
@@ -42,14 +42,14 @@ export default function SalesTaxInvoiceForm({ initialData, onSuccess }: SalesTax
         gstApplicable: item.gstApplicable,
       })),
     } : {
-      items: [{ 
-        product: '', 
-        manufacturerCompany: '', 
-        expiryDate: '', 
-        quantity: 0, 
-        batchNo: '', 
-        rate: 0, 
-        gstApplicable: false 
+      items: [{
+        product: '',
+        manufacturerCompany: '',
+        expiryDate: '',
+        quantity: 0,
+        batchNo: '',
+        rate: 0,
+        gstApplicable: false
       }],
       orderNumbers: [''],
       orderDates: [''],
@@ -182,8 +182,8 @@ export default function SalesTaxInvoiceForm({ initialData, onSuccess }: SalesTax
                 <FormItem>
                   <FormLabel>Order Numbers (comma-separated)</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="e.g., 230830-5525, 240913-6018" 
+                    <Input
+                      placeholder="e.g., 230830-5525, 240913-6018"
                       {...field}
                       value={field.value?.join(', ')}
                       onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()))}
@@ -200,8 +200,8 @@ export default function SalesTaxInvoiceForm({ initialData, onSuccess }: SalesTax
                 <FormItem>
                   <FormLabel>Order Dates (comma-separated)</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="e.g., 30-Aug-2024, 03-Oct-2024" 
+                    <Input
+                      placeholder="e.g., 30-Aug-2024, 03-Oct-2024"
                       {...field}
                       value={field.value?.join(', ')}
                       onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()))}
@@ -222,14 +222,14 @@ export default function SalesTaxInvoiceForm({ initialData, onSuccess }: SalesTax
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => append({ 
-                product: '', 
-                manufacturerCompany: '', 
-                expiryDate: '', 
-                quantity: 0, 
-                batchNo: '', 
-                rate: 0, 
-                gstApplicable: false 
+              onClick={() => append({
+                product: '',
+                manufacturerCompany: '',
+                expiryDate: '',
+                quantity: 0,
+                batchNo: '',
+                rate: 0,
+                gstApplicable: false
               })}
               className="gap-2"
             >

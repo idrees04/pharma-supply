@@ -14,7 +14,7 @@ import { useAuthInitialize } from "@/hooks/useAuth";
 import { AuthLoadingScreen } from "@/components/AuthLoadingScreen";
 import { ProtectedRoute, PublicRoute } from "@/components/ProtectedRoute";
 import { ClickSpark } from "@/components/effects/ClickSpark";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/dashboard/Dashboard";
 import LoginPage from "./pages/Login";
 import { StrictMode } from "react";
 import PurchaseOrderList from "./pages/orders/PurchaseOrderList";
@@ -42,6 +42,7 @@ import ProductTypesList from "./pages/settings/ProductTypesList";
 import UnitsList from "./pages/settings/UnitsList";
 import ExpenseCategoriesList from "./pages/settings/ExpenseCategoriesList";
 import TaxConfigurationList from "./pages/settings/TaxConfigurationList";
+import SystemConfigurationPage from "./pages/settings/SystemConfigurationPage";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 
@@ -353,6 +354,16 @@ const AppRoutes = () => (
         <ProtectedRoute module="products" permission="read">
           <MainLayout>
             <TaxConfigurationList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/settings/system-configuration"
+      element={
+        <ProtectedRoute module="systemConfiguration" permission="read">
+          <MainLayout>
+            <SystemConfigurationPage />
           </MainLayout>
         </ProtectedRoute>
       }

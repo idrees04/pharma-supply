@@ -1,7 +1,10 @@
-import { ApiResponse } from './common';
+// modules/dashboard/types/dashboard.types.ts
 
-// DTOs
-export interface DashboardSummaryDto {
+// Summary data from /api/Dashboard/summary
+// Generic API response wrapper (used internally by the service)
+
+
+export interface DashboardSummary {
     totalHospitals: number;
     activeHospitals: number;
     totalSuppliers: number;
@@ -16,37 +19,37 @@ export interface DashboardSummaryDto {
     outstandingPayables: number;
 }
 
-export interface MonthlySalesVsPurchasesDto {
-    month: string | null;
+// Monthly sales vs purchases
+export interface MonthlySalesPurchase {
+    month: string;          // e.g., "2025-03"
     sales: number;
     purchases: number;
 }
 
-export interface TopSellingProductDto {
-    productName: string | null;
-    productCode: string | null;
+// Top selling product
+export interface TopProduct {
+    productName: string;
+    productCode: string;
     totalQuantitySold: number;
     totalRevenue: number;
 }
 
-export interface LowStockAlertDto {
-    productName: string | null;
-    productCode: string | null;
+// Low stock alert
+export interface LowStockAlert {
+    productName: string;
+    productCode: string;
     availableQuantity: number;
     reorderLevel: number;
 }
 
-export interface PendingPaymentAlertDto {
-    invoiceNumber: string | null;
-    hospitalName: string | null;
-    dueDate: string; // ISO date
+// Pending payment alert
+export interface PendingPaymentAlert {
+    invoiceNumber: string;
+    hospitalName: string;
+    dueDate: string;        // ISO date
     outstandingAmount: number;
     daysOverdue: number;
 }
 
-// Response types
-export type GetDashboardSummaryResponse = ApiResponse<DashboardSummaryDto>;
-export type GetMonthlySalesPurchasesResponse = ApiResponse<MonthlySalesVsPurchasesDto[]>;
-export type GetTopSellingProductsResponse = ApiResponse<TopSellingProductDto[]>;
-export type GetLowStockAlertsResponse = ApiResponse<LowStockAlertDto[]>;
-export type GetPendingPaymentAlertsResponse = ApiResponse<PendingPaymentAlertDto[]>;
+// Generic API response wrapper (used internally)
+export * from '@/types/api/common';

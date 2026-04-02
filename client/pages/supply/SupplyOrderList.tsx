@@ -20,7 +20,7 @@ import {
 
 import { SupplyOrder } from '@/types/api/supplyOrders';
 import { useSupplyOrderList, useSupplyOrderStatuses, useDeleteSupplyOrder } from '@/api/services/supplyOrders.service';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/utils/formatters';
 
 export default function SupplyOrderList() {
   const navigate = useNavigate();

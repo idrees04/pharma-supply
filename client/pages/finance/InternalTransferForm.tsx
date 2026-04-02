@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/utils/formatters';
 
 interface InternalTransferFormProps {
   transfer?: InternalTransfer;
@@ -235,8 +235,8 @@ export default function InternalTransferForm({ transfer, onClose }: InternalTran
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={form.formState.isSubmitting || !fromAccountId || !toAccountId || amount <= 0}
           >
             {form.formState.isSubmitting ? 'Processing...' : transfer ? 'Update Transfer' : 'Create Transfer'}

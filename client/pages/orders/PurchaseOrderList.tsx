@@ -20,7 +20,7 @@ import {
 
 import { PurchaseOrder } from '@/types/api/purchaseOrders';
 import { purchaseOrderService, usePurchaseOrderStatuses, useDeletePurchaseOrder, usePurchaseOrderList } from '@/api/services/purchaseOrders';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/utils/formatters';
 
 export default function PurchaseOrderList() {
   const navigate = useNavigate();

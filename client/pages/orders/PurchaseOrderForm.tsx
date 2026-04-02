@@ -27,7 +27,8 @@ import {
 } from '@/api/services/purchaseOrders';
 import { useActiveSuppliers, useSupplierProducts } from '@/api/services/suppliers';
 import { productService } from '@/api/services/products';
-import { formatCurrency, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/utils/formatters';
 import { CreatePurchaseOrderRequest, UpdatePurchaseOrderRequest } from '@/types/api/purchaseOrders';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 

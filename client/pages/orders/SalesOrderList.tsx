@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import SalesOrderForm from './SalesOrderForm';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/utils/formatters';
 
 export default function SalesOrderList() {
   const { salesOrders, deleteSalesOrder } = useStore();

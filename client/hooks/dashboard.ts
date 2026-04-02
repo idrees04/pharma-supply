@@ -1,59 +1,99 @@
-import { useGetQuery } from '@/api/hooks';
+import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { dashboardService } from '@/api/services/dashboard';
-import {
-    DashboardSummaryDto,
-    MonthlySalesVsPurchasesDto,
-    TopSellingProductDto,
-    LowStockAlertDto,
-    PendingPaymentAlertDto,
-} from '@/types/api/dashboard';
+import { DashboardSummary, SalesPurchaseDataPoint, TopProduct, LowStockProduct, PendingPayment } from '@/types/api/dashboard';
 
-export function useDashboardSummary() {
-    return useGetQuery<DashboardSummaryDto>(
-        ['dashboard', 'summary'],
-        () => dashboardService.getSummary(),
-        {
-            staleTime: 5 * 60 * 1000, // 5 minutes
-        }
-    );
-}
+// Individual queries
+export const useSummary = (): UseQueryResult<DashboardSummary, Error> => {
+    return useQuery({
+        queryKey: ['dashboard', 'summary'],
+        queryFn: dashboardService.getSummary,
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
+};
 
-export function useMonthlySalesPurchases(months: number = 12) {
-    return useGetQuery<MonthlySalesVsPurchasesDto[]>(
-        ['dashboard', 'monthlySalesPurchases', months],
-        () => dashboardService.getMonthlySalesPurchases(months),
-        {
-            staleTime: 5 * 60 * 1000,
-        }
-    );
-}
+export const useSalesPurchases = (period: string = 'month'): UseQueryResult<SalesPurchaseDataPoint[], Error> => {
+    return useQuery({
+        queryKey: ['dashboard', 'salesPurchases', period],
+        queryFn: () => dashboardService.getSalesPurchases(period),
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
+};
 
-export function useTopSellingProducts(top: number = 10) {
-    return useGetQuery<TopSellingProductDto[]>(
-        ['dashboard', 'topSellingProducts', top],
-        () => dashboardService.getTopSellingProducts(top),
-        {
-            staleTime: 5 * 60 * 1000,
-        }
-    );
-}
+export const useTopProducts = (limit: number = 5): UseQueryResult<TopProduct[], Error> => {
+    return useQuery({
+        queryKey: ['dashboard', 'topProducts', limit],
+        queryFn: () => dashboardService.getTopProducts(limit),
+        staleTime: 10 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
+};
 
-export function useLowStockAlerts() {
-    return useGetQuery<LowStockAlertDto[]>(
-        ['dashboard', 'lowStockAlerts'],
-        () => dashboardService.getLowStockAlerts(),
-        {
-            staleTime: 2 * 60 * 1000, // 2 minutes
-        }
-    );
-}
+export const useLowStock = (): UseQueryResult<LowStockProduct[], Error> => {
+    return useQuery({
+        queryKey: ['dashboard', 'lowStock'],
+        queryFn: dashboardService.getLowStock,
+        staleTime: 2 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
+};
 
-export function usePendingPaymentAlerts() {
-    return useGetQuery<PendingPaymentAlertDto[]>(
-        ['dashboard', 'pendingPaymentAlerts'],
-        () => dashboardService.getPendingPaymentAlerts(),
-        {
-            staleTime: 2 * 60 * 1000,
-        }
-    );
-}
+export const usePendingPayments = (): UseQueryResult<PendingPayment[], Error> => {
+    return useQuery({
+        queryKey: ['dashboard', 'pendingPayments'],
+        queryFn: dashboardService.getPendingPayments,
+        staleTime: 3 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
+};
+
+// Combined hook for the whole dashboard
+export const useDashboardData = () => {
+    const summary = useSummary();
+    const salesPurchases = useSalesPurchases();
+    const topProducts = useTopProducts();
+    const lowStock = useLowStock();
+    const pendingPayments = usePendingPayments();
+
+    const isLoading =
+        summary.isLoading ||
+        salesPurchases.isLoading ||
+        topProducts.isLoading ||
+        lowStock.isLoading ||
+        pendingPayments.isLoading;
+
+    const isError =
+        summary.isError ||
+        salesPurchases.isError ||
+        topProducts.isError ||
+        lowStock.isError ||
+        pendingPayments.isError;
+
+    const error =
+        summary.error ||
+        salesPurchases.error ||
+        topProducts.error ||
+        lowStock.error ||
+        pendingPayments.error;
+
+    const refetch = () => {
+        summary.refetch();
+        salesPurchases.refetch();
+        topProducts.refetch();
+        lowStock.refetch();
+        pendingPayments.refetch();
+    };
+
+    return {
+        summary: summary.data,
+        salesPurchases: salesPurchases.data,
+        topProducts: topProducts.data,
+        lowStock: lowStock.data,
+        pendingPayments: pendingPayments.data,
+        isLoading,
+        isError,
+        error,
+        refetch,
+    };
+};

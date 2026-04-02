@@ -1,52 +1,58 @@
-import { ApiResponse } from './common';
+// modules/dashboard/types/dashboard.types.ts
 
-// DTOs
-export interface DashboardSummaryDto {
-    totalHospitals: number;
-    activeHospitals: number;
-    totalSuppliers: number;
-    activeSuppliers: number;
-    totalProducts: number;
-    lowStockProducts: number;
-    pendingSupplyOrders: number;
-    pendingPurchaseOrders: number;
-    totalCashBalance: number;
-    totalBankBalance: number;
-    outstandingReceivables: number;
-    outstandingPayables: number;
+// Summary Card
+export interface DashboardSummary {
+    totalSales: number;
+    totalPurchases: number;
+    netProfit: number;
+    ordersCount: number;
+    salesTrend: number;
+    purchasesTrend: number;
+    profitTrend: number;
+    ordersTrend: number;
+    lastUpdated: string; // ISO date string
 }
 
-export interface MonthlySalesVsPurchasesDto {
-    month: string | null;
+// Sales vs Purchases Chart Data Point
+export interface SalesPurchaseDataPoint {
+    date: string;
     sales: number;
     purchases: number;
 }
 
-export interface TopSellingProductDto {
-    productName: string | null;
-    productCode: string | null;
-    totalQuantitySold: number;
-    totalRevenue: number;
+// Top Product
+export interface TopProduct {
+    id: string;
+    name: string;
+    imageUrl?: string | null;
+    quantitySold: number;
+    revenue: number;
+    trend: number;
 }
 
-export interface LowStockAlertDto {
-    productName: string | null;
-    productCode: string | null;
-    availableQuantity: number;
+// Low Stock Alert
+export interface LowStockProduct {
+    id: string;
+    name: string;
+    currentStock: number;
     reorderLevel: number;
+    criticalLevel?: number;
 }
 
-export interface PendingPaymentAlertDto {
-    invoiceNumber: string | null;
-    hospitalName: string | null;
+// Pending Payment
+export interface PendingPayment {
+    id: string;
+    customerName: string;
+    amount: number;
     dueDate: string; // ISO date
-    outstandingAmount: number;
-    daysOverdue: number;
+    status: 'pending' | 'overdue';
 }
 
-// Response types
-export type GetDashboardSummaryResponse = ApiResponse<DashboardSummaryDto>;
-export type GetMonthlySalesPurchasesResponse = ApiResponse<MonthlySalesVsPurchasesDto[]>;
-export type GetTopSellingProductsResponse = ApiResponse<TopSellingProductDto[]>;
-export type GetLowStockAlertsResponse = ApiResponse<LowStockAlertDto[]>;
-export type GetPendingPaymentAlertsResponse = ApiResponse<PendingPaymentAlertDto[]>;
+// Combined dashboard data type (optional)
+export interface DashboardData {
+    summary: DashboardSummary;
+    salesPurchases: SalesPurchaseDataPoint[];
+    topProducts: TopProduct[];
+    lowStock: LowStockProduct[];
+    pendingPayments: PendingPayment[];
+}

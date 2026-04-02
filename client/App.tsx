@@ -14,7 +14,7 @@ import { useAuthInitialize } from "@/hooks/useAuth";
 import { AuthLoadingScreen } from "@/components/AuthLoadingScreen";
 import { ProtectedRoute, PublicRoute } from "@/components/ProtectedRoute";
 import { ClickSpark } from "@/components/effects/ClickSpark";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/dashboard/Dashboard";
 import LoginPage from "./pages/Login";
 import { StrictMode } from "react";
 import PurchaseOrderList from "./pages/orders/PurchaseOrderList";

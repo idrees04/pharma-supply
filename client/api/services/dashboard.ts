@@ -1,67 +1,68 @@
-import { get, RequestConfig } from '@/api/requests';
-import {
-    DashboardSummaryDto,
-    MonthlySalesVsPurchasesDto,
-    TopSellingProductDto,
-    LowStockAlertDto,
-    PendingPaymentAlertDto,
-    GetDashboardSummaryResponse,
-    GetMonthlySalesPurchasesResponse,
-    GetTopSellingProductsResponse,
-    GetLowStockAlertsResponse,
-    GetPendingPaymentAlertsResponse,
-} from '@/types/api/dashboard';
+import { get } from '@/api/requests';
+import { DashboardSummary, SalesPurchaseDataPoint, TopProduct, LowStockProduct, PendingPayment } from '@/types/api/dashboard';
 
 export const dashboardService = {
-    /**
-     * Get dashboard summary statistics
-     */
-    getSummary: async (config?: RequestConfig): Promise<DashboardSummaryDto> => {
-        const response = await get<GetDashboardSummaryResponse>('/api/Dashboard/summary', config);
-        return response.data;
+    // Fetch summary stats
+    getSummary: async (): Promise<DashboardSummary> => {
+        const data = await get<DashboardSummary>('/api/dashboard/summary');
+        // Normalize numeric fields (in case API returns strings)
+        return {
+            ...data,
+            totalSales: Number(data.totalSales),
+            totalPurchases: Number(data.totalPurchases),
+            netProfit: Number(data.netProfit),
+            ordersCount: Number(data.ordersCount),
+            salesTrend: Number(data.salesTrend),
+            purchasesTrend: Number(data.purchasesTrend),
+            profitTrend: Number(data.profitTrend),
+            ordersTrend: Number(data.ordersTrend),
+        };
     },
 
-    /**
-     * Get monthly sales vs purchases data
-     */
-    getMonthlySalesPurchases: async (
-        months: number = 12,
-        config?: RequestConfig
-    ): Promise<MonthlySalesVsPurchasesDto[]> => {
-        const response = await get<GetMonthlySalesPurchasesResponse>(
-            `/api/Dashboard/monthly-sales-purchases?months=${months}`,
-            config
-        );
-        return response.data;
+    // Fetch sales vs purchases data for a given period
+    getSalesPurchases: async (period: string = 'month'): Promise<SalesPurchaseDataPoint[]> => {
+        const data = await get<any[]>('/api/dashboard/sales-purchases', {
+            params: { period },
+        });
+        return data.map((point: any) => ({
+            date: point.date,
+            sales: Number(point.sales),
+            purchases: Number(point.purchases),
+        }));
     },
 
-    /**
-     * Get top selling products
-     */
-    getTopSellingProducts: async (
-        top: number = 10,
-        config?: RequestConfig
-    ): Promise<TopSellingProductDto[]> => {
-        const response = await get<GetTopSellingProductsResponse>(
-            `/api/Dashboard/top-selling-products?top=${top}`,
-            config
-        );
-        return response.data;
+    // Fetch top products
+    getTopProducts: async (limit: number = 5): Promise<TopProduct[]> => {
+        const data = await get<TopProduct[]>('/api/dashboard/top-products', {
+            params: { limit },
+        });
+        return data.map((product: any) => ({
+            ...product,
+            quantitySold: Number(product.quantitySold),
+            revenue: Number(product.revenue),
+            trend: Number(product.trend),
+        }));
     },
 
-    /**
-     * Get low stock alerts
-     */
-    getLowStockAlerts: async (config?: RequestConfig): Promise<LowStockAlertDto[]> => {
-        const response = await get<GetLowStockAlertsResponse>('/api/Dashboard/low-stock-alerts', config);
-        return response.data;
+    // Fetch low stock products
+    getLowStock: async (): Promise<LowStockProduct[]> => {
+        const data = await get<LowStockProduct[]>('/api/dashboard/low-stock');
+        return data.map((product: any) => ({
+            ...product,
+            currentStock: Number(product.currentStock),
+            reorderLevel: Number(product.reorderLevel),
+            criticalLevel: product.criticalLevel ? Number(product.criticalLevel) : undefined,
+        }));
     },
 
-    /**
-     * Get pending payment alerts
-     */
-    getPendingPaymentAlerts: async (config?: RequestConfig): Promise<PendingPaymentAlertDto[]> => {
-        const response = await get<GetPendingPaymentAlertsResponse>('/api/Dashboard/pending-payment-alerts', config);
-        return response.data;
+    // Fetch pending payments
+    getPendingPayments: async (): Promise<PendingPayment[]> => {
+        const data = await get<PendingPayment[]>('/api/dashboard/pending-payments');
+        return data.map((payment: any) => ({
+            ...payment,
+            amount: Number(payment.amount),
+            dueDate: payment.dueDate,
+            status: payment.status,
+        }));
     },
 };

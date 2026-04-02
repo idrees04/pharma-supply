@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Edit2, Trash2, Package, ShieldCheck, AlertTriangle, Info, Calculator, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/utils/formatters';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ProductCardProps {

@@ -12,7 +12,7 @@ import {
   Download,
   FileJson,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from '@/utils/formatters';
 import {
   downloadCSV,
   downloadJSON,

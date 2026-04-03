@@ -3,8 +3,7 @@ import { usePendingPaymentAlerts } from '@/hooks/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { motion } from 'framer-motion';
-import { formatCurrency } from '@/lib/utils';
-import { formatRelativeDays } from '@/utils/dateUtils';
+import { formatCurrency, formatRelativeDays } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 const PendingPaymentsTable: React.FC = () => {

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import PaymentForm from "./PaymentForm";
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency } from "@/lib/utils";
 import { usePaymentList, useDeletePayment } from "@/api/services/payments";
 import { PaymentDto, PaymentMode } from "@/types/api/payments";
 

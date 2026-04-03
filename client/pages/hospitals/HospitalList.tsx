@@ -16,13 +16,12 @@ import { DataTable, Column } from '@/components/common/DataTable';
 import { Hospital } from '@/api/services/hospitals.service';
 import { useDeleteHospital, useGetHospitals } from '@/hooks/useHospitals';
 import { useQueryClient } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency } from '@/utils/formatters';
 
 const ITEMS_PER_PAGE = 10;
 

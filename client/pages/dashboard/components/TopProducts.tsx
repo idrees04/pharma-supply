@@ -2,7 +2,7 @@ import React from 'react';
 import { useTopSellingProducts } from '@/hooks/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency } from '@/lib/utils';
 
 const TopProducts: React.FC = () => {
     const { data, isLoading, error } = useTopSellingProducts();

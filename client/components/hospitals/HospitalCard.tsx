@@ -4,8 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Edit2, Trash2, Hospital as HospitalIcon, User, Phone, Mail, MapPin, DollarSign, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import { formatCurrency } from '@/utils/formatters';
+import { cn, formatCurrency } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 
 interface HospitalCardProps {

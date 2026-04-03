@@ -29,8 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { LinkedProductsTable } from '@/components/suppliers/LinkedProductsTable';
 import { LinkProductsModal } from '@/components/suppliers/LinkProductsModal';
-import { cn } from '@/lib/utils';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency, cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 import {

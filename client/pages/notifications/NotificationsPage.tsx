@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Bell,
@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/table';
 import { useCurrentUser } from '@/hooks/useAuth';
 import {
+  useCreateNotification,
   useDeleteNotification,
   useMarkAsRead,
   useMarkNotificationAsRead,
@@ -100,7 +101,7 @@ function exportNotificationsCsv(notifications: NotificationDto[]) {
     notification.id,
     notification.userName ?? '',
     notification.title ?? '',
-    (notification.message ?? '').replaceAll('"', '""'),
+    (notification.message ?? '').replace(/"/g, '""'),
     formatNotificationType(notification.type),
     notification.createdDate,
     notification.isRead ? 'true' : 'false',
@@ -220,6 +221,7 @@ export default function NotificationsPage() {
   const { data: unreadCount = 0 } = useUnreadCount(userId);
   const markAllReadMutation = useMarkAsRead(userId ?? 0);
   const deleteNotificationMutation = useDeleteNotification(userId ?? 0);
+  const createNotificationMutation = useCreateNotification();
 
   useEffect(() => {
     if (!selectedNotification && data?.items?.length) {
@@ -276,6 +278,28 @@ export default function NotificationsPage() {
     setStatusFilter('all');
   };
 
+  const handleSendTestNotification = () => {
+    if (!userId) return;
+
+    createNotificationMutation.mutate(
+      {
+        userId,
+        title: 'Test Notification',
+        message: 'This is a test notification sent from the notifications center.',
+        type: NotificationType.Info,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Test notification sent successfully!');
+          refetch();
+        },
+        onError: (error) => {
+          toast.error(`Failed to send test notification: ${error.userMessage || 'Unknown error'}`);
+        },
+      },
+    );
+  };
+
   if (!userId) {
     return (
       <Card>
@@ -322,6 +346,14 @@ export default function NotificationsPage() {
           </Button>
           <Button variant="outline" onClick={() => exportNotificationsCsv(filteredNotifications)} className="gap-2">
             Export CSV
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleSendTestNotification} 
+            disabled={createNotificationMutation.isPending}
+            className="gap-2"
+          >
+            Send Test Notification
           </Button>
         </div>
       </div>

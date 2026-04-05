@@ -164,16 +164,6 @@ const AppRoutes = () => (
         }
       />
     </Route>
-    <Route
-      path="/federations"
-      element={
-        <ProtectedRoute module="federations" permission="read">
-          <MainLayout>
-            <FederationList />
-          </MainLayout>
-        </ProtectedRoute>
-      }
-    />
     <Route path="/supply-orders">
       <Route
         index

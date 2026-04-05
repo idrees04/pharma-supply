@@ -64,8 +64,8 @@ client/
     │   ├── PaymentForm.tsx
     │   ├── BankAccountList.tsx
     │   ├── BankAccountForm.tsx
-    │   ├── InternalTransferList.tsx
-    │   └── InternalTransferForm.tsx
+    │   ├── AccountTransfersList.tsx
+    │   └── AccountTransferForm.tsx
     ├── payroll/
     │   ├── SalaryVoucherList.tsx
     │   └── SalaryVoucherForm.tsx

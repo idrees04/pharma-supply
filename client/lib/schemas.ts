@@ -147,18 +147,23 @@ export const bankAccountSchema = z.object({
 
 export type BankAccountFormData = z.infer<typeof bankAccountSchema>;
 
-// Internal Transfer Schema
-export const internalTransferSchema = z.object({
-  fromAccountId: z.string().min(1, "From Account is required"),
-  toAccountId: z.string().min(1, "To Account is required"),
-  amount: z.coerce.number().positive("Amount must be positive"),
-  referenceNo: z.string().min(1, "Reference No is required"),
-  date: z.string().min(1, "Date is required"),
-  notes: z.string().optional(),
-});
+// Account Transfer Schema
+export const accountTransferSchema = z.object({
+  transferDate: z.string().min(1, 'Transfer date is required'),
+  fromAccountId: z.coerce.number().int().positive('From account is required'),
+  toAccountId: z.coerce.number().int().positive('To account is required'),
+  amount: z.coerce.number().positive('Amount must be greater than 0'),
+  referenceNumber: z.string().min(1, 'Reference Number is required'),
+  notes: z.string().min(1, 'Note  is required'),
+}).refine(
+  (data) => data.fromAccountId !== data.toAccountId,
+  {
+    message: 'Cannot transfer to the same account',
+    path: ['toAccountId'],
+  }
+);
 
-export type InternalTransferFormData = z.infer<typeof internalTransferSchema>;
-
+export type AccountTransferFormData = z.infer<typeof accountTransferSchema>;
 // User Schema
 export const userSchema = z.object({
   name: z.string().min(1, "Name is required"),

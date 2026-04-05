@@ -25,7 +25,7 @@ import SalesTaxInvoiceList from "./pages/invoices/SalesTaxInvoiceList";
 import DailyExpenseList from "./pages/finance/DailyExpenseList";
 import PaymentList from "./pages/finance/PaymentList";
 import BankAccountList from "./pages/finance/BankAccountList";
-import InternalTransferList from "./pages/finance/InternalTransferList";
+import AccountTransfersList from "./pages/finance/AccountTransfersList";
 import Reports from "./pages/reports/Reports";
 import ProductList from "./pages/inventory/ProductList";
 import InventoryList from "./pages/inventory/InventoryList";
@@ -164,6 +164,16 @@ const AppRoutes = () => (
         }
       />
     </Route>
+    <Route
+      path="/federations"
+      element={
+        <ProtectedRoute module="federations" permission="read">
+          <MainLayout>
+            <FederationList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
     <Route path="/supply-orders">
       <Route
         index
@@ -303,7 +313,7 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute module="transfers" permission="read">
           <MainLayout>
-            <InternalTransferList />
+            <AccountTransfersList />
           </MainLayout>
         </ProtectedRoute>
       }

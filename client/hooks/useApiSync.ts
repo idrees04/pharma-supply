@@ -40,32 +40,32 @@ export function useApiSync() {
           apiClient.getInventory(),
         ]);
 
-        if (productsRes.data) {
-          productsRes.data.forEach((product: any) => {
+        if (Array.isArray(productsRes.data)) {
+          productsRes.data.forEach((product) => {
             if (!store.products.find((p) => p.id === product.id)) {
               store.addProduct(product);
             }
           });
         }
 
-        if (suppliersRes.data) {
-          suppliersRes.data.forEach((supplier: any) => {
+        if (Array.isArray(suppliersRes.data)) {
+          suppliersRes.data.forEach((supplier) => {
             if (!store.suppliers.find((s) => s.id === supplier.id)) {
               store.addSupplier(supplier);
             }
           });
         }
 
-        if (hospitalsRes.data) {
-          hospitalsRes.data.forEach((hospital: any) => {
+        if (Array.isArray(hospitalsRes.data)) {
+          hospitalsRes.data.forEach((hospital) => {
             if (!store.hospitals.find((h) => h.id === hospital.id)) {
               store.addHospital(hospital);
             }
           });
         }
 
-        if (supplyOrdersRes.data) {
-          supplyOrdersRes.data.forEach((order: any) => {
+        if (Array.isArray(supplyOrdersRes.data)) {
+          supplyOrdersRes.data.forEach((order) => {
             if (!store.supplyOrders.find((o) => o.id === order.id)) {
               store.addSupplyOrder(order);
             }
@@ -73,32 +73,32 @@ export function useApiSync() {
         }
 
 
-        if (purchaseOrdersRes.data) {
-          purchaseOrdersRes.data.forEach((order: any) => {
+        if (Array.isArray(purchaseOrdersRes.data)) {
+          purchaseOrdersRes.data.forEach((order) => {
             if (!store.purchaseOrders.find((o) => o.id === order.id)) {
               store.addPurchaseOrder(order);
             }
           });
         }
 
-        if (deliveryChallansRes.data) {
-          deliveryChallansRes.data.forEach((dc: any) => {
+        if (Array.isArray(deliveryChallansRes.data)) {
+          deliveryChallansRes.data.forEach((dc) => {
             if (!store.deliveryChallans.find((d) => d.id === dc.id)) {
               store.addDeliveryChallan(dc);
             }
           });
         }
 
-        if (taxInvoicesRes.data) {
-          taxInvoicesRes.data.forEach((invoice: any) => {
+        if (Array.isArray(taxInvoicesRes.data)) {
+          taxInvoicesRes.data.forEach((invoice) => {
             if (!store.taxInvoices.find((i) => i.id === invoice.id)) {
               store.addTaxInvoice(invoice);
             }
           });
         }
 
-        if (dailyExpensesRes.data) {
-          dailyExpensesRes.data.forEach((expense: any) => {
+        if (Array.isArray(dailyExpensesRes.data)) {
+          dailyExpensesRes.data.forEach((expense) => {
             if (!store.dailyExpenses.find((e) => e.id === expense.id)) {
               store.addDailyExpense(expense);
             }
@@ -106,16 +106,16 @@ export function useApiSync() {
         }
 
 
-        if (bankAccountsRes.data) {
-          bankAccountsRes.data.forEach((account: any) => {
+        if (Array.isArray(bankAccountsRes.data)) {
+          bankAccountsRes.data.forEach((account) => {
             if (!store.bankAccounts.find((a) => a.id === account.id)) {
               store.addBankAccount(account);
             }
           });
         }
 
-        if (inventoryRes.data) {
-          inventoryRes.data.forEach((item: any) => {
+        if (Array.isArray(inventoryRes.data)) {
+          inventoryRes.data.forEach((item) => {
             if (!store.inventoryItems.find((i) => i.id === item.id)) {
               store.updateInventoryItem(item.id, item);
             }

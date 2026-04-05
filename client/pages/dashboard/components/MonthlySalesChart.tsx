@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency } from '@/lib/utils';
 
 const MonthlySalesChart: React.FC = () => {
     const { data, isLoading, error } = useMonthlySalesPurchases();

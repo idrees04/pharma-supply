@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Building2, Truck, Package, AlertTriangle, ClipboardList, Wallet, CreditCard, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSummary } from '@/hooks/dashboard';
-import { formatCurrency, formatNumber } from '@/utils/formatters';
+import { formatCurrency, formatNumber } from '@/lib/utils';
 
 const SummaryCards: React.FC = () => {
     const { data: summary, isLoading } = useSummary();

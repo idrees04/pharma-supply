@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import DailyExpenseForm from "./DailyExpenseForm";
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency } from "@/lib/utils";
 import { useExpenseList, useDeleteExpense } from "@/api/services/expenses";
 import { ExpenseDto } from "@/types/api/expenses";
 

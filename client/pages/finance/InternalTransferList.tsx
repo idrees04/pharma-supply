@@ -13,7 +13,7 @@ import { Plus, Edit2, Trash2, AlertCircle, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import InternalTransferForm from './InternalTransferForm';
 import { DataTable } from '@/components/common/DataTable';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency } from '@/lib/utils';
 
 export default function InternalTransferList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);

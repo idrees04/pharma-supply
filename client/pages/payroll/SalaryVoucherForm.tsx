@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency } from "@/lib/utils";
 
 interface SalaryVoucherFormProps {
   initialData?: SalaryVoucher;
@@ -29,19 +29,19 @@ export default function SalaryVoucherForm({
     resolver: zodResolver(salaryVoucherSchema),
     defaultValues: initialData
       ? {
-        voucherNo: initialData.voucherNo,
-        employeeName: initialData.employeeName,
-        date: initialData.date,
-        grossSalary: initialData.grossSalary,
-        allowances: initialData.allowances,
-        deductions: initialData.deductions,
-        bankName: initialData.bankName,
-        accountNo: initialData.accountNo,
-      }
+          voucherNo: initialData.voucherNo,
+          employeeName: initialData.employeeName,
+          date: initialData.date,
+          grossSalary: initialData.grossSalary,
+          allowances: initialData.allowances,
+          deductions: initialData.deductions,
+          bankName: initialData.bankName,
+          accountNo: initialData.accountNo,
+        }
       : {
-        allowances: [],
-        deductions: [],
-      },
+          allowances: [],
+          deductions: [],
+        },
   });
 
   const {

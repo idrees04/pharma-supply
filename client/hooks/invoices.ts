@@ -1,64 +1,104 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { useGetQuery, usePostMutation } from '@/api/hooks';
-import { invoiceService } from '@/api/services/invoices';
 import {
-    InvoiceDto,
-    CreateInvoiceRequest,
-    InvoiceListQueryParams,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationOptions,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
+import { invoiceService } from '@/api/services/invoices';
+import { ApiError } from '@/api/errors';
+import type {
+  CreateInvoiceRequest,
+  CreateInvoiceResponse,
+  GetInvoiceResponse,
+  GetInvoicesResponse,
+  GetOutstandingInvoicesResponse,
+  GetOverdueInvoicesResponse,
+  InvoiceListQueryParams,
 } from '@/types/api/invoices';
-import { PaginatedResponse } from '@/types/api/common';
 
-export function useInvoices(params?: InvoiceListQueryParams) {
-    return useGetQuery<PaginatedResponse<InvoiceDto>>(
-        ['invoices', params],
-        () => invoiceService.getInvoices(params),
-        {
-            staleTime: 5 * 60 * 1000,
-        }
-    );
+const invoiceKeys = {
+  all: ['invoices'] as const,
+  lists: () => [...invoiceKeys.all, 'list'] as const,
+  list: (params: InvoiceListQueryParams) => [...invoiceKeys.lists(), params] as const,
+  details: () => [...invoiceKeys.all, 'detail'] as const,
+  detail: (id: number) => [...invoiceKeys.details(), id] as const,
+  outstanding: () => [...invoiceKeys.all, 'outstanding'] as const,
+  overdue: () => [...invoiceKeys.all, 'overdue'] as const,
+};
+
+export function useInvoices(
+  params: InvoiceListQueryParams,
+  options?: Omit<UseQueryOptions<GetInvoicesResponse, ApiError>, 'queryKey' | 'queryFn'>,
+) {
+  return useQuery({
+    queryKey: invoiceKeys.list(params),
+    queryFn: () => invoiceService.getAll(params),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.statusCode < 500 && !error.isRetryable) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    ...options,
+  });
 }
 
-export function useInvoice(id: number | null) {
-    return useGetQuery<InvoiceDto>(
-        ['invoices', id],
-        () => invoiceService.getInvoice(id!),
-        {
-            enabled: id !== null,
-        }
-    );
+export function useInvoice(
+  id: number | null,
+  options?: Omit<UseQueryOptions<GetInvoiceResponse, ApiError>, 'queryKey' | 'queryFn'>,
+) {
+  return useQuery({
+    queryKey: invoiceKeys.detail(id || 0),
+    queryFn: () => invoiceService.getById(id!),
+    enabled: id !== null && id > 0,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    ...options,
+  });
 }
 
-export function useOutstandingInvoices() {
-    return useGetQuery<InvoiceDto[]>(
-        ['invoices', 'outstanding'],
-        () => invoiceService.getOutstandingInvoices(),
-        {
-            staleTime: 2 * 60 * 1000,
-        }
-    );
+export function useOutstandingInvoices(
+  options?: Omit<UseQueryOptions<GetOutstandingInvoicesResponse, ApiError>, 'queryKey' | 'queryFn'>,
+) {
+  return useQuery({
+    queryKey: invoiceKeys.outstanding(),
+    queryFn: () => invoiceService.getOutstanding(),
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    ...options,
+  });
 }
 
-export function useOverdueInvoices() {
-    return useGetQuery<InvoiceDto[]>(
-        ['invoices', 'overdue'],
-        () => invoiceService.getOverdueInvoices(),
-        {
-            staleTime: 2 * 60 * 1000,
-        }
-    );
+export function useOverdueInvoices(
+  options?: Omit<UseQueryOptions<GetOverdueInvoicesResponse, ApiError>, 'queryKey' | 'queryFn'>,
+) {
+  return useQuery({
+    queryKey: invoiceKeys.overdue(),
+    queryFn: () => invoiceService.getOverdue(),
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    ...options,
+  });
 }
 
-export function useCreateInvoice() {
-    const queryClient = useQueryClient();
+export function useCreateInvoice(
+  options?: Omit<UseMutationOptions<CreateInvoiceResponse, ApiError, CreateInvoiceRequest>, 'mutationFn'>,
+) {
+  const queryClient = useQueryClient();
 
-    return usePostMutation<InvoiceDto, CreateInvoiceRequest>(
-        (data) => invoiceService.createInvoice(data),
-        {
-            onSuccess: () => {
-                queryClient.invalidateQueries({ queryKey: ['invoices'] });
-                queryClient.invalidateQueries({ queryKey: ['invoices', 'outstanding'] });
-                queryClient.invalidateQueries({ queryKey: ['invoices', 'overdue'] });
-            },
-        }
-    );
+  return useMutation({
+    mutationFn: (data: CreateInvoiceRequest) => invoiceService.create(data),
+    onSuccess: (data, variables, context, mutation) => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.outstanding() });
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.overdue() });
+      options?.onSuccess?.(data, variables, context, mutation);
+    },
+    ...options,
+  });
 }
+
+export { invoiceKeys };

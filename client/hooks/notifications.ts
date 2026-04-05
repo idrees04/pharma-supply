@@ -25,7 +25,7 @@ export function useUnreadNotifications(userId: number | null) {
         () => notificationService.getUnreadNotifications(userId!),
         {
             enabled: userId !== null,
-            refetchInterval: 60 * 1000, // refetch every minute
+            refetchInterval: 15 * 1000,
         }
     );
 }

@@ -36,8 +36,7 @@ import {
 import { useProductSuppliersByProduct } from '@/api/services/productSuppliers';
 import { useGetHospitals } from '@/hooks/useHospitals';
 import { useProductList } from '@/api/services/products';
-import { cn } from '@/lib/utils';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency, cn } from '@/lib/utils';
 import { CreateSupplyOrderRequest, UpdateSupplyOrderRequest } from '@/types/api/supplyOrders';
 import { Product } from '@/types/api/products';
 

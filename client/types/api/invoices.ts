@@ -34,8 +34,8 @@ export interface InvoiceDto {
     invoiceNumber: string | null;
     hospitalId: number;
     hospitalName: string | null;
-    invoiceDate: string; // ISO date
-    dueDate: string; // ISO date
+    invoiceDate: string; // ISO date-time
+    dueDate: string; // ISO date-time
     status: InvoiceStatus;
     subTotal: number;
     taxAmount: number;
@@ -45,7 +45,7 @@ export interface InvoiceDto {
     totalAmount: number;
     paidAmount: number;
     outstandingAmount: number;
-    paymentReceivedDate: string | null;
+    paymentReceivedDate: string | null; // ISO date-time
     notes: string | null;
     items?: InvoiceItemDto[] | null;
 }
@@ -62,8 +62,8 @@ export interface CreateInvoiceItemRequest {
 
 export interface CreateInvoiceRequest {
     hospitalId: number;
-    invoiceDate: string; // ISO date
-    dueDate: string; // ISO date
+    invoiceDate: string; // ISO date-time
+    dueDate: string; // ISO date-time
     shippingCharges?: number;
     adjustmentAmount?: number;
     notes?: string | null;
@@ -81,6 +81,7 @@ export interface InvoiceListQueryParams {
 }
 
 // Response types
+export type InvoicePaginatedData = PaginatedResponse<InvoiceDto>;
 export type GetInvoicesResponse = ApiResponse<PaginatedResponse<InvoiceDto>>;
 export type GetInvoiceResponse = ApiResponse<InvoiceDto>;
 export type GetOutstandingInvoicesResponse = ApiResponse<InvoiceDto[]>;

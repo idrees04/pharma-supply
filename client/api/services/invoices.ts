@@ -1,75 +1,45 @@
-import { get, post, RequestConfig } from '@/api/requests';
-import {
-    InvoiceDto,
-    CreateInvoiceRequest,
-    InvoiceListQueryParams,
-    GetInvoicesResponse,
-    GetInvoiceResponse,
-    GetOutstandingInvoicesResponse,
-    GetOverdueInvoicesResponse,
-    CreateInvoiceResponse,
+import { get, post } from '@/api/requests';
+import type {
+  CreateInvoiceRequest,
+  CreateInvoiceResponse,
+  GetInvoiceResponse,
+  GetInvoicesResponse,
+  GetOutstandingInvoicesResponse,
+  GetOverdueInvoicesResponse,
+  InvoiceListQueryParams,
 } from '@/types/api/invoices';
-import { PaginatedResponse } from '@/types/api/common';
 
-export const invoiceService = {
-    /**
-     * Get all invoices with pagination
-     */
-    getInvoices: async (
-        params?: InvoiceListQueryParams,
-        config?: RequestConfig
-    ): Promise<PaginatedResponse<InvoiceDto>> => {
-        const queryParams = new URLSearchParams();
+class InvoiceService {
+  async getAll(params?: InvoiceListQueryParams): Promise<GetInvoicesResponse> {
+    const queryString = params
+      ? new URLSearchParams(
+          Object.entries(params)
+            .filter(([, value]) => value !== undefined && value !== '')
+            .map(([key, value]) => [key, String(value)]),
+        ).toString()
+      : '';
 
-        if (params) {
-            if (params.pageNumber !== undefined) queryParams.append('PageNumber', params.pageNumber.toString());
-            if (params.pageSize !== undefined) queryParams.append('PageSize', params.pageSize.toString());
-            if (params.searchTerm) queryParams.append('SearchTerm', params.searchTerm);
-            if (params.sortBy) queryParams.append('SortBy', params.sortBy);
-            if (params.sortDescending !== undefined) queryParams.append('SortDescending', params.sortDescending.toString());
-        }
+    const url = `/api/Invoices${queryString ? `?${queryString}` : ''}`;
+    return get<GetInvoicesResponse>(url);
+  }
 
-        const url = `/api/Invoices${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-        const response = await get<GetInvoicesResponse>(url, config);
-        return response.data;
-    },
+  async getById(id: number): Promise<GetInvoiceResponse> {
+    return get<GetInvoiceResponse>(`/api/Invoices/${id}`);
+  }
 
-    /**
-     * Get a single invoice by ID
-     */
-    getInvoice: async (id: number, config?: RequestConfig): Promise<InvoiceDto> => {
-        const response = await get<GetInvoiceResponse>(`/api/Invoices/${id}`, config);
-        return response.data;
-    },
+  async create(data: CreateInvoiceRequest): Promise<CreateInvoiceResponse> {
+    return post<CreateInvoiceResponse, CreateInvoiceRequest>('/api/Invoices', data);
+  }
 
-    /**
-     * Create a new invoice
-     */
-    createInvoice: async (
-        data: CreateInvoiceRequest,
-        config?: RequestConfig
-    ): Promise<InvoiceDto> => {
-        const response = await post<CreateInvoiceResponse, CreateInvoiceRequest>(
-            '/api/Invoices',
-            data,
-            config
-        );
-        return response.data;
-    },
+  async getOutstanding(): Promise<GetOutstandingInvoicesResponse> {
+    return get<GetOutstandingInvoicesResponse>('/api/Invoices/outstanding');
+  }
 
-    /**
-     * Get outstanding invoices
-     */
-    getOutstandingInvoices: async (config?: RequestConfig): Promise<InvoiceDto[]> => {
-        const response = await get<GetOutstandingInvoicesResponse>('/api/Invoices/outstanding', config);
-        return response.data;
-    },
+  async getOverdue(): Promise<GetOverdueInvoicesResponse> {
+    return get<GetOverdueInvoicesResponse>('/api/Invoices/overdue');
+  }
+}
 
-    /**
-     * Get overdue invoices
-     */
-    getOverdueInvoices: async (config?: RequestConfig): Promise<InvoiceDto[]> => {
-        const response = await get<GetOverdueInvoicesResponse>('/api/Invoices/overdue', config);
-        return response.data;
-    },
-};
+export const invoiceService = new InvoiceService();
+
+export type { InvoiceListQueryParams, CreateInvoiceRequest };

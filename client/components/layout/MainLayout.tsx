@@ -87,6 +87,12 @@ const menuItems: MenuItemType[] = [
         href: "/hospitals",
         module: "hospitals",
       },
+      {
+        icon: <Users className="w-4 h-4" />,
+        label: "Federation",
+        href: "/federations",
+        module: "federations",
+      },
     ],
   },
   {

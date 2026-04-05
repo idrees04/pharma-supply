@@ -33,6 +33,7 @@ import SupplierList from "./pages/suppliers/SupplierList";
 import SupplierDetails from "./pages/suppliers/SupplierDetails";
 import HospitalList from "./pages/hospitals/HospitalList";
 import HospitalDetails from "./pages/hospitals/HospitalDetails";
+import FederationList from "./pages/federations/FederationList";
 import ProductDetails from "./pages/inventory/ProductDetails";
 import SupplyOrderList from "./pages/supply/SupplyOrderList";
 import SupplyOrderForm from "./pages/supply/SupplyOrderForm";

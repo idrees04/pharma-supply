@@ -23,7 +23,6 @@ export * from './auditLogs';
 export * from './dashboard';
 export * from './expenseCategories';
 export * from './expenses';
-export * from './federation';
 export * from './inventory';
 export * from './invoices';
 export * from './notifications';

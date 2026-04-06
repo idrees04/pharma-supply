@@ -13,7 +13,6 @@ const rolePermissions: Record<UserRole, ModulePermissions> = {
     products: ["create", "read", "update", "delete"],
     suppliers: ["create", "read", "update", "delete"],
     hospitals: ["create", "read", "update", "delete"],
-    federations: ["create", "read", "update", "delete"],
     supplyOrders: ["create", "read", "update", "delete"],
     purchaseOrders: ["create", "read", "update", "delete"],
     deliveryChallans: ["create", "read", "update", "delete"],

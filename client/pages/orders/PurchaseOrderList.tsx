@@ -21,6 +21,7 @@ import {
 import { PurchaseOrder } from '@/types/api/purchaseOrders';
 import { purchaseOrderService, usePurchaseOrderStatuses, useDeletePurchaseOrder, usePurchaseOrderList } from '@/api/services/purchaseOrders';
 import { formatCurrency } from '@/lib/utils';
+const ITEMS_PER_PAGE = 10;
 
 export default function PurchaseOrderList() {
   const navigate = useNavigate();
@@ -106,7 +107,7 @@ export default function PurchaseOrderList() {
   // 5. Define Columns
   const columns: Column<PurchaseOrder>[] = useMemo(() => [
     {
-      header: 'ID',
+      header: 'IDa',
       accessor: 'id',
 
     },
@@ -211,7 +212,7 @@ export default function PurchaseOrderList() {
             setPoToDelete(row);
             setIsDeleteDialogOpen(true);
           }}
-          itemsPerPage={10}
+          itemsPerPage={ITEMS_PER_PAGE}
           emptyMessage="No purchase orders found."
           showSearch={false}
           onRowClick={(row) => navigate(`/orders/purchase/view/${row.id}`)}

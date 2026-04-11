@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/common/DataTable';
-import SalesTaxInvoiceForm from './SalesTaxInvoiceForm';
+import InvoiceForm from './InvoiceForm';
 import { cn, formatCurrency } from '@/lib/utils';
 
 const ITEMS_PER_PAGE = 10;
@@ -527,7 +527,7 @@ export default function InvoiceList() {
             </DialogHeader>
           </div>
           <div className="overflow-y-auto p-6">
-            <SalesTaxInvoiceForm onSuccess={() => setIsCreateOpen(false)} />
+            <InvoiceForm onSuccess={() => setIsCreateOpen(false)} />
           </div>
         </DialogContent>
       </Dialog>

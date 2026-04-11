@@ -55,7 +55,7 @@ client/
     │   ├── DeliveryChallanList.tsx
     │   └── DeliveryChallanForm.tsx
     ├── invoices/
-    │   ├── SalesTaxInvoiceList.tsx
+    │   ├── InvoiceList.tsx
     │   └── SalesTaxInvoiceForm.tsx
     ├── finance/
     │   ├── DailyExpenseList.tsx

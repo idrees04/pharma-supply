@@ -3,6 +3,12 @@ import { ApiResponse } from './common';
 // DTOs
 export interface TaxConfiguration {
     id: number;
+    federationId: number;
+    createdDate: string;
+    createdBy: number;
+    modifiedDate: string;
+    modifiedBy: number;
+    isActive: boolean;
     taxName: string;
     taxCode: string;
     taxPercentage: number;
@@ -10,14 +16,11 @@ export interface TaxConfiguration {
     description: string | null;
     effectiveFrom: string; // ISO date
     effectiveTo: string | null;
-    isActive: boolean;
 }
 
 // Request DTOs
-export type CreateTaxConfigurationRequest = Omit<TaxConfiguration, 'id' | 'isActive'> & {
-    isActive?: boolean;
-};
-export type UpdateTaxConfigurationRequest = Partial<Omit<TaxConfiguration, 'id'>>;
+export type CreateTaxConfigurationRequest = Omit<TaxConfiguration, 'id' | 'federationId'>;
+export type UpdateTaxConfigurationRequest = Partial<Omit<TaxConfiguration, 'id' | 'federationId'>>;
 
 // Response types
 export type GetTaxConfigurationsResponse = ApiResponse<TaxConfiguration[]>;

@@ -199,7 +199,7 @@ export default function TaxConfigurationList() {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-4">
           <DialogHeader>
             <DialogTitle>
               {selectedTaxId ? "Edit Tax Configuration" : "Add Tax Configuration"}

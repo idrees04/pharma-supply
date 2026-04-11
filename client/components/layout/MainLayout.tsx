@@ -109,12 +109,12 @@ const menuItems: MenuItemType[] = [
       },
     ],
   },
-  {
-    icon: <Truck className="w-5 h-5" />,
-    label: "Delivery",
-    href: "/delivery",
-    module: "deliveryChallans",
-  },
+  // {
+  //   icon: <Truck className="w-5 h-5" />,
+  //   label: "Delivery",
+  //   href: "/delivery",
+  //   module: "deliveryChallans",
+  // },
   {
     icon: <Receipt className="w-5 h-5" />,
     label: "Invoices",

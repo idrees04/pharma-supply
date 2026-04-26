@@ -167,9 +167,8 @@ export function DataTable<T extends { id?: string | number }>({
       };
     });
 
-    // Add expansion trigger if there are hidden columns or custom renderer
-    const hasHiddenColumns = userColumns.some(c => c.mobileHidden);
-    if (hasHiddenColumns || renderExpandedRow) {
+    // Add expansion trigger only if custom renderer is provided
+    if (renderExpandedRow) {
       cols.unshift({
         id: 'expander',
         header: () => <div className="w-8 md:hidden" />,

@@ -107,7 +107,7 @@ export default function PurchaseOrderList() {
   // 5. Define Columns
   const columns: Column<PurchaseOrder>[] = useMemo(() => [
     {
-      header: 'IDa',
+      header: 'ID',
       accessor: 'id',
 
     },

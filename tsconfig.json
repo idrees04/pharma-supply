@@ -27,7 +27,6 @@
     "noFallthroughCasesInSwitch": false,
     "strictNullChecks": false,
     /* Path mapping */
-    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./client/*"

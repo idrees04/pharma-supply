@@ -23,21 +23,26 @@ const TopProducts: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        {data.map((product, idx) => (
-                            <div key={product.productCode} className="flex items-center justify-between border-b pb-2 last:border-0">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium text-gray-500 w-6">#{idx + 1}</span>
-                                    <div>
-                                        <p className="font-medium">{product.productName}</p>
-                                        <p className="text-xs text-gray-500">Code: {product.productCode}</p>
+                        {data.map((product, idx) => {
+                            const productName = product.productName ?? 'Unknown Product';
+                            const productCode = product.productCode ?? `N/A-${idx}`;
+                            const key = productCode || `product-${idx}`;
+                            return (
+                                <div key={key} className="flex items-center justify-between border-b pb-2 last:border-0">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm font-medium text-gray-500 w-6">#{idx + 1}</span>
+                                        <div>
+                                            <p className="font-medium">{productName}</p>
+                                            <p className="text-xs text-gray-500">Code: {productCode}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-semibold">{formatCurrency(product.totalRevenue)}</p>
+                                        <p className="text-xs text-gray-500">Qty: {product.totalQuantitySold}</p>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="font-semibold">{formatCurrency(product.totalRevenue)}</p>
-                                    <p className="text-xs text-gray-500">Qty: {product.totalQuantitySold}</p>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </CardContent>
             </Card>

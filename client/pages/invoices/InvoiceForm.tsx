@@ -62,7 +62,7 @@ const invoiceFormSchema = z.object({
 
 type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
 
-interface SalesTaxInvoiceFormProps {
+interface InvoiceFormProps {
   onSuccess?: () => void;
 }
 
@@ -143,7 +143,7 @@ const InvoiceTotals = memo(function InvoiceTotals({
   );
 });
 
-export default function SalesTaxInvoiceForm({ onSuccess }: SalesTaxInvoiceFormProps) {
+export default function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const { mutate: createInvoice, isPending } = useCreateInvoice();
   const { data: hospitalsResponse, isPending: isLoadingHospitals } = useGetHospitals({
     pageNumber: 1,

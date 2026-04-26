@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/common/DataTable';
-import SalesTaxInvoiceForm from './SalesTaxInvoiceForm';
+import InvoiceForm from './InvoiceForm';
 import { cn, formatCurrency } from '@/lib/utils';
 
 const ITEMS_PER_PAGE = 10;
@@ -291,7 +291,7 @@ const InvoiceDetailPanel = memo(function InvoiceDetailPanel({
   );
 });
 
-export default function SalesTaxInvoiceList() {
+export default function InvoiceList() {
   const { hasPermission } = useAuth();
   const [searchInput, setSearchInput] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -363,15 +363,18 @@ export default function SalesTaxInvoiceList() {
           <div className="text-xs text-muted-foreground">Hospital ID #{row.hospitalId}</div>
         </div>
       ),
+      className: 'w-32',
     },
     {
       header: 'Hospital',
       accessor: (row) => row.hospitalName || 'N/A',
+      className: 'w-40',
     },
     {
       header: 'Invoice Date',
       accessor: (row) => formatDate(row.invoiceDate),
       mobileHidden: true,
+      className: 'w-24',
     },
     {
       header: 'Due Date',
@@ -386,6 +389,7 @@ export default function SalesTaxInvoiceList() {
         </div>
       ),
       mobileHidden: true,
+      className: 'w-28',
     },
     {
       header: 'Status',
@@ -394,10 +398,12 @@ export default function SalesTaxInvoiceList() {
           {getInvoiceStatusLabel(row.status)}
         </Badge>
       ),
+      className: 'w-20',
     },
     {
       header: 'Total',
       accessor: (row) => <span className="font-semibold">{formatCurrency(row.totalAmount)}</span>,
+      className: 'w-24 text-right',
     },
     {
       header: 'Outstanding',
@@ -406,6 +412,7 @@ export default function SalesTaxInvoiceList() {
           {formatCurrency(row.outstandingAmount)}
         </span>
       ),
+      className: 'w-28 text-right',
     },
   ], []);
 
@@ -520,7 +527,7 @@ export default function SalesTaxInvoiceList() {
             </DialogHeader>
           </div>
           <div className="overflow-y-auto p-6">
-            <SalesTaxInvoiceForm onSuccess={() => setIsCreateOpen(false)} />
+            <InvoiceForm onSuccess={() => setIsCreateOpen(false)} />
           </div>
         </DialogContent>
       </Dialog>

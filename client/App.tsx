@@ -21,7 +21,7 @@ import PurchaseOrderList from "./pages/orders/PurchaseOrderList";
 import PurchaseOrderForm from "./pages/orders/PurchaseOrderForm";
 import PurchaseOrderView from "./pages/orders/PurchaseOrderView";
 import DeliveryChallanList from "./pages/delivery/DeliveryChallanList";
-import SalesTaxInvoiceList from "./pages/invoices/SalesTaxInvoiceList";
+import InvoiceList from "./pages/invoices/InvoiceList";
 import DailyExpenseList from "./pages/finance/DailyExpenseList";
 import PaymentList from "./pages/finance/PaymentList";
 import BankAccountList from "./pages/finance/BankAccountList";
@@ -263,7 +263,7 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute module="invoices" permission="read">
           <MainLayout>
-            <SalesTaxInvoiceList />
+            <InvoiceList />
           </MainLayout>
         </ProtectedRoute>
       }

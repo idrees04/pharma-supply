@@ -21,6 +21,7 @@ import {
 import { SupplyOrder } from '@/types/api/supplyOrders';
 import { useSupplyOrderList, useSupplyOrderStatuses, useDeleteSupplyOrder } from '@/api/services/supplyOrders.service';
 import { formatCurrency } from '@/lib/utils';
+const ITEMS_PER_PAGE = 10;
 
 export default function SupplyOrderList() {
   const navigate = useNavigate();
@@ -209,7 +210,7 @@ export default function SupplyOrderList() {
             setSoToDelete(row);
             setIsDeleteDialogOpen(true);
           }}
-          itemsPerPage={10}
+          itemsPerPage={ITEMS_PER_PAGE}
           emptyMessage="No supply orders found."
           showSearch={false}
           onRowClick={(row) => navigate(`/supply-orders/view/${row.id}`)}

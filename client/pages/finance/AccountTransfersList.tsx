@@ -309,6 +309,7 @@ export default function AccountTransfersList() {
             <div className="text-xs text-muted-foreground">{formatDate(row.transferDate)}</div>
           </div>
         ),
+        className: 'w-32',
       },
       {
         header: 'From → To',
@@ -319,15 +320,18 @@ export default function AccountTransfersList() {
             <span>{row.toAccountName || `Acc ${row.toAccountId}`}</span>
           </div>
         ),
+        className: 'w-48',
       },
       {
         header: 'Amount',
         accessor: (row) => <span className="font-semibold">{formatCurrency(row.amount)}</span>,
+        className: 'w-24 text-right',
       },
       {
         header: 'Reference',
         accessor: (row) => row.referenceNumber || '—',
         mobileHidden: true,
+        className: 'w-32',
       },
       {
         header: 'Status',
@@ -336,6 +340,7 @@ export default function AccountTransfersList() {
             {row.isActive ? 'Active' : 'Inactive'}
           </Badge>
         ),
+        className: 'w-20',
       },
       ...(canDelete
         ? [
@@ -354,6 +359,7 @@ export default function AccountTransfersList() {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               ),
+              className: 'w-16 text-center',
             } as Column<AccountTransferDto>,
           ]
         : []),

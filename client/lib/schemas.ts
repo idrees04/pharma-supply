@@ -310,7 +310,7 @@ export const salesTaxInvoiceSchema = z.object({
   items: z.array(invoiceItemSchema).min(1, "At least one item is required"),
 });
 
-export type SalesTaxInvoiceFormData = z.infer<typeof salesTaxInvoiceSchema>;
+export type InvoiceFormData = z.infer<typeof salesTaxInvoiceSchema>;
 
 // Product Type Schema
 export const productTypeSchema = z.object({

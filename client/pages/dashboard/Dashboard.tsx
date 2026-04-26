@@ -5,6 +5,7 @@ import MonthlySalesChart from './components/MonthlySalesChart';
 import TopProducts from './components/TopProducts';
 import LowStockTable from './components/LowStockTable';
 import PendingPaymentsTable from './components/PendingPayments';
+import OperationalAlerts from './components/OperationalAlerts';
 import { motion } from 'framer-motion';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,9 @@ const DashboardPage: React.FC = () => {
         <LowStockTable />
         <PendingPaymentsTable />
       </div>
+
+      {/* Third row: Operational Alerts */}
+      <OperationalAlerts />
     </motion.div>
   );
 };
@@ -74,6 +78,7 @@ const DashboardSkeleton: React.FC = () => {
         <div className="h-80 bg-gray-200 rounded-xl" />
         <div className="h-80 bg-gray-200 rounded-xl" />
       </div>
+      <div className="h-64 bg-gray-200 rounded-xl" />
     </div>
   );
 };

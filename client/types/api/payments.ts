@@ -75,6 +75,53 @@ export interface PaymentListQueryParams {
     sortDescending?: boolean;
 }
 
+// Suggested Payment Types
+export interface SuggestedPaymentData {
+    purchaseOrderId: number;
+    purchaseOrderNumber: string | null;
+    agreedOrderTotal: number;
+    goodsReceivedValue: number;
+    previouslyPaidAmount: number;
+    totalOutstanding: number;
+    suggestedPayableAmount: number;
+}
+
+export interface SuggestedPaymentResponse {
+    success: boolean;
+    message: string | null;
+    data: SuggestedPaymentData;
+    errors: any | null;
+    timestamp: string;
+}
+
+// Purchase Order Payment Types
+export interface ProcessPaymentRequest {
+    accountId: number;
+    amount: number;
+    paymentDate?: string | null; // ISO date-time, nullable
+    paymentMode: PaymentMode; // Enum 1-5
+    referenceNumber?: string | null;
+    notes?: string | null;
+}
+
+export interface ProcessPaymentResponseData {
+    paymentId: number;
+    paymentNumber: string | null;
+    purchaseOrderId: number;
+    amountPaid: number;
+    newPaidAmount: number;
+    newOutstandingAmount: number;
+    newStatus: number; // Status enum (2..9)
+}
+
+export interface ProcessPaymentApiResponse {
+    success: boolean;
+    message: string | null;
+    data: ProcessPaymentResponseData;
+    errors: any | null;
+    timestamp: string;
+}
+
 // Response types
 export type GetPaymentsResponse = ApiResponse<PaginatedResponse<PaymentDto>>;
 export type GetPaymentResponse = ApiResponse<PaymentDto>;

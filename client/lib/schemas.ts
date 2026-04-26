@@ -263,6 +263,21 @@ export const paymentSchema = z.object({
 
 export type PaymentFormData = z.infer<typeof paymentSchema>;
 
+// Purchase Order Payment Schema
+export const poPaymentSchema = z.object({
+  accountId: z.coerce.number().int().min(1, "Account is required"),
+  amount: z.coerce.number().positive("Amount must be greater than 0"),
+  paymentDate: z.string().optional().nullable().default(null),
+  paymentMode: z.coerce.number().int().min(1).max(5, "Payment Mode is required"),
+  referenceNumber: z.string().optional().default(""),
+  notes: z.string().optional().default(""),
+}).refine((data) => {
+  // Will be validated against outstanding balance at form level
+  return true;
+});
+
+export type POPaymentFormData = z.infer<typeof poPaymentSchema>;
+
 // Daily Expense Schema
 export const expenseItemSchema = z.object({
   reference: z.string().min(1, "Reference is required"),

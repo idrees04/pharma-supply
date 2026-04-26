@@ -24,6 +24,11 @@ import {
   PurchaseOrderListQueryParams,
   PurchaseOrderStatus,
 } from '@/types/api/purchaseOrders';
+import {
+  SuggestedPaymentResponse,
+  ProcessPaymentRequest,
+  ProcessPaymentApiResponse,
+} from '@/types/api/payments';
 import { PaginatedResponse } from '@/types/api/products';
 import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
@@ -143,6 +148,31 @@ export const purchaseOrderService = {
   createPartialOrder: async (id: number, data: PartialOrderRequest, config?: RequestConfig): Promise<PurchaseOrder> => {
     const response = await post<PartialOrderResponse, PartialOrderRequest>(
       `/api/PurchaseOrders/${id}/partial-order`,
+      data,
+      config
+    );
+    return response.data;
+  },
+
+  /**
+   * Get suggested payment details for a purchase order
+   * Fetches computed financial recommendation including outstanding balance and suggested payable amount
+   */
+  getSuggestedPayment: async (id: number, config?: RequestConfig) => {
+    const response = await get<SuggestedPaymentResponse>(
+      `/api/PurchaseOrders/${id}/suggested-payment`,
+      config
+    );
+    return response.data;
+  },
+
+  /**
+   * Process payment for a purchase order
+   * Submits payment details and updates PO status accordingly
+   */
+  processPayment: async (id: number, data: ProcessPaymentRequest, config?: RequestConfig) => {
+    const response = await post<ProcessPaymentApiResponse, ProcessPaymentRequest>(
+      `/api/PurchaseOrders/${id}/pay`,
       data,
       config
     );
@@ -283,6 +313,63 @@ export function useCreatePartialOrder(purchaseOrderId: number) {
       onSuccess: (updated) => {
         queryClient.setQueryData(['purchaseOrders', purchaseOrderId], updated);
         queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+      },
+    }
+  );
+}
+
+/**
+ * useSuggestedPayment — Fetches suggested payment details for a purchase order
+ *
+ * GET /api/PurchaseOrders/{id}/suggested-payment
+ *
+ * Returns computed financial recommendation including:
+ * - Agreed order total
+ * - Goods received value
+ * - Previously paid amount
+ * - Total outstanding amount
+ * - Suggested payable amount
+ *
+ * @param purchaseOrderId - The purchase order ID to fetch suggested payment for
+ */
+export function useSuggestedPayment(purchaseOrderId: number | null) {
+  return useGetQuery(
+    ['purchaseOrders', purchaseOrderId, 'suggested-payment'],
+    () => purchaseOrderService.getSuggestedPayment(purchaseOrderId!),
+    {
+      enabled: purchaseOrderId !== null,
+      staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    }
+  );
+}
+
+/**
+ * useProcessPayment — Submits payment for a purchase order
+ *
+ * POST /api/PurchaseOrders/{id}/pay
+ *
+ * Processes payment and updates PO status. Uses pessimistic update pattern
+ * (waits for server confirmation before updating UI) for financial safety.
+ *
+ * @param purchaseOrderId - The purchase order ID to process payment for
+ */
+export function useProcessPayment(purchaseOrderId: number) {
+  const queryClient = useQueryClient();
+
+  return usePostMutation<ProcessPaymentApiResponse, ProcessPaymentRequest>(
+    (data) => purchaseOrderService.processPayment(purchaseOrderId, data),
+    {
+      onSuccess: () => {
+        // Invalidate related queries to trigger fresh data fetch
+        queryClient.invalidateQueries({
+          queryKey: ['purchaseOrders', purchaseOrderId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['purchaseOrders', purchaseOrderId, 'suggested-payment'],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['purchaseOrders'],
+        });
       },
     }
   );

@@ -8,7 +8,6 @@ export interface ExpenseCategory {
     description: string | null;
     displayOrder: number;
     isActive: boolean;
-    // Note: The full entity includes federationId and audit fields, but we only expose what's in the DTO.
     // In the spec, the request/response uses the full ExpenseCategory entity.
     // We'll use this interface for both request and response, but omit fields that shouldn't be sent.
 }

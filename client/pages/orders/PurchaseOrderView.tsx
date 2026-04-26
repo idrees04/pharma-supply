@@ -21,7 +21,8 @@ import {
   Mail,
   Save,
   TrendingUp,
-  PackageCheck
+  PackageCheck,
+  CreditCard
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -36,6 +37,7 @@ import {
 } from '@/components/ui/sheet';
 import { UpdatePurchaseOrderForm } from '@/components/purchase-orders/UpdatePurchaseOrderForm';
 import { ReceiveItemsForm } from '@/components/purchase-orders/ReceiveItemsForm';
+import { PaymentDrawer } from '@/components/purchase-orders/PaymentDrawer';
 import { Edit2 } from 'lucide-react';
 import { motion, Variants } from 'framer-motion';
 import {
@@ -75,6 +77,7 @@ export default function PurchaseOrderView() {
   const { data: statuses = [] } = usePurchaseOrderStatuses();
   const [isEditSheetOpen, setIsEditSheetOpen] = React.useState(false);
   const [isReceiveSheetOpen, setIsReceiveSheetOpen] = React.useState(false);
+  const [isPaymentDrawerOpen, setIsPaymentDrawerOpen] = React.useState(false);
 
   const calculations = useMemo(() => {
     if (!po?.items) return { subtotal: 0, tax: 0, discount: 0, total: 0 };
@@ -197,9 +200,17 @@ export default function PurchaseOrderView() {
             <PackageCheck className="h-4 w-4" />
             <span className="font-bold">Receive Goods</span>
           </Button>
-          <Button variant="ghost" size="icon" className="h-11 w-11 rounded-xl hover:bg-slate-100" onClick={() => window.print()}>
-            <Save className="h-5 w-5 text-slate-500" />
+          <Button
+            variant="secondary"
+            className="gap-2 h-11 px-5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-95 font-bold"
+            onClick={() => setIsPaymentDrawerOpen(true)}
+          >
+            <CreditCard className="h-4 w-4" />
+            <span>Pay</span>
           </Button>
+          {/* <Button variant="ghost" size="icon" className="h-11 w-11 rounded-xl hover:bg-slate-100" onClick={() => window.print()}>
+            <Save className="h-5 w-5 text-slate-500" />
+          </Button> */}
         </div>
       </motion.div>
 
@@ -528,6 +539,16 @@ export default function PurchaseOrderView() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <PaymentDrawer
+        isOpen={isPaymentDrawerOpen}
+        onOpenChange={setIsPaymentDrawerOpen}
+        purchaseOrderId={po.id}
+        purchaseOrderNumber={po.purchaseOrderNumber}
+        onSuccess={() => {
+          refetch();
+        }}
+      />
     </motion.div>
   );
 }

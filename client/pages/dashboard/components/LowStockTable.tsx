@@ -34,23 +34,28 @@ const LowStockTable: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {data.map((alert) => (
-                                <TableRow key={alert.productCode}>
-                                    <TableCell className="font-medium">{alert.productName}</TableCell>
-                                    <TableCell>{alert.productCode}</TableCell>
-                                    <TableCell>{alert.availableQuantity}</TableCell>
-                                    <TableCell>{alert.reorderLevel}</TableCell>
-                                    <TableCell>
-                                        {alert.availableQuantity <= alert.reorderLevel / 2 ? (
-                                            <span className="flex items-center gap-1 text-red-600">
-                                                <AlertTriangle className="w-4 h-4" /> Critical
-                                            </span>
-                                        ) : (
-                                            <span className="text-yellow-600">Low</span>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                            {data.map((alert, idx) => {
+                                const productName = alert.productName ?? 'Unknown Product';
+                                const productCode = alert.productCode ?? `N/A-${idx}`;
+                                const key = productCode || `alert-${idx}`;
+                                return (
+                                    <TableRow key={key}>
+                                        <TableCell className="font-medium">{productName}</TableCell>
+                                        <TableCell>{productCode}</TableCell>
+                                        <TableCell>{alert.availableQuantity}</TableCell>
+                                        <TableCell>{alert.reorderLevel}</TableCell>
+                                        <TableCell>
+                                            {alert.availableQuantity <= alert.reorderLevel / 2 ? (
+                                                <span className="flex items-center gap-1 text-red-600">
+                                                    <AlertTriangle className="w-4 h-4" /> Critical
+                                                </span>
+                                            ) : (
+                                                <span className="text-yellow-600">Low</span>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
                         </TableBody>
                     </Table>
                 </CardContent>

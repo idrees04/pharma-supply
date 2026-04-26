@@ -21,6 +21,12 @@ const MonthlySalesChart: React.FC = () => {
     if (error) return <ChartError />;
     if (!data || data.length === 0) return <EmptyState />;
 
+    // Transform data to handle nullable month
+    const chartData = data.map(item => ({
+        ...item,
+        month: item.month ?? 'Unknown',
+    }));
+
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -33,7 +39,7 @@ const MonthlySalesChart: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={400}>
-                        <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                        <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="month" />
                             <YAxis tickFormatter={(value) => formatCurrency(value)} />

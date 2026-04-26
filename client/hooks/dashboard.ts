@@ -5,6 +5,7 @@ import {
     TopProduct,
     LowStockAlert,
     PendingPaymentAlert,
+    OperationalAlerts,
 } from '@/types/api/dashboard';
 import { dashboardService } from '@/api/services/dashboard';
 
@@ -53,6 +54,15 @@ export const usePendingPaymentAlerts = (): UseQueryResult<PendingPaymentAlert[],
     });
 };
 
+export const useOperationalAlerts = (): UseQueryResult<OperationalAlerts, Error> => {
+    return useQuery({
+        queryKey: ['dashboard', 'operationalAlerts'],
+        queryFn: dashboardService.getOperationalAlerts,
+        staleTime: 2 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
+};
+
 // Combined hook for the dashboard page
 export const useDashboardData = () => {
     const summary = useSummary();
@@ -60,27 +70,31 @@ export const useDashboardData = () => {
     const topProducts = useTopSellingProducts();
     const lowStock = useLowStockAlerts();
     const pendingPayments = usePendingPaymentAlerts();
+    const operationalAlerts = useOperationalAlerts();
 
     const isLoading =
         summary.isLoading ||
         monthly.isLoading ||
         topProducts.isLoading ||
         lowStock.isLoading ||
-        pendingPayments.isLoading;
+        pendingPayments.isLoading ||
+        operationalAlerts.isLoading;
 
     const isError =
         summary.isError ||
         monthly.isError ||
         topProducts.isError ||
         lowStock.isError ||
-        pendingPayments.isError;
+        pendingPayments.isError ||
+        operationalAlerts.isError;
 
     const error =
         summary.error ||
         monthly.error ||
         topProducts.error ||
         lowStock.error ||
-        pendingPayments.error;
+        pendingPayments.error ||
+        operationalAlerts.error;
 
     const refetch = () => {
         summary.refetch();
@@ -88,6 +102,7 @@ export const useDashboardData = () => {
         topProducts.refetch();
         lowStock.refetch();
         pendingPayments.refetch();
+        operationalAlerts.refetch();
     };
 
     return {
@@ -96,6 +111,7 @@ export const useDashboardData = () => {
         topProducts: topProducts.data,
         lowStock: lowStock.data,
         pendingPayments: pendingPayments.data,
+        operationalAlerts: operationalAlerts.data,
         isLoading,
         isError,
         error,

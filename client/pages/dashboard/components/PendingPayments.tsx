@@ -31,25 +31,43 @@ const PendingPaymentsTable: React.FC = () => {
                                 <TableHead>Hospital</TableHead>
                                 <TableHead>Due Date</TableHead>
                                 <TableHead>Outstanding</TableHead>
+                                <TableHead>Net Days</TableHead>
                                 <TableHead>Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {data.map((payment) => (
-                                <TableRow key={payment.invoiceNumber}>
-                                    <TableCell className="font-medium">{payment.invoiceNumber}</TableCell>
-                                    <TableCell>{payment.hospitalName}</TableCell>
-                                    <TableCell>{new Date(payment.dueDate).toLocaleDateString()}</TableCell>
-                                    <TableCell>{formatCurrency(payment.outstandingAmount)}</TableCell>
-                                    <TableCell>
-                                        {payment.daysOverdue > 0 ? (
-                                            <Badge variant="destructive">{formatRelativeDays(payment.daysOverdue)}</Badge>
-                                        ) : (
-                                            <Badge variant="outline">Due soon</Badge>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                            {data.map((payment, idx) => {
+                                const invoiceNumber = payment.invoiceNumber ?? `N/A-${idx}`;
+                                const hospitalName = payment.hospitalName ?? 'Unknown Hospital';
+                                const key = invoiceNumber || `payment-${idx}`;
+                                const isOverdue = payment.isOverdue;
+                                const netDays = payment.netDays;
+                                const daysOverdue = payment.daysOverdue;
+                                let statusText = '';
+                                let variant: 'destructive' | 'outline' | 'secondary' = 'outline';
+                                if (isOverdue) {
+                                    statusText = `Overdue ${daysOverdue > 0 ? formatRelativeDays(daysOverdue) : ''}`;
+                                    variant = 'destructive';
+                                } else if (netDays <= 7) {
+                                    statusText = 'Due soon';
+                                    variant = 'outline';
+                                } else {
+                                    statusText = 'On track';
+                                    variant = 'secondary';
+                                }
+                                return (
+                                    <TableRow key={key}>
+                                        <TableCell className="font-medium">{invoiceNumber}</TableCell>
+                                        <TableCell>{hospitalName}</TableCell>
+                                        <TableCell>{new Date(payment.dueDate).toLocaleDateString()}</TableCell>
+                                        <TableCell>{formatCurrency(payment.outstandingAmount)}</TableCell>
+                                        <TableCell>{netDays}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={variant}>{statusText}</Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
                         </TableBody>
                     </Table>
                 </CardContent>

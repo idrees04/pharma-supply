@@ -10,6 +10,8 @@ import { ApiError } from '@/api/errors';
 import type {
   CreateInvoiceRequest,
   CreateInvoiceResponse,
+  CreateInvoiceFromSupplyOrderRequest,
+  CreateInvoiceFromSupplyOrderResponse,
   GetInvoiceResponse,
   GetInvoicesResponse,
   GetOutstandingInvoicesResponse,
@@ -91,6 +93,31 @@ export function useCreateInvoice(
 
   return useMutation({
     mutationFn: (data: CreateInvoiceRequest) => invoiceService.create(data),
+    onSuccess: (data, variables, context, mutation) => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.outstanding() });
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.overdue() });
+      options?.onSuccess?.(data, variables, context, mutation);
+    },
+    ...options,
+  });
+}
+
+export function useCreateInvoiceFromSupplyOrder(
+  options?: Omit<
+    UseMutationOptions<
+      CreateInvoiceFromSupplyOrderResponse,
+      ApiError,
+      { supplyOrderId: number; data: CreateInvoiceFromSupplyOrderRequest }
+    >,
+    'mutationFn'
+  >,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ supplyOrderId, data }: { supplyOrderId: number; data: CreateInvoiceFromSupplyOrderRequest }) =>
+      invoiceService.createFromSupplyOrder(supplyOrderId, data),
     onSuccess: (data, variables, context, mutation) => {
       queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
       queryClient.invalidateQueries({ queryKey: invoiceKeys.outstanding() });

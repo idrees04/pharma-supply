@@ -46,7 +46,10 @@ export interface InvoiceDto {
     paidAmount: number;
     outstandingAmount: number;
     paymentReceivedDate: string | null; // ISO date-time
+    supplyOrderId: number | null;
+    deliveryChallanId: number | null;
     notes: string | null;
+    termsAndConditions?: string | null;
     items?: InvoiceItemDto[] | null;
 }
 
@@ -71,6 +74,30 @@ export interface CreateInvoiceRequest {
     items?: CreateInvoiceItemRequest[] | null;
 }
 
+/**
+ * Request for creating an invoice from a supply order
+ * This endpoint creates an invoice directly from a supply order with optional delivery challan
+ */
+export interface CreateInvoiceFromSupplyOrderRequest {
+    deliveryChallanId?: number | null;
+    invoiceDate: string; // ISO date-time
+    dueDate: string; // ISO date-time
+    shippingCharges?: number;
+    adjustmentAmount?: number;
+    notes?: string | null;
+    termsAndConditions?: string | null;
+    lines?: CreateInvoiceLineItem[];
+    salesTaxConfigurationId?: number | null;
+}
+
+/**
+ * Line item for invoice creation from supply order
+ */
+export interface CreateInvoiceLineItem {
+    supplyOrderItemId: number;
+    quantity: number;
+}
+
 // Query parameters
 export interface InvoiceListQueryParams {
     pageNumber?: number;
@@ -87,3 +114,4 @@ export type GetInvoiceResponse = ApiResponse<InvoiceDto>;
 export type GetOutstandingInvoicesResponse = ApiResponse<InvoiceDto[]>;
 export type GetOverdueInvoicesResponse = ApiResponse<InvoiceDto[]>;
 export type CreateInvoiceResponse = ApiResponse<InvoiceDto>;
+export type CreateInvoiceFromSupplyOrderResponse = ApiResponse<InvoiceDto>;

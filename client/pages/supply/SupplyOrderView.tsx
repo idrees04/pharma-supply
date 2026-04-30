@@ -22,7 +22,8 @@ import {
   Save,
   TrendingUp,
   PackageCheck,
-  Edit2
+  Edit2,
+  FileType2
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -45,6 +46,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import SupplyOrderForm from './SupplyOrderForm';
+import { InvoiceCreationPanel } from './InvoiceCreationPanel';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -73,6 +75,7 @@ export default function SupplyOrderView() {
   const { data: so, isPending, error, refetch } = useSupplyOrder(soId);
   const { data: statuses = [] } = useSupplyOrderStatuses();
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = React.useState(false);
 
   if (isPending) {
     return (
@@ -162,7 +165,7 @@ export default function SupplyOrderView() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Button
             variant="outline"
             className="gap-2 h-11 px-5 border-slate-200 hover:bg-slate-50 shadow-sm transition-all hover:scale-[1.02]"
@@ -170,6 +173,14 @@ export default function SupplyOrderView() {
           >
             <Edit2 className="h-4 w-4 text-primary" />
             <span className="font-bold text-slate-700">Update Order</span>
+          </Button>
+          <Button
+            variant="default"
+            className="gap-2 h-11 px-5 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
+            onClick={() => setIsInvoiceModalOpen(true)}
+          >
+            <FileType2 className="h-4 w-4" />
+            <span className="font-bold">Invoice</span>
           </Button>
           <Button variant="ghost" size="icon" className="h-11 w-11 rounded-xl hover:bg-slate-100" onClick={() => window.print()}>
             <Save className="h-5 w-5 text-slate-500" />
@@ -452,6 +463,30 @@ export default function SupplyOrderView() {
               }}
               onCancel={() => setIsEditModalOpen(false)}
             />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice Modal */}
+      <Dialog open={isInvoiceModalOpen} onOpenChange={setIsInvoiceModalOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 border-none shadow-2xl">
+          <DialogHeader className="p-6 bg-gradient-to-r from-primary/10 via-violet-50 to-purple-50 border-b">
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <FileType2 className="h-6 w-6 text-primary" />
+              Create Invoice
+            </DialogTitle>
+            <DialogDescription>
+              Generate and download invoice from supply order <span className="font-mono font-bold text-foreground">{so.supplyOrderNumber}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-6">
+            {soId && (
+              <InvoiceCreationPanel
+                supplyOrderId={soId}
+                supplyOrder={so}
+                onSuccess={() => setIsInvoiceModalOpen(false)}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

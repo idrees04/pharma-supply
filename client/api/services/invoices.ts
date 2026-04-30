@@ -2,6 +2,8 @@ import { get, post } from '@/api/requests';
 import type {
   CreateInvoiceRequest,
   CreateInvoiceResponse,
+  CreateInvoiceFromSupplyOrderRequest,
+  CreateInvoiceFromSupplyOrderResponse,
   GetInvoiceResponse,
   GetInvoicesResponse,
   GetOutstandingInvoicesResponse,
@@ -37,6 +39,16 @@ class InvoiceService {
 
   async getOverdue(): Promise<GetOverdueInvoicesResponse> {
     return get<GetOverdueInvoicesResponse>('/api/Invoices/overdue');
+  }
+
+  async createFromSupplyOrder(
+    supplyOrderId: number,
+    data: CreateInvoiceFromSupplyOrderRequest
+  ): Promise<CreateInvoiceFromSupplyOrderResponse> {
+    return post<CreateInvoiceFromSupplyOrderResponse, CreateInvoiceFromSupplyOrderRequest>(
+      `/api/Invoices/from-supply-order/${supplyOrderId}`,
+      data
+    );
   }
 }
 

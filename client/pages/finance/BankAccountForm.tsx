@@ -21,11 +21,14 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { EnumSelect } from "@/components/ui/enum-select";
+import { useAccountTypeOptions } from "@/hooks/dropdown";
 import { toast } from "sonner";
 import { useCreateAccount, useUpdateAccount, accountService } from "@/api/services/accounts";
 import { AccountDto, CreateAccountRequest, UpdateAccountRequest, AccountType } from "@/types/api/accounts";
 import { bankAccountSchema, BankAccountFormData } from "@/lib/schemas";
 import { useGetQuery } from "@/api/hooks";
+import { ApiError } from "@/api/errors";
 
 interface BankAccountFormProps {
   account?: AccountDto;
@@ -33,6 +36,8 @@ interface BankAccountFormProps {
 }
 
 export default function BankAccountForm({ account, onClose }: BankAccountFormProps) {
+  const { data: accountTypeOptions, isLoading: isLoadingAccountTypes } = useAccountTypeOptions();
+
   const form = useForm<BankAccountFormData>({
     resolver: zodResolver(bankAccountSchema),
     defaultValues: {
@@ -94,7 +99,7 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
           toast.success("Account updated successfully");
           onClose();
         },
-        onError: (error: any) => {
+        onError: (error: ApiError) => {
           if (error.hasValidationErrors) {
             Object.entries(error.validationErrors).forEach(([field, messages]) => {
               const fieldKey = field as keyof BankAccountFormData;
@@ -123,7 +128,7 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
           toast.success("Account registered successfully");
           onClose();
         },
-        onError: (error: any) => {
+        onError: (error: ApiError) => {
           if (error.hasValidationErrors) {
             Object.entries(error.validationErrors).forEach(([field, messages]) => {
               const fieldKey = field as keyof BankAccountFormData;
@@ -172,21 +177,17 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Account Type *</FormLabel>
-                <Select
-                  onValueChange={(val) => field.onChange(parseInt(val))}
-                  defaultValue={field.value?.toString()}
-                  disabled={isEditMode}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={AccountType.Cash.toString()}>Cash</SelectItem>
-                    <SelectItem value={AccountType.Bank.toString()}>Bank Account</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <EnumSelect
+                    items={accountTypeOptions}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    isLoading={isLoadingAccountTypes}
+                    disabled={isEditMode}
+                    placeholder="Select account type"
+                    searchPlaceholder="Search account types..."
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

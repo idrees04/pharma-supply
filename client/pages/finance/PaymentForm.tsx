@@ -18,6 +18,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { EnumSelect } from "@/components/ui/enum-select";
+import { usePaymentModeEnumOptions } from "@/hooks/dropdown";
 import { useCreatePayment, useUpdatePayment } from "@/api/services/payments";
 import { useAccountList } from "@/api/services/accounts";
 import { usePurchaseOrderList } from "@/api/services/purchaseOrders";
@@ -47,6 +49,7 @@ export default function PaymentForm({
 }: PaymentFormProps) {
   const { data: accounts } = useAccountList();
   const { data: purchaseOrdersData } = usePurchaseOrderList({ pageSize: 100 });
+  const { data: paymentModeOptions, isLoading: isLoadingPaymentModes } = usePaymentModeEnumOptions();
   const { mutate: createPayment, isPending: isCreating } = useCreatePayment();
   const { mutate: updatePayment, isPending: isUpdating } = useUpdatePayment(initialData?.id || 0);
 
@@ -163,22 +166,16 @@ export default function PaymentForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Payment Mode *</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value?.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select mode" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={PaymentMode.Cash.toString()}>Cash</SelectItem>
-                    <SelectItem value={PaymentMode.Cheque.toString()}>Cheque</SelectItem>
-                    <SelectItem value={PaymentMode.BankTransfer.toString()}>Bank Transfer</SelectItem>
-                    <SelectItem value={PaymentMode.CreditCard.toString()}>Credit Card</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <EnumSelect
+                    items={paymentModeOptions}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    isLoading={isLoadingPaymentModes}
+                    placeholder="Select payment mode"
+                    searchPlaceholder="Search payment modes..."
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

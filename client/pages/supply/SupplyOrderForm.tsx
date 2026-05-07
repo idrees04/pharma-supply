@@ -17,15 +17,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { EnumSelect } from '@/components/ui/enum-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-
 import { supplyOrderSchema, SupplyOrderFormData } from '@/lib/schemas';
 import {
   useCreateSupplyOrder,
@@ -33,6 +26,7 @@ import {
   useSupplyOrder,
   useSupplyOrderStatuses
 } from '@/api/services/supplyOrders.service';
+import { useSupplyOrderFulfillmentSourceOptions, useSupplyOrderStatusOptions } from '@/hooks/dropdown';
 import { useProductSuppliersByProduct } from '@/api/services/productSuppliers';
 import { useGetHospitals } from '@/hooks/useHospitals';
 import { useProductList } from '@/api/services/products';
@@ -46,16 +40,21 @@ interface SupplyOrderFormProps {
   onCancel?: () => void;
 }
 
+type SupplyOrderFormValues = SupplyOrderFormData & {
+  status?: number;
+};
+
 interface OrderItemRowProps {
   index: number;
   isEditMode: boolean;
-  form: UseFormReturn<SupplyOrderFormData>;
+  form: UseFormReturn<SupplyOrderFormValues>;
   products: Product[];
   isLoadingProducts: boolean;
   onRemove: (index: number) => void;
   handleProductChange: (index: number, productId: number) => void;
   selectedProductIds: number[];
   rowTotal: number;
+  fulfillmentSourceOptions: Array<{ value: number; displayName: string }>;
 }
 
 function OrderItemRow({
@@ -67,7 +66,8 @@ function OrderItemRow({
   onRemove,
   handleProductChange,
   selectedProductIds,
-  rowTotal
+  rowTotal,
+  fulfillmentSourceOptions
 }: OrderItemRowProps) {
   const productId = useWatch({
     control: form.control,
@@ -207,18 +207,17 @@ function OrderItemRow({
           name={`items.${index}.fulfillmentSource`}
           render={({ field }) => (
             <FormItem className="space-y-0">
-              <Select onValueChange={(val) => field.onChange(Number(val))} defaultValue={field.value?.toString()} disabled={isEditMode}>
-                <FormControl>
-                  <SelectTrigger className="h-9 border-slate-200">
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="1">Warehouse</SelectItem>
-                  <SelectItem value="2">Supplier</SelectItem>
-                  <SelectItem value="3">Direct</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <EnumSelect
+                  items={fulfillmentSourceOptions}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={isEditMode}
+                  placeholder="Select source"
+                  searchPlaceholder="Search sources..."
+                  className="h-9"
+                />
+              </FormControl>
               <FormMessage className="text-[10px] mt-0.5" />
             </FormItem>
           )}
@@ -297,7 +296,9 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
   const { data: existingSO, isPending: isLoadingSO } = useSupplyOrder(supplyOrderId || null);
   const { data: hospitalsData, isPending: isLoadingHospitals } = useGetHospitals({ pageSize: 1000, pageNumber: 1 });
   const { data: productsData, isPending: isLoadingProducts } = useProductList({ pageSize: 1000, pageNumber: 1 });
-  const { data: statuses = [] } = useSupplyOrderStatuses();
+  useSupplyOrderStatuses();
+  const { data: supplyOrderStatusOptions, isLoading: isLoadingSupplyOrderStatuses } = useSupplyOrderStatusOptions();
+  const { data: fulfillmentSourceOptions = [] } = useSupplyOrderFulfillmentSourceOptions();
 
   const hospitals = hospitalsData?.data?.items || [];
   const products = productsData?.items || [];
@@ -310,7 +311,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
   }, [products]);
 
   // 2. Form Setup
-  const form = useForm<SupplyOrderFormData>({
+  const form = useForm<SupplyOrderFormValues>({
     resolver: zodResolver(supplyOrderSchema),
     defaultValues: {
       hospitalId: 0,
@@ -348,7 +349,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
           supplierId: item.supplierId,
         })),
         status: existingSO.status,
-      } as any);
+      });
     }
   }, [existingSO, isEditMode, form]);
 
@@ -356,7 +357,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
   const { mutate: createSO, isPending: isCreating } = useCreateSupplyOrder();
   const { mutate: updateSO, isPending: isUpdating } = useUpdateSupplyOrder(supplyOrderId || 0);
 
-  const onSubmit = (data: SupplyOrderFormData) => {
+  const onSubmit = (data: SupplyOrderFormValues) => {
     // Helper to format date to ISO string if it's just a YYYY-MM-DD string
     const formatToISO = (dateStr: string) => {
       if (!dateStr) return '';
@@ -370,15 +371,15 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
         requestedBy: data.requestedBy,
         shippingAddress: data.shippingAddress,
         notes: data.notes || '',
-        status: (data as any).status || existingSO?.status || 1,
+        status: data.status ?? existingSO?.status ?? 1,
       };
       updateSO(updateData, {
         onSuccess: () => {
           toast.success('Supply order updated successfully');
           handleSuccess();
         },
-        onError: (error: any) => {
-          toast.error(error?.userMessage || 'Failed to update supply order');
+        onError: (error) => {
+          toast.error(error.userMessage || 'Failed to update supply order');
         },
       });
     } else {
@@ -404,8 +405,8 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
           toast.success('Supply order created successfully');
           handleSuccess();
         },
-        onError: (error: any) => {
-          toast.error(error?.userMessage || 'Failed to create supply order');
+        onError: (error) => {
+          toast.error(error.userMessage || 'Failed to create supply order');
         },
       });
     }
@@ -599,20 +600,16 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Status</FormLabel>
-                        <Select onValueChange={(val) => field.onChange(Number(val))} defaultValue={field.value?.toString()}>
-                          <FormControl>
-                            <SelectTrigger className="h-11 border-muted-foreground/20">
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {statuses.map((status) => (
-                              <SelectItem key={status.value} value={status.value.toString()}>
-                                {status.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <EnumSelect
+                            items={supplyOrderStatusOptions}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            isLoading={isLoadingSupplyOrderStatuses}
+                            placeholder="Select status"
+                            searchPlaceholder="Search statuses..."
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -699,7 +696,6 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                         <OrderItemRow
                           key={field.id}
                           index={index}
-                          field={field}
                           form={form}
                           isEditMode={isEditMode}
                           products={sortedProducts}
@@ -708,6 +704,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                           handleProductChange={handleProductChange}
                           selectedProductIds={selectedProductIds}
                           rowTotal={calculations.rowTotals[index]?.total || 0}
+                          fulfillmentSourceOptions={fulfillmentSourceOptions}
                         />
                       ))}
                       {fields.length > 0 && (

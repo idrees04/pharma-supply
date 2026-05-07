@@ -71,6 +71,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { EnumSelect } from "@/components/ui/enum-select";
+import { useUserRoleOptions } from "@/hooks/dropdown";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -106,6 +108,7 @@ function UserFormDialog({
   error,
 }: UserFormDialogProps) {
   const isEditing = !!user;
+  const { data: userRoleOptions, isLoading: isLoadingUserRoles } = useUserRoleOptions();
   const [formData, setFormData] = useState<any>({
     username: user?.username || "",
     fullName: user?.fullName || "",
@@ -246,24 +249,17 @@ function UserFormDialog({
           {/* Role Dropdown */}
           <div className="space-y-2">
             <Label htmlFor="role">Role *</Label>
-            <Select
-              value={String(formData.role)}
+            <EnumSelect
+              items={userRoleOptions}
+              value={formData.role}
               onValueChange={(value) =>
-                setFormData({ ...formData, role: parseInt(value) })
+                setFormData({ ...formData, role: value })
               }
+              isLoading={isLoadingUserRoles}
               disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {getAvailableRoles().map((role) => (
-                  <SelectItem key={role.value} value={String(role.value)}>
-                    {role.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Select role"
+              searchPlaceholder="Search roles..."
+            />
           </div>
 
           {/* Status Fields (only on edit) */}

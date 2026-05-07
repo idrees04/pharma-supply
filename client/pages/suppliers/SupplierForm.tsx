@@ -15,6 +15,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { EnumSelect } from '@/components/ui/enum-select';
+import { useSupplierStatusOptions } from '@/hooks/dropdown';
 import { toast } from 'sonner';
 import { Supplier } from '@/types/api/suppliers';
 import { CreateSupplierRequest, UpdateSupplierRequest } from '@/types/api/suppliers';
@@ -27,6 +29,7 @@ interface SupplierFormProps {
 export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
   const createMutation = useCreateSupplier();
   const updateMutation = useUpdateSupplier(supplier?.id || 0);
+  const { data: supplierStatusOptions, isLoading: isLoadingSupplierStatuses } = useSupplierStatusOptions();
 
   const form = useForm<SupplierFormData>({
     resolver: zodResolver(supplierSchema),
@@ -321,6 +324,28 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
               </FormItem>
             )}
           />
+          {supplier && (
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status *</FormLabel>
+                  <FormControl>
+                    <EnumSelect
+                      items={supplierStatusOptions}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      isLoading={isLoadingSupplierStatuses}
+                      placeholder="Select status"
+                      searchPlaceholder="Search statuses..."
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
         </div>
 
         {/* Notes */}

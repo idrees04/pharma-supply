@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { EnumSelect } from "@/components/ui/enum-select";
+import { useHospitalStatusOptions, useHospitalTypeOptions } from "@/hooks/dropdown";
 import { toast } from "sonner";
 import { Hospital } from "@/types/api/hospitals";
 
@@ -28,6 +30,9 @@ interface HospitalFormProps {
 }
 
 export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
+  const { data: hospitalTypeOptions, isLoading: isLoadingHospitalTypes } = useHospitalTypeOptions();
+  const { data: hospitalStatusOptions, isLoading: isLoadingHospitalStatuses } = useHospitalStatusOptions();
+
   const form = useForm<HospitalFormData>({
     resolver: zodResolver(hospitalSchema),
     defaultValues: {
@@ -308,12 +313,41 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
               <FormItem>
                 <FormLabel>Hospital Type *</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 1" {...field} />
+                  <EnumSelect
+                    items={hospitalTypeOptions}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    isLoading={isLoadingHospitalTypes}
+                    placeholder="Select hospital type"
+                    searchPlaceholder="Search hospital types..."
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+          {hospital && (
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status *</FormLabel>
+                  <FormControl>
+                    <EnumSelect
+                      items={hospitalStatusOptions}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      isLoading={isLoadingHospitalStatuses}
+                      placeholder="Select status"
+                      searchPlaceholder="Search statuses..."
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={form.control}
             name="creditTermDays"

@@ -36,7 +36,9 @@ export function UserNav() {
 
   return (
     <div className="flex items-center gap-2">
-      <NotificationBell />
+      <div className="hidden">
+        <NotificationBell />
+      </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-8 w-8 rounded-full">

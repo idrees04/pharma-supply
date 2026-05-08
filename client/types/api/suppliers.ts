@@ -135,7 +135,7 @@ export interface SupplierPurchaseOrder {
   id: number;
   purchaseOrderNumber: string;
   orderDate: string; // ISO 8601 date string
-  expectedDeliveryDate: string; // ISO 8601 date string
+  expectedDeliveryDate?: string | null;
   status: number;
   totalAmount: number;
   paidAmount: number;

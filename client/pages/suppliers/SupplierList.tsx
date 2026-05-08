@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Plus, AlertCircle, Users, CheckCircle, TrendingUp, Search } from 'lucid
 import { toast } from 'sonner';
 import SupplierForm from './SupplierForm';
 import { DataTable, Column } from '@/components/common/DataTable';
-import { supplierService, useSupplierList } from '@/api/services/suppliers';
+import { supplierService, useSupplierList, useSuppliersByStatus } from '@/api/services/suppliers';
 import { Supplier } from '@/types/api/suppliers';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -22,14 +22,33 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { useSupplierStatusOptions } from '@/hooks/dropdown';
 
 const ITEMS_PER_PAGE = 10;
+
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
 
 export default function SupplierList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -41,43 +60,74 @@ export default function SupplierList() {
   const [searchParams, setSearchParams] = useSearchParams();
   const editId = searchParams.get('edit');
 
+  const debouncedSearch = useDebouncedValue(searchTerm.trim(), 350);
+  const statusEnum = statusFilter === 'all' ? null : Number(statusFilter);
+  const { data: supplierStatusOptions = [] } = useSupplierStatusOptions();
+
   const canCreate = hasPermission('suppliers', 'create');
   const canUpdate = hasPermission('suppliers', 'update');
   const canDelete = hasPermission('suppliers', 'delete');
 
-  const { data: supplierData, isLoading, error: suppliersError } = useSupplierList({
-    pageSize: 1000,
-    pageNumber: 1
-  });
+  const {
+    data: supplierData,
+    isLoading: loadingAll,
+    error: errorAll,
+  } = useSupplierList(
+    {
+      pageSize: 500,
+      pageNumber: 1,
+      searchTerm: debouncedSearch || undefined,
+    },
+    { enabled: statusFilter === 'all' }
+  );
 
-  const allSuppliers = supplierData?.items || [];
+  const {
+    data: suppliersByStatus = [],
+    isLoading: loadingByStatus,
+    error: errorByStatus,
+  } = useSuppliersByStatus(statusFilter === 'all' ? null : statusEnum);
+
+  const suppliersError = statusFilter === 'all' ? errorAll : errorByStatus;
+
+  const filterByLocalSearch = useCallback(
+    (rows: Supplier[]) => {
+      const q = debouncedSearch.toLowerCase();
+      if (!q) return rows;
+      return rows.filter(
+        (s) =>
+          s.supplierName.toLowerCase().includes(q) ||
+          (s.contactPerson?.toLowerCase().includes(q) ?? false) ||
+          (s.city?.toLowerCase().includes(q) ?? false) ||
+          (s.email?.toLowerCase().includes(q) ?? false)
+      );
+    },
+    [debouncedSearch]
+  );
 
   const filteredSuppliers = useMemo(() => {
-    return allSuppliers.filter(s =>
-      s.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.contactPerson?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.city?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [allSuppliers, searchTerm]);
+    if (statusFilter === 'all') return supplierData?.items || [];
+    return filterByLocalSearch(suppliersByStatus);
+  }, [statusFilter, supplierData?.items, suppliersByStatus, filterByLocalSearch]);
+
+  const isLoading = statusFilter === 'all' ? loadingAll : loadingByStatus;
 
   useEffect(() => {
-    if (editId && allSuppliers.length > 0) {
-      const supplier = allSuppliers.find(s => s.id === parseInt(editId));
-      if (supplier) {
-        setSelectedSupplier(supplier);
-        setIsDialogOpen(true);
-      }
+    if (!editId || filteredSuppliers.length === 0) return;
+    const supplier = filteredSuppliers.find((s) => s.id === parseInt(editId, 10));
+    if (supplier) {
+      setSelectedSupplier(supplier);
+      setIsDialogOpen(true);
     }
-  }, [editId, allSuppliers]);
+  }, [editId, filteredSuppliers]);
 
   const stats = useMemo(() => {
-    const totals = { total: allSuppliers.length, active: 0, outstanding: 0 };
-    allSuppliers.forEach((s) => {
+    const totals = { total: filteredSuppliers.length, active: 0, outstanding: 0 };
+    filteredSuppliers.forEach((s) => {
       if (s.isActive) totals.active++;
       totals.outstanding += s.outstandingBalance || 0;
     });
     return totals;
-  }, [allSuppliers]);
+  }, [filteredSuppliers]);
 
   const handleEdit = (supplier: Supplier) => {
     if (!canUpdate) { toast.error('You do not have permission to edit suppliers'); return; }
@@ -98,6 +148,7 @@ export default function SupplierList() {
       await supplierService.deleteSupplier(supplierToDelete.id);
       toast.success('Supplier deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['suppliers', 'by-status'] });
       setIsDeleteOpen(false);
       setSupplierToDelete(null);
     } catch (error: any) {
@@ -114,6 +165,7 @@ export default function SupplierList() {
     setIsDialogOpen(false);
     setSelectedSupplier(null);
     queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+    queryClient.invalidateQueries({ queryKey: ['suppliers', 'by-status'] });
     if (searchParams.has('edit')) {
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('edit');
@@ -147,14 +199,21 @@ export default function SupplierList() {
     },
     {
       header: 'Status',
-      accessor: (row) => (
-        <Badge className={cn(
-          'text-[10px] font-black uppercase tracking-wider px-2',
-          row.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500'
-        )}>
-          {row.isActive ? 'Active' : 'Inactive'}
-        </Badge>
-      ),
+      accessor: (row) => {
+        const label =
+          supplierStatusOptions.find((o) => o.value === row.status)?.name ??
+          (row.isActive ? 'Active' : 'Inactive');
+        return (
+          <Badge
+            className={cn(
+              'text-[10px] font-black uppercase tracking-wider px-2',
+              row.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500'
+            )}
+          >
+            {label}
+          </Badge>
+        );
+      },
     },
     {
       header: 'Outstanding (PKR)',
@@ -170,7 +229,7 @@ export default function SupplierList() {
         <span className="text-slate-500 text-sm truncate block max-w-[160px]">{row.address}</span>
       ),
     },
-  ], []);
+  ], [supplierStatusOptions]);
 
   if (suppliersError) {
     return (
@@ -216,15 +275,37 @@ export default function SupplierList() {
         <KPIBox label="Total Outstanding" value={formatCurrency(stats.outstanding)} icon={<TrendingUp className="w-5 h-5" />} iconColor="text-red-600 bg-red-50" color="bg-red-500" />
       </div>
 
-      {/* Search Bar */}
-      <div className="relative group w-full">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-        <Input
-          placeholder="Search by name, contact person, or city..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 h-10 w-full"
-        />
+      {/* Filters */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-end">
+        <div className="relative group flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <Input
+            placeholder={
+              statusFilter === 'all'
+                ? 'Search (server + name / contact / city / email)…'
+                : 'Filter this list by name, contact, city…'
+            }
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-10 w-full"
+          />
+        </div>
+        <div className="space-y-2 w-full md:w-56">
+          <Label className="text-xs text-muted-foreground">Supplier status (API)</Label>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-10 bg-background">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All (paged list)</SelectItem>
+              {supplierStatusOptions.map((o) => (
+                <SelectItem key={o.value} value={String(o.value)}>
+                  {o.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Responsive Table */}

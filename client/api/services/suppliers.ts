@@ -246,12 +246,16 @@ export const supplierService = {
  *     </div>
  *   );
  */
-export function useSupplierList(params?: SupplierListQueryParams) {
+export function useSupplierList(
+  params?: SupplierListQueryParams,
+  options?: { enabled?: boolean }
+) {
   return useGetQuery<PaginatedResponse<Supplier>>(
     ['suppliers', params],
     () => supplierService.getSuppliers(params),
     {
       staleTime: 5 * 60 * 1000,
+      enabled: options?.enabled ?? true,
     }
   );
 }
@@ -449,17 +453,15 @@ export function useActiveSuppliers() {
 }
 
 /**
- * useSuppliersByStatus - Fetch suppliers by status (API 10)
- *
- * Example:
- *   const { data: suppliers, isPending } = useSuppliersByStatus(1);
+ * useSuppliersByStatus - Fetch suppliers by status (API 10). Pass null to disable.
  */
-export function useSuppliersByStatus(status: number) {
-  return useGetQuery(
+export function useSuppliersByStatus(status: number | null) {
+  return useGetQuery<Supplier[]>(
     ['suppliers', 'by-status', status],
-    () => supplierService.getSuppliersByStatus(status),
+    () => supplierService.getSuppliersByStatus(status!),
     {
       staleTime: 10 * 60 * 1000,
+      enabled: status !== null && !Number.isNaN(status),
     }
   );
 }

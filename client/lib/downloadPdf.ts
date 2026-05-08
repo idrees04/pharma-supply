@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 
 /**
  * Renders an HTML element to a multi-page A4 PDF and triggers download.
+ * Slices the canvas per page height so continuation pages are not blank (fixes offset-based tiling bugs).
  */
 export async function downloadElementAsPdf(element: HTMLElement, fileBaseName: string): Promise<void> {
   const canvas = await html2canvas(element, {
@@ -10,20 +11,37 @@ export async function downloadElementAsPdf(element: HTMLElement, fileBaseName: s
     useCORS: true,
     logging: false,
   });
+
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const imgWidth = 210;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  const pdfWidth = pdf.internal.pageSize.getWidth();
   const pdfHeight = pdf.internal.pageSize.getHeight();
-  let heightLeft = imgHeight;
-  let position = 0;
-  const imgData = canvas.toDataURL('image/png');
-  pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-  heightLeft -= pdfHeight;
-  while (heightLeft >= 0) {
-    position = heightLeft - imgHeight;
-    pdf.addPage();
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pdfHeight;
+
+  const imgWidthMm = pdfWidth;
+  const imgHeightMm = (canvas.height * imgWidthMm) / canvas.width;
+
+  let offsetMm = 0;
+  while (offsetMm < imgHeightMm - 0.01) {
+    if (offsetMm > 0) {
+      pdf.addPage();
+    }
+
+    const sliceMm = Math.min(pdfHeight, imgHeightMm - offsetMm);
+    const srcY = (offsetMm / imgHeightMm) * canvas.height;
+    const srcH = (sliceMm / imgHeightMm) * canvas.height;
+
+    const pageCanvas = document.createElement('canvas');
+    pageCanvas.width = canvas.width;
+    pageCanvas.height = Math.max(1, Math.ceil(srcH));
+    const ctx = pageCanvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Canvas 2D context unavailable');
+    }
+    ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+
+    const sliceData = pageCanvas.toDataURL('image/png');
+    pdf.addImage(sliceData, 'PNG', 0, 0, imgWidthMm, sliceMm);
+    offsetMm += sliceMm;
   }
+
   pdf.save(`${fileBaseName}.pdf`);
 }

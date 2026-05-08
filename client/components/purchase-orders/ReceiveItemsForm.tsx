@@ -1,18 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import React, { useState } from 'react';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Package,
     Calendar,
-    Hash,
-    FileText,
     AlertCircle,
     CheckCircle2,
-    ArrowRight,
     Loader2,
-    Trash2,
-    Plus,
     Search,
     User2
 } from 'lucide-react';
@@ -20,7 +15,6 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
     Form,
     FormControl,
@@ -28,15 +22,15 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
-    FormDescription
 } from '@/components/ui/form';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
 import { ReceiveItemsFormData, receiveItemsSchema } from '@/lib/schemas';
+import { getReceiveLineFieldIssues } from '@/lib/receivePurchaseOrderValidation';
 import { useReceiveItems } from '@/api/services/purchaseOrders';
-import { PurchaseOrder } from '@/types/api/purchaseOrders';
+import { PurchaseOrder, ReceivePurchaseOrderRequest } from '@/types/api/purchaseOrders';
 import { cn } from '@/lib/utils';
 import { isApiError } from '@/api/errors';
 
@@ -69,10 +63,11 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
     onCancel
 }) => {
     const receiveItemsMutation = useReceiveItems();
-    const [searchQuery, setSearchQuery] = React.useState('');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const form = useForm<ReceiveItemsFormData>({
         resolver: zodResolver(receiveItemsSchema),
+        mode: 'onChange',
         defaultValues: {
             purchaseOrderId: purchaseOrder.id,
             actualDeliveryDate: new Date().toISOString().split('T')[0],
@@ -81,7 +76,7 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                 productName: item.productName,
                 orderedQuantity: item.orderedQuantity,
                 previouslyReceived: item.receivedQuantity,
-                receivedQuantity: item.remainingQuantity,
+                receivedQuantity: 0,
                 batchNumber: '',
                 manufactureDate: '',
                 expiryDate: '',
@@ -95,57 +90,60 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
         name: "items"
     });
 
+    const purchaseOrderIdW = useWatch({ control: form.control, name: 'purchaseOrderId' });
+    const actualDeliveryDateW = useWatch({ control: form.control, name: 'actualDeliveryDate' });
+    const watchedItems = useWatch({ control: form.control, name: 'items' }) ?? [];
+
+    const parsedForm = receiveItemsSchema.safeParse({
+        purchaseOrderId: purchaseOrderIdW ?? purchaseOrder.id,
+        actualDeliveryDate: actualDeliveryDateW ?? '',
+        items: watchedItems,
+    });
+
+    const blockingMessages = parsedForm.success
+        ? []
+        : [...new Set(parsedForm.error.issues.map((issue) => issue.message))];
+
+    const hiddenLinesHaveErrors =
+        !!searchQuery.trim() &&
+        !parsedForm.success &&
+        parsedForm.error.issues.some((issue) => {
+            const p = issue.path;
+            if (p[0] !== 'items' || typeof p[1] !== 'number') return false;
+            const idx = p[1] as number;
+            const name = watchedItems[idx]?.productName?.toLowerCase() ?? '';
+            return !name.includes(searchQuery.trim().toLowerCase());
+        });
+
+    const submitBlocked = receiveItemsMutation.isPending || !parsedForm.success;
+
     const onSubmit = async (data: ReceiveItemsFormData) => {
         try {
-            // Validate all items before submission
-            const invalidItems = data.items.filter(item => {
-                const remaining = item.orderedQuantity - item.previouslyReceived;
-                return item.receivedQuantity > remaining;
-            });
+            const itemsToReceive = data.items.filter((item) => Math.trunc(Number(item.receivedQuantity)) > 0);
 
-            if (invalidItems.length > 0) {
-                const itemNames = invalidItems.map(i => i.productName).join(', ');
-                toast.error(`Invalid quantities for: ${itemNames}. Received quantity cannot exceed remaining quantity.`);
-                return;
-            }
-
-            // Filter out items where receivedQuantity is 0
-            const itemsToReceive = data.items.filter(item => item.receivedQuantity > 0);
-
-            if (itemsToReceive.length === 0) {
-                toast.error("Please specify a received quantity for at least one item.");
-                return;
-            }
-
-            const payload = {
+            const payload: ReceivePurchaseOrderRequest = {
                 purchaseOrderId: data.purchaseOrderId,
-                actualDeliveryDate: new Date(data.actualDeliveryDate).toISOString(),
-                items: itemsToReceive.map(item => ({
+                actualDeliveryDate: new Date(`${data.actualDeliveryDate}T12:00:00`).toISOString(),
+                items: itemsToReceive.map((item) => ({
                     purchaseOrderItemId: item.purchaseOrderItemId,
-                    receivedQuantity: item.receivedQuantity,
-                    batchNumber: item.batchNumber,
-                    manufactureDate: new Date(item.manufactureDate).toISOString(),
-                    expiryDate: new Date(item.expiryDate).toISOString(),
-                    notes: item.notes || ""
-                }))
+                    receivedQuantity: Math.trunc(Number(item.receivedQuantity)),
+                    batchNumber: item.batchNumber.trim(),
+                    manufactureDate: new Date(`${item.manufactureDate}T12:00:00`).toISOString(),
+                    expiryDate: new Date(`${item.expiryDate}T12:00:00`).toISOString(),
+                    notes: item.notes?.trim() ?? '',
+                })),
             };
-
-            console.log("Submitting Receive Goods payload:", payload);
 
             const response = await receiveItemsMutation.mutateAsync(payload);
 
-            toast.success(response.message || "Goods received successfully!");
+            toast.success(response.message?.trim() ? response.message : 'Goods received and inventory updated.');
             onSuccess?.();
         } catch (error) {
             if (isApiError(error)) {
                 toast.error(error.userMessage);
-                if (error.hasValidationErrors) {
-                    console.error("Validation Errors:", error.validationErrors);
-                }
             } else {
-                toast.error("Failed to receive goods. Please try again.");
+                toast.error('Failed to receive goods. Please try again.');
             }
-            console.error("Receive Goods Error:", error);
         }
     };
 
@@ -201,7 +199,7 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                                         Items to Receive
                                     </h3>
                                     <p className="text-[10px] text-muted-foreground font-medium">
-                                        Showing {fields.filter((f, i) => form.getValues(`items.${i}`).productName?.toLowerCase().includes(searchQuery.toLowerCase())).length} of {fields.length} line items
+                                        Showing {fields.filter((f, i) => form.getValues(`items.${i}`).productName?.toLowerCase().includes(searchQuery.toLowerCase())).length} of {fields.length} lines — enter received qty only for lines you are posting (batch and dates required when quantity is greater than 0).
                                     </p>
                                 </div>
                             </div>
@@ -221,6 +219,11 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                             <AnimatePresence mode="popLayout">
                                 {fields.map((field, index) => {
                                     const itemValues = form.getValues(`items.${index}`);
+                                    const lineRow = watchedItems[index];
+                                    const lineIssues = getReceiveLineFieldIssues(lineRow);
+                                    const rqLine = Math.trunc(Number(lineRow?.receivedQuantity ?? 0));
+                                    const needsBatchFields = rqLine > 0;
+                                    const lineHasErrors = Object.keys(lineIssues).length > 0;
                                     const matchesSearch = itemValues.productName?.toLowerCase().includes(searchQuery.toLowerCase());
 
                                     if (!matchesSearch) return null;
@@ -234,15 +237,23 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                                             exit={{ opacity: 0, scale: 0.95 }}
                                             transition={{ duration: 0.2 }}
                                         >
-                                            <Card className="border-primary/5 shadow-sm hover:border-primary/20 transition-all overflow-hidden">
+                                            <Card
+                                                className={cn(
+                                                    'border-primary/5 shadow-sm hover:border-primary/20 transition-all overflow-hidden',
+                                                    lineHasErrors && 'border-destructive/40 ring-1 ring-destructive/20'
+                                                )}
+                                            >
                                                 <div className="bg-muted/30 px-3 py-1.5 flex items-center justify-between border-b border-primary/5">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                                                         <span className="text-xs font-bold text-foreground truncate max-w-[300px]">
                                                             {itemValues.productName}
                                                         </span>
+                                                        {lineHasErrors && (
+                                                            <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" aria-hidden />
+                                                        )}
                                                     </div>
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 shrink-0">
                                                         <Badge variant="secondary" className="text-[9px] h-4 font-bold bg-primary/5 text-primary border-none">
                                                             Ordered: {itemValues.orderedQuantity}
                                                         </Badge>
@@ -257,15 +268,19 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                                                             control={form.control}
                                                             name={`items.${index}.receivedQuantity`}
                                                             render={({ field }) => {
-                                                                const remaining = itemValues.orderedQuantity - itemValues.previouslyReceived;
-                                                                const isInvalid = field.value > remaining;
+                                                                const rq = Math.trunc(Number(field.value));
+                                                                const qtyInvalid = !!lineIssues.receivedQuantity;
 
                                                                 return (
                                                                     <FormItem className="space-y-1">
-                                                                        <FormLabel className={cn(
-                                                                            "text-[9px] uppercase font-black tracking-wider",
-                                                                            isInvalid ? "text-red-600" : "text-muted-foreground/70"
-                                                                        )}>
+                                                                        <FormLabel
+                                                                            className={cn(
+                                                                                'text-[9px] uppercase font-black tracking-wider',
+                                                                                qtyInvalid
+                                                                                    ? 'text-destructive'
+                                                                                    : 'text-muted-foreground/70'
+                                                                            )}
+                                                                        >
                                                                             Recv Qty
                                                                         </FormLabel>
                                                                         <FormControl>
@@ -273,26 +288,42 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                                                                                 <Input
                                                                                     type="number"
                                                                                     min={0}
+                                                                                    step={1}
+                                                                                    aria-invalid={qtyInvalid}
                                                                                     {...field}
+                                                                                    value={
+                                                                                        field.value === undefined ||
+                                                                                        field.value === null
+                                                                                            ? ''
+                                                                                            : field.value
+                                                                                    }
                                                                                     className={cn(
-                                                                                        "h-8 text-xs font-bold border-primary/10 focus:border-primary/30",
-                                                                                        isInvalid && "border-red-500 focus-visible:ring-red-500 bg-red-50"
+                                                                                        'h-9 text-sm font-semibold border-primary/10 focus:border-primary/30',
+                                                                                        qtyInvalid &&
+                                                                                            'border-destructive focus-visible:ring-destructive bg-destructive/5'
                                                                                     )}
-                                                                                    onChange={e => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                                                                                    onChange={(e) => {
+                                                                                        const v = e.target.value;
+                                                                                        field.onChange(
+                                                                                            v === ''
+                                                                                                ? 0
+                                                                                                : Math.max(
+                                                                                                      0,
+                                                                                                      Math.trunc(parseFloat(v) || 0)
+                                                                                                  )
+                                                                                        );
+                                                                                    }}
                                                                                 />
-                                                                                {isInvalid && (
-                                                                                    <div className="absolute -right-1 -top-1">
-                                                                                        <AlertCircle className="h-3 w-3 text-red-600 animate-pulse" />
-                                                                                    </div>
-                                                                                )}
                                                                             </div>
                                                                         </FormControl>
-                                                                        {isInvalid && (
-                                                                            <p className="text-[8px] font-bold text-red-600 animate-in fade-in slide-in-from-top-1">
-                                                                                Max: {remaining}
+                                                                        {lineIssues.receivedQuantity && (
+                                                                            <p
+                                                                                role="alert"
+                                                                                className="text-xs font-medium text-destructive"
+                                                                            >
+                                                                                {lineIssues.receivedQuantity}
                                                                             </p>
                                                                         )}
-                                                                        <FormMessage className="text-[9px]" />
                                                                     </FormItem>
                                                                 );
                                                             }}
@@ -303,11 +334,47 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                                                             name={`items.${index}.batchNumber`}
                                                             render={({ field }) => (
                                                                 <FormItem className="space-y-1">
-                                                                    <FormLabel className="text-[9px] uppercase font-black text-muted-foreground/70 tracking-wider">Batch #</FormLabel>
+                                                                    <FormLabel
+                                                                        className={cn(
+                                                                            'text-[9px] uppercase font-black tracking-wider',
+                                                                            lineIssues.batchNumber || needsBatchFields
+                                                                                ? 'text-foreground'
+                                                                                : 'text-muted-foreground/70'
+                                                                        )}
+                                                                    >
+                                                                        Batch #
+                                                                        {needsBatchFields && (
+                                                                            <span className="text-destructive normal-case font-semibold">
+                                                                                {' '}
+                                                                                *
+                                                                            </span>
+                                                                        )}
+                                                                    </FormLabel>
                                                                     <FormControl>
-                                                                        <Input {...field} className="h-8 text-xs border-primary/10 focus:border-primary/30" placeholder="BT-..." />
+                                                                        <Input
+                                                                            {...field}
+                                                                            aria-invalid={!!lineIssues.batchNumber}
+                                                                            aria-required={needsBatchFields}
+                                                                            className={cn(
+                                                                                'h-9 text-sm border-primary/10 focus:border-primary/30',
+                                                                                lineIssues.batchNumber &&
+                                                                                    'border-destructive focus-visible:ring-destructive bg-destructive/5'
+                                                                            )}
+                                                                            placeholder="BT-..."
+                                                                        />
                                                                     </FormControl>
-                                                                    <FormMessage className="text-[9px]" />
+                                                                    {lineIssues.batchNumber ? (
+                                                                        <p
+                                                                            role="alert"
+                                                                            className="text-xs font-medium text-destructive"
+                                                                        >
+                                                                            {lineIssues.batchNumber}
+                                                                        </p>
+                                                                    ) : needsBatchFields ? (
+                                                                        <p className="text-[11px] text-muted-foreground">
+                                                                            Required while receiving quantity is greater than 0.
+                                                                        </p>
+                                                                    ) : null}
                                                                 </FormItem>
                                                             )}
                                                         />
@@ -317,11 +384,48 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                                                             name={`items.${index}.manufactureDate`}
                                                             render={({ field }) => (
                                                                 <FormItem className="space-y-1">
-                                                                    <FormLabel className="text-[9px] uppercase font-black text-muted-foreground/70 tracking-wider">Mfg Date</FormLabel>
+                                                                    <FormLabel
+                                                                        className={cn(
+                                                                            'text-[9px] uppercase font-black tracking-wider',
+                                                                            lineIssues.manufactureDate || needsBatchFields
+                                                                                ? 'text-foreground'
+                                                                                : 'text-muted-foreground/70'
+                                                                        )}
+                                                                    >
+                                                                        Mfg Date
+                                                                        {needsBatchFields && (
+                                                                            <span className="text-destructive normal-case font-semibold">
+                                                                                {' '}
+                                                                                *
+                                                                            </span>
+                                                                        )}
+                                                                    </FormLabel>
                                                                     <FormControl>
-                                                                        <Input type="date" {...field} className="h-8 text-[10px] border-primary/10 focus:border-primary/30" />
+                                                                        <Input
+                                                                            type="date"
+                                                                            {...field}
+                                                                            value={field.value ?? ''}
+                                                                            aria-invalid={!!lineIssues.manufactureDate}
+                                                                            aria-required={needsBatchFields}
+                                                                            className={cn(
+                                                                                'h-9 text-sm border-primary/10 focus:border-primary/30',
+                                                                                lineIssues.manufactureDate &&
+                                                                                    'border-destructive focus-visible:ring-destructive bg-destructive/5'
+                                                                            )}
+                                                                        />
                                                                     </FormControl>
-                                                                    <FormMessage className="text-[9px]" />
+                                                                    {lineIssues.manufactureDate ? (
+                                                                        <p
+                                                                            role="alert"
+                                                                            className="text-xs font-medium text-destructive"
+                                                                        >
+                                                                            {lineIssues.manufactureDate}
+                                                                        </p>
+                                                                    ) : needsBatchFields ? (
+                                                                        <p className="text-[11px] text-muted-foreground">
+                                                                            Required while receiving quantity is greater than 0.
+                                                                        </p>
+                                                                    ) : null}
                                                                 </FormItem>
                                                             )}
                                                         />
@@ -331,11 +435,48 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                                                             name={`items.${index}.expiryDate`}
                                                             render={({ field }) => (
                                                                 <FormItem className="space-y-1">
-                                                                    <FormLabel className="text-[9px] uppercase font-black text-muted-foreground/70 tracking-wider">Exp Date</FormLabel>
+                                                                    <FormLabel
+                                                                        className={cn(
+                                                                            'text-[9px] uppercase font-black tracking-wider',
+                                                                            lineIssues.expiryDate || needsBatchFields
+                                                                                ? 'text-foreground'
+                                                                                : 'text-muted-foreground/70'
+                                                                        )}
+                                                                    >
+                                                                        Exp Date
+                                                                        {needsBatchFields && (
+                                                                            <span className="text-destructive normal-case font-semibold">
+                                                                                {' '}
+                                                                                *
+                                                                            </span>
+                                                                        )}
+                                                                    </FormLabel>
                                                                     <FormControl>
-                                                                        <Input type="date" {...field} className="h-8 text-[10px] border-primary/10 focus:border-primary/30" />
+                                                                        <Input
+                                                                            type="date"
+                                                                            {...field}
+                                                                            value={field.value ?? ''}
+                                                                            aria-invalid={!!lineIssues.expiryDate}
+                                                                            aria-required={needsBatchFields}
+                                                                            className={cn(
+                                                                                'h-9 text-sm border-primary/10 focus:border-primary/30',
+                                                                                lineIssues.expiryDate &&
+                                                                                    'border-destructive focus-visible:ring-destructive bg-destructive/5'
+                                                                            )}
+                                                                        />
                                                                     </FormControl>
-                                                                    <FormMessage className="text-[9px]" />
+                                                                    {lineIssues.expiryDate ? (
+                                                                        <p
+                                                                            role="alert"
+                                                                            className="text-xs font-medium text-destructive"
+                                                                        >
+                                                                            {lineIssues.expiryDate}
+                                                                        </p>
+                                                                    ) : needsBatchFields ? (
+                                                                        <p className="text-[11px] text-muted-foreground">
+                                                                            Required while receiving quantity is greater than 0.
+                                                                        </p>
+                                                                    ) : null}
                                                                 </FormItem>
                                                             )}
                                                         />
@@ -379,17 +520,41 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                     <Separator />
 
                     {/* Action Buttons */}
-                    <motion.div variants={itemVariants} className="flex gap-3 pt-4">
-                        {/* Validation Error Summary */}
-                        {form.watch('items').some(item => (item.receivedQuantity > (item.orderedQuantity - item.previouslyReceived))) && (
-                            <div className="absolute bottom-20 left-0 right-0 bg-red-50 border-t border-red-200 p-2 text-center text-[10px] font-bold text-red-600 animate-in slide-in-from-bottom-2">
-                                Some items have quantities exceeding remaining stock. Please correct them before proceeding.
+                    <motion.div variants={itemVariants} className="relative flex flex-col gap-3 pt-4">
+                        {!parsedForm.success && !receiveItemsMutation.isPending && blockingMessages.length > 0 && (
+                            <div
+                                role="alert"
+                                className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                            >
+                                <p className="font-semibold">Cannot submit yet</p>
+                                <ul className="mt-2 list-disc space-y-1 pl-5 text-destructive/95">
+                                    {blockingMessages.map((msg) => (
+                                        <li key={msg}>{msg}</li>
+                                    ))}
+                                </ul>
+                                <p className="mt-3 text-xs text-destructive/90">
+                                    Fix the highlighted fields above — batch, manufacture date, and expiry are required on each line where received quantity is greater than zero (inventory batch records).
+                                </p>
+                                {hiddenLinesHaveErrors && (
+                                    <p className="mt-3 text-sm font-medium text-foreground">
+                                        Some errors are on lines hidden by your search.{' '}
+                                        <button
+                                            type="button"
+                                            className="underline text-primary hover:text-primary/90"
+                                            onClick={() => setSearchQuery('')}
+                                        >
+                                            Clear search to show all lines
+                                        </button>
+                                        .
+                                    </p>
+                                )}
                             </div>
                         )}
+                        <div className="flex gap-3">
                         <Button
                             type="submit"
                             className="flex-1 h-12 text-base font-bold gap-2"
-                            disabled={receiveItemsMutation.isPending || form.watch('items').some(item => (item.receivedQuantity > (item.orderedQuantity - item.previouslyReceived)))}
+                            disabled={submitBlocked}
                         >
                             {receiveItemsMutation.isPending ? (
                                 <>
@@ -412,6 +577,7 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                         >
                             Cancel
                         </Button>
+                        </div>
                     </motion.div>
                 </motion.div>
             </form>

@@ -15,8 +15,7 @@ import { motion } from 'framer-motion';
 import { SupplyOrder, SupplyOrderItem } from '@/types/api/supplyOrders';
 import { CreateInvoiceFromSupplyOrderRequest, InvoiceDto } from '@/types/api/invoices';
 import { InvoiceTemplate } from './InvoiceTemplate';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { downloadElementAsPdf } from '@/lib/downloadPdf';
 import {
   Form,
   FormControl,
@@ -280,37 +279,10 @@ export function InvoiceCreationPanel({
 
     try {
       setStep('generating');
-      const canvas = await html2canvas(invoiceTemplateRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const pdf_height = pdf.internal.pageSize.getHeight();
-
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      const imgData = canvas.toDataURL('image/png');
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdf_height;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdf_height;
-      }
-
-      pdf.save(`Invoice_${generatedInvoiceData.invoiceNumber ?? 'draft'}.pdf`);
+      await downloadElementAsPdf(
+        invoiceTemplateRef.current,
+        `Invoice_${generatedInvoiceData.invoiceNumber ?? 'draft'}`
+      );
       toast({
         title: 'PDF saved',
         description: 'Invoice downloaded successfully.',

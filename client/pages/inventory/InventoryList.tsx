@@ -161,14 +161,14 @@ export default function InventoryList() {
         className: 'text-right w-[80px]',
       },
       {
-        header: 'Avg cost',
+        header: 'Avg cost (PKR)',
         accessor: (item) => (
           <span className="tabular-nums text-muted-foreground">{formatCurrency(Number(item.averageCost))}</span>
         ),
         className: 'text-right w-[100px]',
       },
       {
-        header: 'Stock value',
+        header: 'Stock value (PKR)',
         accessor: (item) => (
           <span className="tabular-nums font-medium">{formatCurrency(Number(item.totalValue))}</span>
         ),

@@ -34,7 +34,7 @@ import {
 import UnitsForm from '../settings/UnitsForm';
 import ProductTypesForm from '../settings/ProductTypesForm';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 interface ProductFormProps {
@@ -382,7 +382,7 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
               <div className="p-2 bg-green-50 rounded-lg">
                 <Calculator className="w-4 h-4 text-green-600" />
               </div>
-              <h3 className="text-lg font-semibold">Pricing & Rates</h3>
+              <h3 className="text-lg font-semibold">Pricing &amp; rates (PKR)</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <FormField
@@ -390,7 +390,7 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
                 name="standardPurchaseRate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Purchase Rate *</FormLabel>
+                    <FormLabel>Purchase rate (PKR) *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -409,7 +409,7 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
                 name="standardSaleRate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Sale Rate *</FormLabel>
+                    <FormLabel>Sale rate (PKR) *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -448,9 +448,9 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
                   className="bg-muted/50 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4"
                 >
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Profit per Unit</p>
+                    <p className="text-xs text-muted-foreground">Profit per unit (PKR)</p>
                     <p className={cn("text-sm font-bold", marginInfo.profit >= 0 ? "text-green-600" : "text-red-600")}>
-                      PKR {marginInfo.profit.toFixed(2)}
+                      {formatCurrency(marginInfo.profit)}
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -460,12 +460,12 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
                     </Badge>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Tax Amount</p>
-                    <p className="text-sm font-medium">PKR {marginInfo.taxAmount.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">Tax amount (PKR)</p>
+                    <p className="text-sm font-medium">{formatCurrency(marginInfo.taxAmount)}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Retail Price (Inc. Tax)</p>
-                    <p className="text-sm font-bold text-blue-600">PKR {marginInfo.finalPrice.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">Retail price inc. tax (PKR)</p>
+                    <p className="text-sm font-bold text-blue-600">{formatCurrency(marginInfo.finalPrice)}</p>
                   </div>
                 </motion.div>
               )}

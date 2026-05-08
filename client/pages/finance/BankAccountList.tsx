@@ -156,7 +156,7 @@ export default function BankAccountList() {
       ),
     },
     {
-      header: 'Balance',
+      header: 'Balance (PKR)',
       accessor: (account: AccountDto) => (
         <span className={cn(
           'font-bold tabular-nums',

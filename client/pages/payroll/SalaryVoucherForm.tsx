@@ -216,7 +216,7 @@ export default function SalaryVoucherForm({
                   name={`allowances.${index}.amount`}
                   render={({ field }) => (
                     <FormItem className="min-w-[150px]">
-                      <FormLabel className="text-xs">Amount</FormLabel>
+                      <FormLabel className="text-xs">Amount (PKR)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -283,7 +283,7 @@ export default function SalaryVoucherForm({
                   name={`deductions.${index}.amount`}
                   render={({ field }) => (
                     <FormItem className="min-w-[150px]">
-                      <FormLabel className="text-xs">Amount</FormLabel>
+                      <FormLabel className="text-xs">Amount (PKR)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"

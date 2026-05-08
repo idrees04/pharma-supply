@@ -272,7 +272,7 @@ export default function SupplierList() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <KPIBox label="Total Suppliers" value={stats.total} icon={<Users className="w-5 h-5" />} iconColor="text-blue-600 bg-blue-50" color="bg-blue-500" />
         <KPIBox label="Active Suppliers" value={stats.active} icon={<CheckCircle className="w-5 h-5" />} iconColor="text-emerald-600 bg-emerald-50" color="bg-emerald-500" />
-        <KPIBox label="Total Outstanding" value={formatCurrency(stats.outstanding)} icon={<TrendingUp className="w-5 h-5" />} iconColor="text-red-600 bg-red-50" color="bg-red-500" />
+        <KPIBox label="Total outstanding (PKR)" value={formatCurrency(stats.outstanding)} icon={<TrendingUp className="w-5 h-5" />} iconColor="text-red-600 bg-red-50" color="bg-red-500" />
       </div>
 
       {/* Filters */}

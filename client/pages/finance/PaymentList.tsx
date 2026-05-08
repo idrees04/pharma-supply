@@ -85,7 +85,7 @@ export default function PaymentList() {
       accessor: (row: PaymentDto) => new Date(row.paymentDate).toLocaleDateString(),
     },
     {
-      header: "Amount",
+      header: "Amount (PKR)",
       accessor: (row: PaymentDto) => formatCurrency(row.amount),
     },
     {
@@ -136,7 +136,7 @@ export default function PaymentList() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <StatCard label="Total Payments" value={data?.totalCount.toString() || "0"} />
-        <StatCard label="Listed Amount" value={formatCurrency(totalAmount)} />
+        <StatCard label="Listed amount (PKR)" value={formatCurrency(totalAmount)} />
         <StatCard label="Accounts Involved" value={new Set(payments.map(p => p.accountId)).size.toString()} />
       </div>
 

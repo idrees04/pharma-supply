@@ -251,14 +251,14 @@ export default function ProductList() {
       className: 'text-center',
     },
     {
-      header: 'Purchase',
+      header: 'Purchase (PKR)',
       accessor: (row) => (
         <span className="font-medium tabular-nums">{formatCurrency(row.standardPurchaseRate)}</span>
       ),
       align: 'right',
     },
     {
-      header: 'Sale',
+      header: 'Sale (PKR)',
       accessor: (row) => (
         <span className="font-bold text-emerald-600 tabular-nums">{formatCurrency(row.standardSaleRate)}</span>
       ),

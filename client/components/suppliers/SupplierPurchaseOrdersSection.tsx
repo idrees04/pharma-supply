@@ -77,9 +77,9 @@ export function SupplierPurchaseOrdersSection({ supplierId }: SupplierPurchaseOr
                     <TableHead>Order date</TableHead>
                     <TableHead className="hidden md:table-cell">Expected</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right hidden sm:table-cell">Paid</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="text-right">Total (PKR)</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">Paid (PKR)</TableHead>
+                    <TableHead className="text-right">Balance (PKR)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

@@ -130,14 +130,14 @@ const StatsCards = memo(function StatsCards({
       tone: 'text-blue-700 bg-blue-50',
     },
     {
-      label: 'Outstanding',
+      label: 'Outstanding (PKR)',
       value: outstandingCount.toString(),
       helper: formatCurrency(outstandingAmount),
       icon: CircleDollarSign,
       tone: 'text-amber-700 bg-amber-50',
     },
     {
-      label: 'Overdue',
+      label: 'Overdue (PKR)',
       value: overdueCount.toString(),
       helper: formatCurrency(overdueAmount),
       icon: TriangleAlert,
@@ -239,11 +239,11 @@ const InvoiceDetailPanel = memo(function InvoiceDetailPanel({
           <p className="mt-1 font-medium">{formatDate(invoice.dueDate)}</p>
         </div>
         <div className="rounded-xl bg-muted/40 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Outstanding amount</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Outstanding amount (PKR)</p>
           <p className="mt-1 font-medium">{formatCurrency(invoice.outstandingAmount)}</p>
         </div>
         <div className="rounded-xl bg-muted/40 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Paid amount</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Paid amount (PKR)</p>
           <p className="mt-1 font-medium">{formatCurrency(invoice.paidAmount)}</p>
         </div>
       </div>
@@ -398,12 +398,12 @@ export default function InvoiceList() {
       className: 'w-20',
     },
     {
-      header: 'Total',
+      header: 'Total (PKR)',
       accessor: (row) => <span className="font-semibold">{formatCurrency(row.totalAmount)}</span>,
       className: 'w-24 text-right',
     },
     {
-      header: 'Outstanding',
+      header: 'Outstanding (PKR)',
       accessor: (row) => (
         <span className={cn('font-semibold', row.outstandingAmount > 0 ? 'text-amber-700' : 'text-emerald-700')}>
           {formatCurrency(row.outstandingAmount)}

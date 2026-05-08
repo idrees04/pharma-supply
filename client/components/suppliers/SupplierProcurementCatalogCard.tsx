@@ -49,7 +49,7 @@ export function SupplierProcurementCatalogCard({ supplierId }: SupplierProcureme
                 <TableRow>
                   <TableHead>Product</TableHead>
                   <TableHead className="hidden sm:table-cell">Code</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
+                  <TableHead className="text-right">Rate (PKR)</TableHead>
                   <TableHead className="text-right hidden md:table-cell">MOQ</TableHead>
                   <TableHead className="hidden lg:table-cell">Lead (d)</TableHead>
                   <TableHead className="hidden md:table-cell">Last purchase</TableHead>

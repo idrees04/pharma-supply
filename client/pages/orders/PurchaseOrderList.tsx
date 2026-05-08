@@ -132,7 +132,7 @@ export default function PurchaseOrderList() {
       mobileHidden: true,
     },
     {
-      header: 'Total Amount',
+      header: 'Total amount (PKR)',
       accessor: (row) => formatCurrency(row.totalAmount),
     },
     {
@@ -167,7 +167,7 @@ export default function PurchaseOrderList() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <KPIBox label="Total POs" value={stats.count} icon={<FileText className="w-5 h-5" />} color="bg-blue-500" />
-        <KPIBox label="Total Amount" value={formatCurrency(stats.amount)} icon={<DollarSign className="w-5 h-5" />} color="bg-green-500" />
+        <KPIBox label="Total amount (PKR)" value={formatCurrency(stats.amount)} icon={<DollarSign className="w-5 h-5" />} color="bg-green-500" />
         <KPIBox label="Pending / Confirmed" value={`${stats.pending} / ${stats.confirmed}`} icon={<Clock className="w-5 h-5" />} color="bg-amber-500" />
         <KPIBox label="Completed" value={stats.completed} icon={<CheckCircle className="w-5 h-5" />} color="bg-emerald-500" />
         <KPIBox label="Cancelled" value={stats.cancelled} icon={<XCircle className="w-5 h-5" />} color="bg-red-500" />

@@ -355,17 +355,17 @@ export default function AccountTransferForm({
                     name="amount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Transfer Amount *</FormLabel>
+                        <FormLabel>Transfer amount (PKR) *</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                              ₹
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-semibold">
+                              PKR
                             </span>
                             <Input
                               type="number"
                               step="0.01"
                               min="0"
-                              className="pl-8 text-lg font-medium"
+                              className="pl-14 text-lg font-medium"
                               placeholder="0.00"
                               {...field}
                               onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}

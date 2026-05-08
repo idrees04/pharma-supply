@@ -439,8 +439,8 @@ export default function PurchaseOrderView() {
                       <TableRow>
                         <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Product Information</TableHead>
                         <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Volume</TableHead>
-                        <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right">Unit Rate</TableHead>
-                        <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right">Valuation</TableHead>
+                        <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right">Unit rate (PKR)</TableHead>
+                        <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right">Valuation (PKR)</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

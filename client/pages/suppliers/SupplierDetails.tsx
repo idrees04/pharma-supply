@@ -329,7 +329,7 @@ export default function SupplierDetails() {
                                     <div className="grid grid-cols-1 gap-3 border-t border-blue-200/60 pt-6 px-2">
                                         <div className="flex items-center justify-between p-4 rounded-xl bg-white/60 border border-blue-100 shadow-sm">
                                             <div className="space-y-0.5">
-                                                <p className="text-[9px] font-black text-blue-500 uppercase">Credit Limit</p>
+                                                <p className="text-[9px] font-black text-blue-500 uppercase">Credit limit (PKR)</p>
                                                 <p className="text-lg font-black text-slate-800">{formatCurrency(creditLimit)}</p>
                                             </div>
                                             <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600">
@@ -366,15 +366,15 @@ export default function SupplierDetails() {
                                             </p>
                                             <div className="grid grid-cols-2 gap-2 text-xs">
                                                 <div className="rounded-lg bg-white/70 border border-blue-100 p-3">
-                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Available credit</p>
+                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Available credit (PKR)</p>
                                                     <p className="font-black tabular-nums text-slate-800">{formatCurrency(balanceDetail.availableCredit)}</p>
                                                 </div>
                                                 <div className="rounded-lg bg-white/70 border border-blue-100 p-3">
-                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Total PO value</p>
+                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Total PO value (PKR)</p>
                                                     <p className="font-black tabular-nums text-slate-800">{formatCurrency(balanceDetail.totalPurchaseAmount)}</p>
                                                 </div>
                                                 <div className="rounded-lg bg-white/70 border border-blue-100 p-3">
-                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Total paid</p>
+                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Total paid (PKR)</p>
                                                     <p className="font-black tabular-nums text-emerald-700">{formatCurrency(balanceDetail.totalPaidAmount)}</p>
                                                 </div>
                                                 <div className="rounded-lg bg-white/70 border border-blue-100 p-3">

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -40,6 +40,7 @@ export default function PurchaseOrderForm() {
   const isReadOnly = isViewMode;
   const poId = id ? parseInt(id) : null;
   const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = React.useState(false);
+  const [supplierProductsQueryId, setSupplierProductsQueryId] = React.useState<number | null>(null);
 
   // 1. Fetch Data
   const { data: existingPO, isPending: isLoadingPO } = usePurchaseOrder(poId);
@@ -83,14 +84,15 @@ export default function PurchaseOrderForm() {
           supplyOrderIds: item.supplyOrderIds || [],
         })),
       });
+      setSupplierProductsQueryId(
+        existingPO.supplierId > 0 ? existingPO.supplierId : null
+      );
     }
   }, [existingPO, isEditMode, isViewMode, form]);
 
   // 4. Supplier Selection & Dependent Queries
-  const selectedSupplierId = useWatch({ control: form.control, name: 'supplierId' });
-
-  // Fetch products by supplier
-  const { data: supplierProductsData, isPending: isLoadingSupplierProducts } = useSupplierProducts(selectedSupplierId || null);
+  // Fetch products by supplier (query id from state so first selection triggers fetch immediately)
+  const { data: supplierProductsData, isPending: isLoadingSupplierProducts } = useSupplierProducts(supplierProductsQueryId);
 
   // Map supplier products to dropdown format
   const supplierProducts = useMemo(() => {
@@ -104,7 +106,12 @@ export default function PurchaseOrderForm() {
 
   // Effect to auto-append default row when supplier has products
   useEffect(() => {
-    if (selectedSupplierId > 0 && supplierProductsData && supplierProductsData.length > 0 && fields.length === 0) {
+    if (
+      supplierProductsQueryId != null &&
+      supplierProductsData &&
+      supplierProductsData.length > 0 &&
+      fields.length === 0
+    ) {
       append({
         productId: 0,
         orderedQuantity: 1,
@@ -114,19 +121,7 @@ export default function PurchaseOrderForm() {
         supplyOrderIds: []
       });
     }
-  }, [selectedSupplierId, supplierProductsData, fields.length, append]);
-
-  // Handle Supplier Change
-  const handleSupplierChange = (newSupplierId: number) => {
-    if (isReadOnly) return;
-
-    // Always clear items on supplier change
-    if (selectedSupplierId !== 0 && newSupplierId !== selectedSupplierId) {
-      replace([]);
-    }
-
-    form.setValue('supplierId', newSupplierId);
-  };
+  }, [supplierProductsQueryId, supplierProductsData, fields.length, append]);
 
   const handleClearTable = () => {
     if (fields.length > 0) {
@@ -250,7 +245,7 @@ export default function PurchaseOrderForm() {
   }
 
   return (
-    <div className="space-y-6 animate-slide-up pb-10 max-w-[1400px] mx-auto">
+    <div className="space-y-6 animate-slide-up pb-10">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -298,8 +293,21 @@ export default function PurchaseOrderForm() {
                           <FormControl>
                             <SearchableSelect
                               items={sortedSuppliers.map(s => ({ value: s.id, label: s.supplierName }))}
-                              value={field.value}
-                              onValueChange={(val) => handleSupplierChange(Number(val))}
+                              value={field.value === 0 ? undefined : field.value}
+                              onValueChange={(val) => {
+                                if (isReadOnly) return;
+                                const newSupplierId = Number(val);
+                                const prev = field.value;
+                                if (prev !== 0 && newSupplierId !== prev) {
+                                  replace([]);
+                                }
+                                field.onChange(newSupplierId);
+                                const nextQueryId =
+                                  Number.isFinite(newSupplierId) && newSupplierId > 0
+                                    ? newSupplierId
+                                    : null;
+                                setSupplierProductsQueryId(nextQueryId);
+                              }}
                               placeholder="Choose Supplier"
                               isLoading={isLoadingSuppliers}
                               className={cn(
@@ -437,7 +445,7 @@ export default function PurchaseOrderForm() {
                           supplyOrderIds: []
                         })}
                         className="gap-2 shadow-sm border border-primary/20 hover:bg-primary/10 transition-colors text-primary font-bold"
-                        disabled={selectedSupplierId === 0 || isLoadingSupplierProducts}
+                        disabled={supplierProductsQueryId == null || isLoadingSupplierProducts}
                       >
                         <Plus className="h-4 w-4" />
                         Add Row
@@ -640,7 +648,7 @@ export default function PurchaseOrderForm() {
                           <TableRow>
                             <TableCell colSpan={isReadOnly ? 7 : 8} className="h-44 text-center text-muted-foreground bg-muted/5">
                               <div className="flex flex-col items-center gap-3">
-                                {selectedSupplierId > 0 && !isLoadingSupplierProducts && (!supplierProductsData || supplierProductsData.length === 0) ? (
+                                {supplierProductsQueryId != null && !isLoadingSupplierProducts && (!supplierProductsData || supplierProductsData.length === 0) ? (
                                   <>
                                     <div className="bg-red-50 p-4 rounded-full">
                                       <Package className="h-10 w-10 text-red-400 opacity-80" />
@@ -660,7 +668,7 @@ export default function PurchaseOrderForm() {
                                     <div className="space-y-1">
                                       <p className="italic font-bold text-foreground">No items added yet</p>
                                       <p className="text-xs text-muted-foreground">
-                                        {selectedSupplierId === 0
+                                        {supplierProductsQueryId == null
                                           ? "Please select a supplier to begin adding products."
                                           : 'Click "Add Row" to add products to this order.'}
                                       </p>
@@ -714,7 +722,7 @@ export default function PurchaseOrderForm() {
 
                     <div className="border-t border-dashed pt-4 mt-6">
                       <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Grand Net Total</span>
+                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Grand net total (PKR)</span>
                         <div className="text-3xl font-black text-primary tracking-tighter drop-shadow-sm">
                           {formatCurrency(calculations.grandTotal)}
                         </div>
@@ -752,7 +760,7 @@ export default function PurchaseOrderForm() {
               </Card>
 
               {/* Related Info */}
-              {selectedSupplierId > 0 && !isReadOnly && (
+              {supplierProductsQueryId != null && !isReadOnly && (
                 <Card className="border-none shadow-none bg-muted/30">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xs font-black uppercase text-muted-foreground tracking-widest">Supplier Inventory Hints</CardTitle>

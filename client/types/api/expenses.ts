@@ -1,60 +1,89 @@
 import { ApiResponse, PaginatedResponse } from './common';
 
-// Enums
+/** Matches MDS.Dal.Entities.ExpenseStatus */
 export enum ExpenseStatus {
-    Pending = 1,
-    Approved = 3,
-    Rejected = 5,
+  Pending = 1,
+  Paid = 3,
+  Cancelled = 5,
 }
 
-// DTOs
 export interface ExpenseDto {
-    id: number;
-    expenseNumber: string | null;
-    expenseDate: string; // ISO date
-    expenseCategoryId: number;
-    expenseCategoryName: string | null;
-    amount: number;
-    description: string | null;
-    accountId: number;
-    accountName: string | null;
-    status: ExpenseStatus;
-    notes: string | null;
-    isActive: boolean;
+  id: number;
+  expenseNumber: string | null;
+  expenseDate: string;
+  expenseCategoryId: number;
+  expenseCategoryName: string | null;
+  amount: number;
+  description: string | null;
+  accountId: number;
+  accountName: string | null;
+  status: ExpenseStatus;
+  notes: string | null;
+  isActive: boolean;
+  voucherNumber: string | null;
+  voucherIssuedDate: string | null;
+  voucherTemplateKey: string | null;
+  payeeName: string | null;
+  referenceNumber: string | null;
 }
 
-// Request DTOs
+/** POST /api/Expenses — backend requires non-null strings; send "" for empty. */
 export interface CreateExpenseRequest {
-    expenseDate: string; // ISO date
-    expenseCategoryId: number;
-    amount: number;
-    description?: string | null;
-    accountId: number;
-    notes?: string | null;
+  expenseDate: string;
+  expenseCategoryId: number;
+  amount: number;
+  description: string;
+  accountId: number;
+  payeeName: string;
+  referenceNumber: string;
+  notes: string;
 }
 
+/** PUT /api/Expenses/{id} */
 export interface UpdateExpenseRequest {
-    expenseDate?: string;
-    expenseCategoryId?: number;
-    amount?: number;
-    description?: string | null;
-    accountId?: number;
-    status?: ExpenseStatus;
-    notes?: string | null;
+  expenseDate: string;
+  expenseCategoryId: number;
+  amount: number;
+  description: string;
+  accountId: number;
+  status: ExpenseStatus;
+  notes: string;
 }
 
-// Query parameters
+export interface IssueExpenseVoucherRequest {
+  voucherTemplateKey?: string | null;
+}
+
+export interface ExpenseVoucherPrintDto {
+  expenseId: number;
+  voucherNumber: string | null;
+  expenseNumber: string | null;
+  expenseDate: string;
+  voucherIssuedDate: string | null;
+  voucherTemplateKey: string | null;
+  payeeName: string | null;
+  accountName: string | null;
+  categoryName: string | null;
+  amount: number;
+  amountInWords: string | null;
+  description: string | null;
+  referenceNumber: string | null;
+  notes: string | null;
+}
+
 export interface ExpenseListQueryParams {
-    pageNumber?: number;
-    pageSize?: number;
-    searchTerm?: string;
-    sortBy?: string;
-    sortDescending?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+  searchTerm?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
 }
 
-// Response types
 export type GetExpensesResponse = ApiResponse<PaginatedResponse<ExpenseDto>>;
 export type GetExpenseResponse = ApiResponse<ExpenseDto>;
-export type CreateExpenseResponse = ApiResponse<ExpenseDto>;
-export type UpdateExpenseResponse = ApiResponse<ExpenseDto>;
+export type CreateExpenseResponse = ApiResponse<ExpenseDto | null>;
+export type UpdateExpenseResponse = ApiResponse<ExpenseDto | null>;
 export type DeleteExpenseResponse = ApiResponse<null>;
+export type GetIssuedVouchersResponse = ApiResponse<ExpenseDto[]>;
+export type GetVoucherPrintResponse = ApiResponse<ExpenseVoucherPrintDto>;
+export type IssueVoucherResponse = ApiResponse<ExpenseDto>;

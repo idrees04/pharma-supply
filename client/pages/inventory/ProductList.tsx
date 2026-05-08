@@ -301,11 +301,6 @@ export default function ProductList() {
       align: 'center',
     },
     {
-      header: 'Rx',
-      accessor: (row) => row.requiresPrescription ? <CheckCircle className="w-4 h-4 text-amber-600" /> : <XCircle className="w-4 h-4 text-slate-300" />,
-      align: 'center',
-    },
-    {
       header: 'HSN',
       accessor: (row) => (
         <span className="text-xs font-mono" title={row.hsnCode}>

@@ -382,7 +382,8 @@ export function useSupplierProducts(supplierId: number | null) {
     () => productSupplierService.getSupplierProducts(supplierId!),
     {
       enabled: supplierId !== null,
-      staleTime: 10 * 60 * 1000,
+      staleTime: 0,
+      gcTime: 0,
     }
   );
 }

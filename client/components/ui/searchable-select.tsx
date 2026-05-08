@@ -47,10 +47,20 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
     const [open, setOpen] = React.useState(false);
 
-    const selectedItem = React.useMemo(
-        () => items.find((item) => item.value === value),
-        [items, value]
-    );
+    const selectedItem = React.useMemo(() => {
+        if (value === undefined || value === null || value === "") {
+            return undefined;
+        }
+        return items.find(
+            (item) =>
+                item.value === value || String(item.value) === String(value)
+        );
+    }, [items, value]);
+
+    const isItemSelected = (item: SearchableSelectItem) =>
+        selectedItem !== undefined &&
+        (item.value === selectedItem.value ||
+            String(item.value) === String(selectedItem.value));
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -95,8 +105,9 @@ export function SearchableSelect({
                         <CommandGroup>
                             {items.map((item) => (
                                 <CommandItem
-                                    key={item.value}
-                                    value={String(item.label)}
+                                    key={String(item.value)}
+                                    value={String(item.value)}
+                                    keywords={item.label ? [item.label] : []}
                                     onSelect={() => {
                                         onValueChange(item.value);
                                         setOpen(false);
@@ -104,7 +115,7 @@ export function SearchableSelect({
                                     className={cn(
                                         "flex items-center gap-2 m-1 px-4 py-3 cursor-pointer rounded-md transition-all duration-200 outline-none",
                                         "aria-selected:bg-sidebar-accent aria-selected:text-sidebar-accent-foreground",
-                                        value === item.value
+                                        isItemSelected(item)
                                             ? "bg-sidebar-accent/15 text-sidebar-primary font-bold shadow-sm border-l-4 border-l-sidebar-accent pl-3"
                                             : "text-foreground hover:bg-accent/5"
                                     )}

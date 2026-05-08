@@ -390,8 +390,9 @@ export function useSupplierProducts(id: number | null) {
     ['suppliers', id, 'products'],
     () => supplierService.getSupplierProducts(id!),
     {
-      enabled: id !== null,
-      staleTime: 10 * 60 * 1000,
+      enabled: typeof id === 'number' && id > 0,
+      staleTime: 0,
+      gcTime: 0,
     }
   );
 }

@@ -55,11 +55,11 @@ export default function SalesOrderList() {
       accessor: 'hospitalName',
     },
     {
-      header: 'Sale Total',
+      header: 'Sale total (PKR)',
       accessor: (row) => formatCurrency(row.saleTotal),
     },
     {
-      header: 'Purchase Total',
+      header: 'Purchase total (PKR)',
       accessor: (row) => formatCurrency(row.purchaseTotal),
       className: 'hidden sm:table-cell',
     },

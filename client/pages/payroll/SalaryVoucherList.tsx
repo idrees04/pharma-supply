@@ -57,17 +57,17 @@ export default function SalaryVoucherList() {
       accessor: "date",
     },
     {
-      header: "Gross Salary",
+      header: "Gross salary (PKR)",
       accessor: (row) => formatCurrency(row.grossSalary),
     },
     {
-      header: "Deductions",
+      header: "Deductions (PKR)",
       accessor: (row) =>
         formatCurrency(row.deductions.reduce((sum, d) => sum + d.amount, 0)),
       className: "hidden sm:table-cell",
     },
     {
-      header: "Net Payable",
+      header: "Net payable (PKR)",
       accessor: (row) => formatCurrency(row.netSalaryPayable),
     },
   ];

@@ -231,14 +231,14 @@ export function PaymentDrawer({
                 </p>
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
-                  <SummaryTile label="Agreed order total" value={suggested.agreedOrderTotal || 0} />
-                  <SummaryTile label="Goods received (value)" value={suggested.goodsReceivedValue || 0} emphasize="emerald" />
-                  <SummaryTile label="Previously paid" value={suggested.previouslyPaidAmount || 0} emphasize="blue" />
-                  <SummaryTile label="Outstanding" value={suggested.totalOutstanding || 0} emphasize="amber" />
+                  <SummaryTile label="Agreed order total (PKR)" value={suggested.agreedOrderTotal || 0} />
+                  <SummaryTile label="Goods received value (PKR)" value={suggested.goodsReceivedValue || 0} emphasize="emerald" />
+                  <SummaryTile label="Previously paid (PKR)" value={suggested.previouslyPaidAmount || 0} emphasize="blue" />
+                  <SummaryTile label="Outstanding (PKR)" value={suggested.totalOutstanding || 0} emphasize="amber" />
                 </div>
 
                 <div className="rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-md">
-                  <p className="text-sm font-medium opacity-90">Maximum you can pay now</p>
+                  <p className="text-sm font-medium opacity-90">Maximum you can pay now (PKR)</p>
                   <p className="text-3xl font-bold tracking-tight mt-1 tabular-nums">
                     {formatCurrency(suggested.suggestedPayableAmount || 0)}
                   </p>
@@ -313,7 +313,7 @@ export function PaymentDrawer({
                           name="amount"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-sm font-medium">Amount</FormLabel>
+                              <FormLabel className="text-sm font-medium">Amount (PKR)</FormLabel>
                               <FormControl>
                                 <div className="relative">
                                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" aria-hidden />

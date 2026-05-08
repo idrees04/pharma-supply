@@ -273,7 +273,7 @@ export default function ProductDetails() {
                                                 <TableRow>
                                                     <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Supplier Entity</TableHead>
                                                     <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Procurement Cycle</TableHead>
-                                                    <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right">Acquisition Rate</TableHead>
+                                                    <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right">Acquisition rate (PKR)</TableHead>
                                                     <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right">Priority</TableHead>
                                                 </TableRow>
                                             </TableHeader>
@@ -418,7 +418,7 @@ export default function ProductDetails() {
                                 <CardContent className="pt-8 space-y-8">
                                     <div className="flex justify-between items-center group">
                                         <div className="space-y-1">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Base Purchase Rate</p>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Base purchase rate (PKR)</p>
                                             <p className="text-xl font-bold text-slate-800">{formatCurrency(product.standardPurchaseRate)}</p>
                                         </div>
                                         <div className="h-10 w-1 bg-slate-100 rounded-full group-hover:bg-primary transition-all" />
@@ -426,7 +426,7 @@ export default function ProductDetails() {
 
                                     <div className="flex justify-between items-center group">
                                         <div className="space-y-1 text-right w-full">
-                                            <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Global Sale Rate</p>
+                                            <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Global sale rate (PKR)</p>
                                             <p className="text-2xl font-black text-emerald-700">{formatCurrency(product.standardSaleRate)}</p>
                                         </div>
                                     </div>

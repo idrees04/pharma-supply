@@ -14,7 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/utils';
 
 interface LinkedProductsTableProps {
     supplierId: number;
@@ -121,7 +121,7 @@ export const LinkedProductsTable: React.FC<LinkedProductsTableProps> = ({ suppli
                             <TableHead>Product Name</TableHead>
                             <TableHead>Code</TableHead>
                             <TableHead>Supplier Code</TableHead>
-                            <TableHead className="text-right">Purchase Rate</TableHead>
+                            <TableHead className="text-right">Purchase rate (PKR)</TableHead>
                             <TableHead className="text-right">Lead Time</TableHead>
                             <TableHead className="text-center">Preferred</TableHead>
                             <TableHead className="text-center">Min Order Qty</TableHead>
@@ -134,7 +134,7 @@ export const LinkedProductsTable: React.FC<LinkedProductsTableProps> = ({ suppli
                                 <TableCell>{item.productCode}</TableCell>
                                 <TableCell>{item.supplierProductCode || '-'}</TableCell>
                                 <TableCell className="text-right">
-                                    {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(item.purchaseRate)}
+                                    {formatCurrency(item.purchaseRate)}
                                 </TableCell>
                                 <TableCell className="text-right">{item.leadTimeDays} days</TableCell>
                                 <TableCell className="text-center">

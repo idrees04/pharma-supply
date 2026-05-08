@@ -5,6 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Formats money using PKR as the unit (app-wide standard). */
 export function formatCurrency(amount: number | undefined | null, currency = "PKR"): string {
   const value = amount ?? 0;
   return `${currency} ${value.toLocaleString("en-PK", {

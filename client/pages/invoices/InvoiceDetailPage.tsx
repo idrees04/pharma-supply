@@ -384,7 +384,7 @@ export default function InvoiceDetailPage() {
                       name="amount"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Amount *</FormLabel>
+                          <FormLabel>Amount (PKR) *</FormLabel>
                           <FormControl>
                             <Input type="number" step="0.01" min={0} {...field} />
                           </FormControl>
@@ -462,15 +462,15 @@ function SummaryCard({ invoice }: { invoice: InvoiceDto }) {
           <span className="font-medium">{formatDate(invoice.dueDate)}</span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">Total</span>
+          <span className="text-muted-foreground">Total (PKR)</span>
           <span className="font-semibold tabular-nums">{formatCurrency(invoice.totalAmount)}</span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">Paid</span>
+          <span className="text-muted-foreground">Paid (PKR)</span>
           <span className="font-semibold tabular-nums text-emerald-700">{formatCurrency(invoice.paidAmount)}</span>
         </div>
         <div className="flex justify-between gap-4 border-t pt-3">
-          <span className="text-muted-foreground">Outstanding</span>
+          <span className="text-muted-foreground">Outstanding (PKR)</span>
           <span
             className={cn(
               'font-bold tabular-nums',

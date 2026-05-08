@@ -385,11 +385,11 @@ function ReportResults({
           <SummaryStrip
             items={[
               { label: 'Orders', value: String(d.totalOrderCount) },
-              { label: 'Total amount', value: formatCurrency(d.grandTotalAmount) },
+              { label: 'Total amount (PKR)', value: formatCurrency(d.grandTotalAmount) },
             ]}
           />
           <DataCardTable
-            headers={['Status', 'Orders', 'Amount']}
+            headers={['Status', 'Orders', 'Amount (PKR)']}
             rows={d.rows.map((r) => [r.statusName, String(r.orderCount), formatCurrency(r.totalAmount)])}
           />
         </div>
@@ -402,11 +402,11 @@ function ReportResults({
           <SummaryStrip
             items={[
               { label: 'Orders', value: String(d.totalOrderCount) },
-              { label: 'Total amount', value: formatCurrency(d.grandTotalAmount) },
+              { label: 'Total amount (PKR)', value: formatCurrency(d.grandTotalAmount) },
             ]}
           />
           <DataCardTable
-            headers={['Hospital', 'Orders', 'Amount']}
+            headers={['Hospital', 'Orders', 'Amount (PKR)']}
             rows={d.rows.map((r) => [r.hospitalName, String(r.orderCount), formatCurrency(r.totalAmount)])}
           />
         </div>
@@ -433,9 +433,9 @@ function ReportResults({
       const d = data as import('@/types/api/analyticsReports').InventoryStockPositionReportDto;
       return (
         <div className="space-y-4">
-          <SummaryStrip items={[{ label: 'Stock value', value: formatCurrency(d.grandTotalStockValue) }]} />
+          <SummaryStrip items={[{ label: 'Stock value (PKR)', value: formatCurrency(d.grandTotalStockValue) }]} />
           <DataCardTable
-            headers={['Code', 'Product', 'Avail', 'Reserved', 'Total', 'Avg cost', 'Value']}
+            headers={['Code', 'Product', 'Avail', 'Reserved', 'Total qty', 'Avg cost (PKR)', 'Value (PKR)']}
             rows={d.rows.map((r) => [
               r.productCode,
               r.productName,
@@ -453,7 +453,7 @@ function ReportResults({
       const d = data as import('@/types/api/analyticsReports').InventoryBatchExpiryReportDto;
       return (
         <DataCardTable
-          headers={['Product', 'Batch', 'Expiry', 'Qty', 'Rate', 'Days left']}
+          headers={['Product', 'Batch', 'Expiry', 'Qty', 'Rate (PKR)', 'Days left']}
           rows={d.rows.map((r) => [
             `${r.productCode} ${r.productName}`,
             r.batchNumber,
@@ -471,12 +471,12 @@ function ReportResults({
         <div className="space-y-4">
           <SummaryStrip
             items={[
-              { label: 'Outstanding', value: formatCurrency(d.totalOutstanding) },
-              { label: 'Paid', value: formatCurrency(d.totalPaid) },
+              { label: 'Outstanding (PKR)', value: formatCurrency(d.totalOutstanding) },
+              { label: 'Paid (PKR)', value: formatCurrency(d.totalPaid) },
             ]}
           />
           <DataCardTable
-            headers={['Supplier', 'POs', 'Total', 'Paid', 'Outstanding']}
+            headers={['Supplier', 'POs', 'Total (PKR)', 'Paid (PKR)', 'Outstanding (PKR)']}
             rows={d.rows.map((r) => [
               r.supplierName,
               String(r.purchaseOrderCount),
@@ -512,16 +512,16 @@ function ReportResults({
         <div className="space-y-4">
           <SummaryStrip
             items={[
-              { label: 'Outstanding', value: formatCurrency(d.totalOutstanding) },
-              { label: 'Current', value: formatCurrency(a.current) },
-              { label: '1–30', value: formatCurrency(a.days1To30) },
-              { label: '31–60', value: formatCurrency(a.days31To60) },
-              { label: '61–90', value: formatCurrency(a.days61To90) },
-              { label: '90+', value: formatCurrency(a.daysOver90) },
+              { label: 'Outstanding (PKR)', value: formatCurrency(d.totalOutstanding) },
+              { label: 'Current (PKR)', value: formatCurrency(a.current) },
+              { label: '1–30 (PKR)', value: formatCurrency(a.days1To30) },
+              { label: '31–60 (PKR)', value: formatCurrency(a.days31To60) },
+              { label: '61–90 (PKR)', value: formatCurrency(a.days61To90) },
+              { label: '90+ (PKR)', value: formatCurrency(a.daysOver90) },
             ]}
           />
           <DataCardTable
-            headers={['Invoice', 'Hospital', 'Due', 'Outstanding', 'Bucket', 'Days late']}
+            headers={['Invoice', 'Hospital', 'Due', 'Outstanding (PKR)', 'Bucket', 'Days late']}
             rows={d.rows.map((r) => [
               r.invoiceNumber,
               r.hospitalName,
@@ -538,9 +538,9 @@ function ReportResults({
       const d = data as import('@/types/api/analyticsReports').CashCollectionsReportDto;
       return (
         <div className="space-y-4">
-          <SummaryStrip items={[{ label: 'Collected', value: formatCurrency(d.totalCollected) }]} />
+          <SummaryStrip items={[{ label: 'Collected (PKR)', value: formatCurrency(d.totalCollected) }]} />
           <DataCardTable
-            headers={['Payment #', 'Date', 'Amount', 'Mode', 'Hospital']}
+            headers={['Payment #', 'Date', 'Amount (PKR)', 'Mode', 'Hospital']}
             rows={d.rows.map((r) => [
               r.paymentNumber,
               fmtDate(r.paymentDate),
@@ -556,9 +556,9 @@ function ReportResults({
       const d = data as import('@/types/api/analyticsReports').ExpensesSummaryReportDto;
       return (
         <div className="space-y-4">
-          <SummaryStrip items={[{ label: 'Total expenses', value: formatCurrency(d.grandTotal) }]} />
+          <SummaryStrip items={[{ label: 'Total expenses (PKR)', value: formatCurrency(d.grandTotal) }]} />
           <DataCardTable
-            headers={['Category', 'Count', 'Amount']}
+            headers={['Category', 'Count', 'Amount (PKR)']}
             rows={d.rows.map((r) => [r.categoryName, String(r.expenseCount), formatCurrency(r.totalAmount)])}
           />
         </div>

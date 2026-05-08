@@ -323,7 +323,7 @@ export default function AccountTransfersList() {
         className: 'w-48',
       },
       {
-        header: 'Amount',
+        header: 'Amount (PKR)',
         accessor: (row) => <span className="font-semibold">{formatCurrency(row.amount)}</span>,
         className: 'w-24 text-right',
       },

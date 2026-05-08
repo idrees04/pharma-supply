@@ -694,12 +694,12 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                         <TableHead className="w-[52px] text-center font-black text-slate-500 border-r border-slate-200 text-xs uppercase tracking-wider">#</TableHead>
                         <TableHead className="min-w-[200px] pl-4 font-black text-slate-700 text-xs uppercase tracking-wider">Product</TableHead>
                         <TableHead className="w-[80px] font-black text-slate-700 text-center text-xs uppercase tracking-wider">Qty</TableHead>
-                        <TableHead className="w-[110px] font-black text-slate-700 text-xs uppercase tracking-wider text-right">Price</TableHead>
+                        <TableHead className="w-[110px] font-black text-slate-700 text-xs uppercase tracking-wider text-right">Price (PKR)</TableHead>
                         <TableHead className="w-[80px] font-black text-slate-700 text-center text-xs uppercase tracking-wider">Tax %</TableHead>
                         <TableHead className="w-[80px] font-black text-slate-700 text-center text-xs uppercase tracking-wider">Disc %</TableHead>
                         <TableHead className="w-[120px] font-black text-slate-700 text-xs uppercase tracking-wider">Source</TableHead>
                         <TableHead className="w-[150px] font-black text-slate-700 text-xs uppercase tracking-wider">Supplier</TableHead>
-                        <TableHead className="w-[130px] font-black text-primary text-right pr-5 text-xs uppercase tracking-wider bg-primary/5">Total</TableHead>
+                        <TableHead className="w-[130px] font-black text-primary text-right pr-5 text-xs uppercase tracking-wider bg-primary/5">Total (PKR)</TableHead>
                         {!isEditMode && <TableHead className="w-[52px]" />}
                       </TableRow>
                     </TableHeader>

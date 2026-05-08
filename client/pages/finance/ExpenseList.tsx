@@ -165,7 +165,7 @@ export default function ExpenseList() {
         mobileHidden: true,
       },
       {
-        header: 'Amount',
+        header: 'Amount (PKR)',
         accessor: (row) => <span className="font-semibold tabular-nums">{formatCurrency(row.amount)}</span>,
         className: 'text-right',
       },
@@ -286,7 +286,7 @@ export default function ExpenseList() {
         <TabsContent value="all" className="mt-6 space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Kpi label="Total records" value={String(totalCount)} icon={<FileText className="h-4 w-4" />} />
-            <Kpi label="This page total" value={formatCurrency(pageTotal)} icon={<Receipt className="h-4 w-4" />} />
+            <Kpi label="This page total (PKR)" value={formatCurrency(pageTotal)} icon={<Receipt className="h-4 w-4" />} />
             <Kpi label="Page" value={`${pageNumber} / ${totalPages}`} icon={<ChevronRight className="h-4 w-4" />} />
           </div>
 
@@ -542,7 +542,7 @@ function VoucherPrintBody({ expenseId }: { expenseId: number }) {
         <span>{v.payeeName || '—'}</span>
       </div>
       <div className="flex justify-between gap-4">
-        <span className="text-muted-foreground">Amount</span>
+        <span className="text-muted-foreground">Amount (PKR)</span>
         <span className="font-bold tabular-nums">{formatCurrency(v.amount)}</span>
       </div>
       <div className="rounded-lg bg-background p-3 text-xs italic text-muted-foreground">{v.amountInWords}</div>

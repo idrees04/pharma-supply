@@ -116,13 +116,13 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
             </p>
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-500 uppercase mb-1">Outstanding</p>
+            <p className="text-xs font-bold text-slate-500 uppercase mb-1">Outstanding (PKR)</p>
             <p className="font-semibold text-red-600">
               {formatCurrency(invoice.outstandingAmount)}
             </p>
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-500 uppercase mb-1">Amount Due</p>
+            <p className="text-xs font-bold text-slate-500 uppercase mb-1">Amount due (PKR)</p>
             <p className="font-bold text-2xl text-primary">
               {formatCurrency(invoice.totalAmount)}
             </p>
@@ -141,13 +141,13 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
                   QTY
                 </th>
                 <th className="text-right py-3 px-4 font-bold text-slate-700 text-xs">
-                  UNIT PRICE
+                  UNIT PRICE (PKR)
                 </th>
                 <th className="text-right py-3 px-4 font-bold text-slate-700 text-xs">
-                  TAX
+                  TAX (PKR)
                 </th>
                 <th className="text-right py-3 px-4 font-bold text-slate-700 text-xs">
-                  AMOUNT
+                  AMOUNT (PKR)
                 </th>
               </tr>
             </thead>
@@ -196,37 +196,37 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
         <motion.div variants={itemVariants} className="mb-8 flex justify-end">
           <div className="w-full md:w-80 space-y-2">
             <div className="flex justify-between py-2 border-b border-slate-200">
-              <span className="text-slate-600 font-semibold">Subtotal</span>
+              <span className="text-slate-600 font-semibold">Subtotal (PKR)</span>
               <span className="text-slate-900 font-bold">{formatCurrency(subtotal)}</span>
             </div>
             {tax > 0 && (
               <div className="flex justify-between py-2 border-b border-slate-200">
-                <span className="text-slate-600 font-semibold">Tax ({invoice.items?.length || 0}%)</span>
+                <span className="text-slate-600 font-semibold">Tax (PKR)</span>
                 <span className="text-blue-600 font-bold">{formatCurrency(tax)}</span>
               </div>
             )}
             {discount > 0 && (
               <div className="flex justify-between py-2 border-b border-slate-200">
-                <span className="text-slate-600 font-semibold">Discount</span>
+                <span className="text-slate-600 font-semibold">Discount (PKR)</span>
                 <span className="text-red-600 font-bold">-{formatCurrency(discount)}</span>
               </div>
             )}
             {shipping > 0 && (
               <div className="flex justify-between py-2 border-b border-slate-200">
-                <span className="text-slate-600 font-semibold">Shipping</span>
+                <span className="text-slate-600 font-semibold">Shipping (PKR)</span>
                 <span className="text-slate-900 font-bold">{formatCurrency(shipping)}</span>
               </div>
             )}
             {adjustment !== 0 && (
               <div className="flex justify-between py-2 border-b border-slate-200">
-                <span className="text-slate-600 font-semibold">Adjustment</span>
+                <span className="text-slate-600 font-semibold">Adjustment (PKR)</span>
                 <span className={`font-bold ${adjustment > 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {adjustment > 0 ? '+' : '-'}{formatCurrency(Math.abs(adjustment))}
                 </span>
               </div>
             )}
             <div className="flex justify-between py-3 bg-primary/10 px-3 rounded-lg mt-4">
-              <span className="font-black text-slate-900 uppercase text-sm">Total Amount</span>
+              <span className="font-black text-slate-900 uppercase text-sm">Total amount (PKR)</span>
               <span className="font-black text-primary text-lg">{formatCurrency(total)}</span>
             </div>
           </div>

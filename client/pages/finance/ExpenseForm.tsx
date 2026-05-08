@@ -253,7 +253,7 @@ export default function ExpenseForm({ expenseId, onSuccess, onCancel }: ExpenseF
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount *</FormLabel>
+                  <FormLabel>Amount (PKR) *</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" min={0} className="h-11 tabular-nums" {...field} />
                   </FormControl>
@@ -406,7 +406,7 @@ export default function ExpenseForm({ expenseId, onSuccess, onCancel }: ExpenseF
             name="amount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Amount *</FormLabel>
+                <FormLabel>Amount (PKR) *</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" min={0} className="h-11 tabular-nums" {...field} />
                 </FormControl>

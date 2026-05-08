@@ -722,7 +722,7 @@ export default function PurchaseOrderForm() {
 
                     <div className="border-t border-dashed pt-4 mt-6">
                       <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Grand Net Total</span>
+                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Grand net total (PKR)</span>
                         <div className="text-3xl font-black text-primary tracking-tighter drop-shadow-sm">
                           {formatCurrency(calculations.grandTotal)}
                         </div>

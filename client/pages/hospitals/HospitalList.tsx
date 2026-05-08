@@ -210,7 +210,7 @@ export default function HospitalList() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <KPIBox label="Total Hospitals" value={stats.total} icon={<HospitalIcon className="w-5 h-5" />} color="bg-blue-500" iconColor="text-blue-600 bg-blue-50" />
         <KPIBox label="Active Hospitals" value={stats.active} icon={<CheckCircle className="w-5 h-5" />} color="bg-emerald-500" iconColor="text-emerald-600 bg-emerald-50" />
-        <KPIBox label="Total Outstanding" value={formatCurrency(stats.outstanding)} icon={<TrendingDown className="w-5 h-5" />} color="bg-red-500" iconColor="text-red-600 bg-red-50" />
+        <KPIBox label="Total outstanding (PKR)" value={formatCurrency(stats.outstanding)} icon={<TrendingDown className="w-5 h-5" />} color="bg-red-500" iconColor="text-red-600 bg-red-50" />
       </div>
 
       {/* Search Bar */}

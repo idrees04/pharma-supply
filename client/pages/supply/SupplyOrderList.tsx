@@ -125,7 +125,7 @@ export default function SupplyOrderList() {
       accessor: (row) => new Date(row.requiredByDate).toLocaleDateString(),
     },
     {
-      header: 'Total Amount',
+      header: 'Total amount (PKR)',
       accessor: (row) => formatCurrency(row.totalAmount),
     },
     {
@@ -161,9 +161,9 @@ export default function SupplyOrderList() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
         <KPIBox label="Total SOs" value={stats.count} icon={<FileText className="w-4 h-4" />} color="bg-blue-500" />
-        <KPIBox label="Total Amount" value={formatCurrency(stats.amount)} icon={<DollarSign className="w-4 h-4" />} color="bg-green-500" />
-        <KPIBox label="Total Tax" value={formatCurrency(stats.tax)} icon={<TrendingUp className="w-4 h-4" />} color="bg-indigo-500" />
-        <KPIBox label="Total Discount" value={formatCurrency(stats.discount)} icon={<Zap className="w-4 h-4" />} color="bg-amber-500" />
+        <KPIBox label="Total amount (PKR)" value={formatCurrency(stats.amount)} icon={<DollarSign className="w-4 h-4" />} color="bg-green-500" />
+        <KPIBox label="Total tax (PKR)" value={formatCurrency(stats.tax)} icon={<TrendingUp className="w-4 h-4" />} color="bg-indigo-500" />
+        <KPIBox label="Total discount (PKR)" value={formatCurrency(stats.discount)} icon={<Zap className="w-4 h-4" />} color="bg-amber-500" />
         <KPIBox label="Pending" value={stats.pending} icon={<Clock className="w-4 h-4" />} color="bg-orange-500" />
         <KPIBox label="Approved" value={stats.approved} icon={<CheckCircle className="w-4 h-4" />} color="bg-emerald-500" />
         <KPIBox label="Fulfilled" value={stats.fulfilled} icon={<PackageCheck className="w-4 h-4" />} color="bg-purple-500" />

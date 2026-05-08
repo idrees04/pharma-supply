@@ -53,7 +53,7 @@ export default function TenderList() {
       className: 'hidden sm:table-cell',
     },
     {
-      header: 'Offer Price',
+      header: 'Offer price (PKR)',
       accessor: (row) => formatCurrency(row.offerPrice),
     },
     {
@@ -100,7 +100,7 @@ export default function TenderList() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Total Tenders" value={tenders.length.toString()} />
         <StatCard label="Filtered Results" value={filteredTenders.length.toString()} />
-        <StatCard label="Avg Offer Price" value={formatCurrency(
+        <StatCard label="Avg offer price (PKR)" value={formatCurrency(
           tenders.length > 0 ? tenders.reduce((sum, t) => sum + t.offerPrice, 0) / tenders.length : 0
         )} />
         <StatCard label="GST Applicable" value={tenders.filter(t => t.gstApplicable).length.toString()} />

@@ -362,7 +362,7 @@ export const LinkProductsModal: React.FC<LinkProductsModalProps> = ({
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <Label className="text-xs">Rate (₹)</Label>
+                                                    <Label className="text-xs">Rate (PKR)</Label>
                                                     <Input
                                                         type="number"
                                                         value={item.supplierRate}

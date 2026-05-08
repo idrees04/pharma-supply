@@ -115,27 +115,27 @@ const InvoiceTotals = memo(function InvoiceTotals({
     <Card className="border-primary/15 bg-primary/5 p-4">
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Subtotal</span>
+          <span className="text-muted-foreground">Subtotal (PKR)</span>
           <span className="font-medium">{formatCurrency(subtotal)}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Tax</span>
+          <span className="text-muted-foreground">Tax (PKR)</span>
           <span className="font-medium">{formatCurrency(tax)}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Discount</span>
+          <span className="text-muted-foreground">Discount (PKR)</span>
           <span className="font-medium">- {formatCurrency(discount)}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Shipping</span>
+          <span className="text-muted-foreground">Shipping (PKR)</span>
           <span className="font-medium">{formatCurrency(shipping)}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Adjustment</span>
+          <span className="text-muted-foreground">Adjustment (PKR)</span>
           <span className="font-medium">{formatCurrency(adjustment)}</span>
         </div>
         <div className="flex items-center justify-between border-t border-primary/15 pt-3">
-          <span className="font-semibold">Estimated total</span>
+          <span className="font-semibold">Estimated total (PKR)</span>
           <span className="text-lg font-bold text-primary">{formatCurrency(total)}</span>
         </div>
       </div>
@@ -345,7 +345,7 @@ export default function InvoiceForm({ onSuccess }: InvoiceFormProps) {
                     name="shippingCharges"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Shipping charges</FormLabel>
+                        <FormLabel>Shipping charges (PKR)</FormLabel>
                         <FormControl>
                           <Input type="number" min="0" step="0.01" {...field} />
                         </FormControl>
@@ -359,7 +359,7 @@ export default function InvoiceForm({ onSuccess }: InvoiceFormProps) {
                     name="adjustmentAmount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Adjustment amount</FormLabel>
+                        <FormLabel>Adjustment amount (PKR)</FormLabel>
                         <FormControl>
                           <Input type="number" step="0.01" {...field} />
                         </FormControl>
@@ -535,7 +535,7 @@ export default function InvoiceForm({ onSuccess }: InvoiceFormProps) {
                         name={`items.${index}.unitPrice`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Unit price</FormLabel>
+                            <FormLabel>Unit price (PKR)</FormLabel>
                             <FormControl>
                               <Input type="number" min="0" step="0.01" {...field} />
                             </FormControl>

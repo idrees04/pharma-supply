@@ -125,11 +125,11 @@ export function ProductCard({
                     <div className="space-y-2">
                         <div className="grid grid-cols-2 gap-2">
                             <div className="bg-blue-50/30 p-2 rounded-lg border border-blue-100/50">
-                                <p className="text-[10px] text-blue-600 font-medium">Purchase Rate</p>
+                                <p className="text-[10px] text-blue-600 font-medium">Purchase rate (PKR)</p>
                                 <p className="text-xs font-bold">{formatCurrency(product.standardPurchaseRate)}</p>
                             </div>
                             <div className="bg-green-50/30 p-2 rounded-lg border border-green-100/50">
-                                <p className="text-[10px] text-green-600 font-medium">Sale Rate</p>
+                                <p className="text-[10px] text-green-600 font-medium">Sale rate (PKR)</p>
                                 <p className="text-xs font-bold">{formatCurrency(product.standardSaleRate)}</p>
                             </div>
                         </div>

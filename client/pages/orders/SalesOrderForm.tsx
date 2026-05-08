@@ -15,6 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { formatCurrency } from '@/lib/utils';
 
 interface SalesOrderFormProps {
   initialData?: SalesOrder;
@@ -268,7 +269,7 @@ export default function SalesOrderForm({ initialData, onSuccess }: SalesOrderFor
                     name={`items.${index}.poRate`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">PO Rate</FormLabel>
+                        <FormLabel className="text-xs">PO rate (PKR)</FormLabel>
                         <FormControl>
                           <Input type="number" step="0.01" placeholder="0.00" {...field} />
                         </FormControl>
@@ -281,7 +282,7 @@ export default function SalesOrderForm({ initialData, onSuccess }: SalesOrderFor
                     name={`items.${index}.purchaseRate`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Purchase Rate</FormLabel>
+                        <FormLabel className="text-xs">Purchase rate (PKR)</FormLabel>
                         <FormControl>
                           <Input type="number" step="0.01" placeholder="0.00" {...field} />
                         </FormControl>
@@ -311,17 +312,17 @@ export default function SalesOrderForm({ initialData, onSuccess }: SalesOrderFor
           <h3 className="font-semibold mb-3">Summary</h3>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <span>Sale Total:</span>
-              <span className="font-semibold">PKR {saleTotal.toFixed(2)}</span>
+              <span>Sale total (PKR)</span>
+              <span className="font-semibold">{formatCurrency(saleTotal)}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span>Purchase Total:</span>
-              <span className="font-semibold">PKR {purchaseTotal.toFixed(2)}</span>
+              <span>Purchase total (PKR)</span>
+              <span className="font-semibold">{formatCurrency(purchaseTotal)}</span>
             </div>
             <div className="border-t border-border pt-2 flex justify-between items-center">
-              <span className="font-semibold">Profit:</span>
+              <span className="font-semibold">Profit (PKR)</span>
               <span className={`text-lg font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                PKR {profit.toFixed(2)}
+                {formatCurrency(profit)}
               </span>
             </div>
           </div>

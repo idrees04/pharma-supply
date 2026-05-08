@@ -432,7 +432,7 @@ export function InvoiceCreationPanel({
                 name="adjustmentAmount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-semibold text-slate-700">Adjustment amount</FormLabel>
+                    <FormLabel className="font-semibold text-slate-700">Adjustment amount (PKR)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"

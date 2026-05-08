@@ -1,6 +1,6 @@
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { z } from 'zod';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -183,6 +183,23 @@ export default function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     control: form.control,
     name: 'items',
   });
+
+  const applyProductProfileToLine = useCallback(
+    (index: number, productId: number) => {
+      if (!productId || productId <= 0) {
+        form.setValue(`items.${index}.unitPrice`, 0);
+        form.setValue(`items.${index}.taxPercentage`, 0);
+        form.setValue(`items.${index}.discountPercentage`, 0);
+        return;
+      }
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+      form.setValue(`items.${index}.unitPrice`, product.standardSaleRate);
+      form.setValue(`items.${index}.taxPercentage`, product.taxPercentage);
+      form.setValue(`items.${index}.discountPercentage`, 0);
+    },
+    [form, products]
+  );
 
   const watchedItems = useWatch({ control: form.control, name: 'items' });
   const watchedShipping = useWatch({ control: form.control, name: 'shippingCharges' });
@@ -404,7 +421,7 @@ export default function InvoiceForm({ onSuccess }: InvoiceFormProps) {
                 <div>
                   <h3 className="font-semibold">Invoice items</h3>
                   <p className="text-sm text-muted-foreground">
-                    Add the products, quantities, and any taxes or discounts. The system will compute the totals for you.
+                    Choose a product to fill unit price and tax from the catalog (you can edit after). Each product can only appear on one line. Totals update automatically.
                   </p>
                 </div>
                 <Button
@@ -451,26 +468,52 @@ export default function InvoiceForm({ onSuccess }: InvoiceFormProps) {
                       <FormField
                         control={form.control}
                         name={`items.${index}.productId`}
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel>Product <span className="text-destructive">*</span></FormLabel>
-                            <Select value={field.value > 0 ? String(field.value) : undefined} onValueChange={field.onChange}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select product" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {products.map((product) => (
-                                  <SelectItem key={product.id} value={String(product.id)}>
-                                    {product.productName}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        render={({ field }) => {
+                          const currentId = Number(field.value);
+                          const takenElsewhere = new Set(
+                            watchedItems
+                              .map((it, i) =>
+                                i !== index && Number(it.productId) > 0 ? Number(it.productId) : null
+                              )
+                              .filter((id): id is number => id != null)
+                          );
+                          const selectableProducts = products.filter(
+                            (p) => !takenElsewhere.has(p.id) || p.id === currentId
+                          );
+
+                          return (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>Product <span className="text-destructive">*</span></FormLabel>
+                              <Select
+                                value={currentId > 0 ? String(currentId) : undefined}
+                                onValueChange={(value) => {
+                                  const id = parseInt(value, 10);
+                                  field.onChange(id);
+                                  applyProductProfileToLine(index, id);
+                                }}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select product" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {selectableProducts.map((product) => (
+                                    <SelectItem key={product.id} value={String(product.id)}>
+                                      {product.productCode
+                                        ? `${product.productName} (${product.productCode})`
+                                        : product.productName}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                Standard sale rate and tax % load from the product; discount resets to 0 when you change product.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }}
                       />
 
                       <FormField

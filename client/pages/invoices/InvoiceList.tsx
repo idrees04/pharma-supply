@@ -5,22 +5,26 @@ import {
   AlertCircle,
   CalendarClock,
   CircleDollarSign,
+  ExternalLink,
   FileText,
-  Plus,
   ReceiptText,
   Search,
   TriangleAlert,
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { useInvoice, useInvoices, useOutstandingInvoices, useOverdueInvoices } from '@/hooks/invoices';
 import { type InvoiceDto, InvoiceStatus } from '@/types/api/invoices';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/common/DataTable';
-import InvoiceForm from './InvoiceForm';
 import { cn, formatCurrency } from '@/lib/utils';
 
 const ITEMS_PER_PAGE = 10;
@@ -178,13 +182,15 @@ const StatsCards = memo(function StatsCards({
 const InvoiceDetailPanel = memo(function InvoiceDetailPanel({
   invoice,
   isLoading,
+  className,
 }: {
   invoice: InvoiceDto | undefined;
   isLoading: boolean;
+  className?: string;
 }) {
   if (isLoading) {
     return (
-      <Card className="p-5">
+      <Card className={cn('p-5', className)}>
         <div className="space-y-3 animate-pulse">
           <div className="h-5 w-40 rounded bg-muted" />
           <div className="h-4 w-full rounded bg-muted" />
@@ -197,7 +203,7 @@ const InvoiceDetailPanel = memo(function InvoiceDetailPanel({
 
   if (!invoice) {
     return (
-      <Card className="flex h-full min-h-[220px] items-center justify-center border-dashed p-6 text-center">
+      <Card className={cn('flex h-full min-h-[220px] items-center justify-center border-dashed p-6 text-center', className)}>
         <div className="space-y-2">
           <FileText className="mx-auto h-8 w-8 text-muted-foreground/50" />
           <h3 className="font-semibold">Select an invoice</h3>
@@ -212,7 +218,7 @@ const InvoiceDetailPanel = memo(function InvoiceDetailPanel({
   const items = invoice.items ?? [];
 
   return (
-    <Card className="space-y-5 p-5">
+    <Card className={cn('space-y-5 p-5', className)}>
       <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold">{invoice.invoiceNumber || `Invoice #${invoice.id}`}</h3>
@@ -293,13 +299,9 @@ const InvoiceDetailPanel = memo(function InvoiceDetailPanel({
 });
 
 export default function InvoiceList() {
-  const { hasPermission } = useAuth();
   const [searchInput, setSearchInput] = useState('');
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
   const debouncedSearch = useDebouncedValue(searchInput, 300);
-
-  const canCreate = hasPermission('invoices', 'create');
 
   const invoiceParams = useMemo(
     () => ({
@@ -325,19 +327,11 @@ export default function InvoiceList() {
   const selectedInvoice = selectedInvoiceResponse?.data;
 
   useEffect(() => {
-    if (invoices.length === 0) {
+    if (selectedInvoiceId === null) return;
+    if (invoices.length === 0 || !invoices.some((inv) => inv.id === selectedInvoiceId)) {
       setSelectedInvoiceId(null);
-      return;
     }
-
-    setSelectedInvoiceId((current) => {
-      if (current !== null && invoices.some((invoice) => invoice.id === current)) {
-        return current;
-      }
-
-      return invoices[0]?.id ?? null;
-    });
-  }, [invoices]);
+  }, [invoices, selectedInvoiceId]);
 
   const totals = useMemo(() => {
     const totalValue = invoices.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
@@ -360,11 +354,13 @@ export default function InvoiceList() {
       header: 'Invoice',
       accessor: (row) => (
         <div>
-          <div className="font-semibold text-slate-900">{row.invoiceNumber || `Invoice #${row.id}`}</div>
-          <div className="text-xs text-muted-foreground">Hospital ID #{row.hospitalId}</div>
+          <div className="font-semibold text-foreground">{row.invoiceNumber || `Invoice #${row.id}`}</div>
+          <div className="text-xs text-muted-foreground line-clamp-1">
+            {row.hospitalName || `Hospital #${row.hospitalId}`}
+          </div>
         </div>
       ),
-      className: 'w-32',
+      className: 'min-w-[140px]',
     },
     {
       header: 'Hospital',
@@ -417,16 +413,15 @@ export default function InvoiceList() {
     },
     {
       header: '',
+      id: 'actions',
       accessor: (row) => (
-        <Link
-          to={`/invoices/${row.id}`}
-          className="text-sm font-medium text-primary hover:underline"
-          onClick={(e) => e.stopPropagation()}
-        >
-          Details
-        </Link>
+        <Button variant="outline" size="sm" className="h-8 shrink-0 px-3" asChild>
+          <Link to={`/invoices/${row.id}`} onClick={(e) => e.stopPropagation()}>
+            Details
+          </Link>
+        </Button>
       ),
-      className: 'w-[72px]',
+      className: 'w-[92px]',
     },
   ], []);
 
@@ -460,28 +455,19 @@ export default function InvoiceList() {
           >
             Invoice Management
           </motion.h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            View and manage all hospital invoices, track payments, and monitor outstanding balances.
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Browse invoices below. Click a row to preview in the side panel, then open the full page for payments and PDF.
           </p>
         </div>
 
-        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-          <div className="relative min-w-0 flex-1 sm:min-w-[280px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search by invoice number or hospital..."
-              className="pl-10"
-            />
-          </div>
-
-          {canCreate ? (
-            <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create Invoice
-            </Button>
-          ) : null}
+        <div className="relative w-full min-w-0 lg:max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search invoice number or hospital..."
+            className="h-11 pl-10"
+          />
         </div>
       </div>
 
@@ -494,15 +480,20 @@ export default function InvoiceList() {
         overdueAmount={totals.overdueAmount}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)]">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="overflow-hidden border-border/70 p-4">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="font-semibold">Invoices</h2>
-              {(isLoadingOutstanding || isLoadingOverdue) ? (
-                <Badge variant="outline">Refreshing insights…</Badge>
-              ) : null}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <Card className="overflow-hidden border-border/70 shadow-sm">
+          <div className="flex flex-col gap-1 border-b bg-muted/30 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+              <h2 className="text-base font-semibold tracking-tight">All invoices</h2>
+              <p className="text-xs text-muted-foreground">Click any row to open the preview drawer.</p>
             </div>
+            {(isLoadingOutstanding || isLoadingOverdue) ? (
+              <Badge variant="outline" className="w-fit text-xs font-normal">
+                Refreshing insights…
+              </Badge>
+            ) : null}
+          </div>
+          <div className="p-2 sm:p-4">
             <AnimatePresence mode="wait">
               <motion.div
                 key={debouncedSearch || 'all-invoices'}
@@ -515,36 +506,57 @@ export default function InvoiceList() {
                   data={invoices}
                   isLoading={isLoadingInvoices}
                   itemsPerPage={ITEMS_PER_PAGE}
-                  emptyMessage="No invoices found for the current search."
+                  emptyMessage="No invoices match your search."
                   showSearch={false}
                   showColumnVisibility={false}
+                  showToolbar={false}
                   onRowClick={handleRowClick}
                 />
               </motion.div>
             </AnimatePresence>
-          </Card>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <InvoiceDetailPanel invoice={selectedInvoice} isLoading={isLoadingInvoice} />
-        </motion.div>
-      </div>
-
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-h-[92vh] max-w-6xl p-0 flex flex-col">
-          <div className="border-b bg-background p-6">
-            <DialogHeader>
-              <DialogTitle>Create Invoice</DialogTitle>
-              <DialogDescription>
-                Fill in the invoice details. All fields marked with * are required.
-              </DialogDescription>
-            </DialogHeader>
           </div>
-          <div className="overflow-y-auto p-6">
-            <InvoiceForm onSuccess={() => setIsCreateOpen(false)} />
+        </Card>
+      </motion.div>
+
+      <Sheet open={selectedInvoiceId !== null} onOpenChange={(open) => !open && setSelectedInvoiceId(null)}>
+        <SheetContent side="right" className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <SheetHeader className="border-b px-6 py-4 text-left">
+            <SheetTitle className="text-lg">Invoice preview</SheetTitle>
+            <SheetDescription>
+              {selectedInvoice?.invoiceNumber ? (
+                <span className="font-mono font-semibold text-foreground">{selectedInvoice.invoiceNumber}</span>
+              ) : selectedInvoiceId ? (
+                <span className="text-muted-foreground">Loading invoice #{selectedInvoiceId}…</span>
+              ) : null}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+            <InvoiceDetailPanel
+              invoice={selectedInvoice}
+              isLoading={isLoadingInvoice}
+              className="border-0 bg-transparent shadow-none"
+            />
           </div>
-        </DialogContent>
-      </Dialog>
+          <div className="border-t bg-muted/20 px-4 py-4 sm:px-6">
+            {selectedInvoice && selectedInvoiceId ? (
+              <Button asChild className="w-full gap-2">
+                <Link to={`/invoices/${selectedInvoiceId}`}>
+                  Open full details
+                  <ExternalLink className="h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button type="button" className="w-full gap-2" disabled>
+                Open full details
+                <ExternalLink className="h-4 w-4 opacity-50" />
+              </Button>
+            )}
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              Record payments, download PDF, and edit from the full page.
+            </p>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

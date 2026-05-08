@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   DollarSign,
@@ -39,14 +39,13 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 
 import { poPaymentSchema, POPaymentFormData } from '@/lib/schemas';
 import { useSuggestedPayment, useProcessPayment } from '@/api/services/purchaseOrders';
 import { useAccountList } from '@/api/services/accounts';
 import { formatCurrency, cn } from '@/lib/utils';
+import { unwrapSuggestedPayment } from '@/lib/purchaseOrderPayment';
 import { PaymentMode } from '@/types/api/payments';
 
 interface PaymentDrawerProps {
@@ -73,30 +72,6 @@ const PAYMENT_MODE_ICONS: Record<PaymentMode, React.ReactNode> = {
   [PaymentMode.DebitCard]: <CreditCard className="w-4 h-4" />,
 };
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 15, scale: 0.98 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      type: 'spring',
-      stiffness: 100,
-      damping: 15,
-    },
-  },
-};
-
 export function PaymentDrawer({
   isOpen,
   onOpenChange,
@@ -108,7 +83,7 @@ export function PaymentDrawer({
     isOpen ? purchaseOrderId : null
   );
   const { data: accountsList, isLoading: isLoadingAccounts } = useAccountList();
-  const { mutate: processPayment, isPending: isProcessing, error: paymentError } = useProcessPayment(purchaseOrderId);
+  const { mutate: processPayment, isPending: isProcessing } = useProcessPayment(purchaseOrderId);
 
   const form = useForm<POPaymentFormData>({
     resolver: zodResolver(poPaymentSchema),
@@ -122,20 +97,7 @@ export function PaymentDrawer({
     },
   });
 
-  // Safely extract the suggestion data with debug logging
-  const suggested = useMemo(() => {
-    if (!suggestedPayment) return null;
-
-    // The API wraps data in a 'data' property
-    // Our service layer returns response.data (the body)
-    // So suggestedPayment is { success, message, data, ... }
-    const nestedData = (suggestedPayment as any).data;
-
-    // Robust check: use nested data if it exists, otherwise fallback to top level
-    const finalData = nestedData && typeof nestedData === 'object' ? nestedData : suggestedPayment;
-
-    return finalData;
-  }, [suggestedPayment]);
+  const suggested = useMemo(() => unwrapSuggestedPayment(suggestedPayment), [suggestedPayment]);
 
   // Populate form with suggested payment data
   useEffect(() => {
@@ -144,40 +106,46 @@ export function PaymentDrawer({
     }
   }, [suggested, form]);
 
-  const selectedAccountId = form.watch('accountId');
-  const selectedAccount = useMemo(() => {
-    return accountsList?.find(a => a.id === selectedAccountId);
-  }, [selectedAccountId, accountsList]);
+  const amount = form.watch('amount');
+  const paymentMode = form.watch('paymentMode');
+  const accountId = form.watch('accountId');
 
-  // Business rule validations - Optimized for instant feedback
+  const selectedAccount = useMemo(() => {
+    return accountsList?.find(a => a.id === accountId);
+  }, [accountId, accountsList]);
+
+  /** Matches server GetMaxPayableForReceived (min(outstanding, max(0, grn − paid))). */
   const validationErrors = useMemo(() => {
     const errors: string[] = [];
-    const amount = form.watch('amount');
-    const paymentMode = form.watch('paymentMode');
-    const accountId = form.watch('accountId');
-
     if (!suggested) return errors;
 
-    const { totalOutstanding, goodsReceivedValue } = suggested;
+    const maxPayable = Number(suggested.suggestedPayableAmount ?? 0);
+    const amt = typeof amount === 'number' && Number.isFinite(amount) ? amount : NaN;
 
-    if (amount > totalOutstanding) {
-      errors.push(`Exceeds Outstanding (${formatCurrency(totalOutstanding)})`);
-    }
-
-    if (amount > goodsReceivedValue) {
-      errors.push(`Exceeds Goods Received (${formatCurrency(goodsReceivedValue)})`);
+    if (!amt || amt <= 0) {
+      errors.push('Enter a payment amount greater than zero.');
+    } else if (amt > maxPayable + 1e-6) {
+      errors.push(
+        `Amount cannot exceed ${formatCurrency(maxPayable)} (maximum payable on received goods, capped by outstanding balance).`
+      );
     }
 
     if (!paymentMode || paymentMode < 1 || paymentMode > 5) {
-      errors.push('Select valid mode');
+      errors.push('Select a payment mode.');
     }
 
     if (!accountId || accountId < 1) {
-      errors.push('Account required');
+      errors.push('Select a source account.');
+    }
+
+    if (selectedAccount && amt > 0 && amt > selectedAccount.currentBalance + 1e-6) {
+      errors.push(
+        `Insufficient balance in ${selectedAccount.accountName} (${formatCurrency(selectedAccount.currentBalance)} available).`
+      );
     }
 
     return errors;
-  }, [form.watch('amount'), form.watch('paymentMode'), form.watch('accountId'), suggested]);
+  }, [amount, paymentMode, accountId, suggested, selectedAccount]);
 
   const canSubmit = validationErrors.length === 0 && !isProcessing;
 
@@ -187,7 +155,12 @@ export function PaymentDrawer({
       return;
     }
 
-    processPayment(data, {
+    const payload = {
+      ...data,
+      paymentDate: data.paymentDate?.trim() ? data.paymentDate : null,
+    };
+
+    processPayment(payload, {
       onSuccess: () => {
         toast.success('Payment processed successfully');
         form.reset();
@@ -202,38 +175,36 @@ export function PaymentDrawer({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-[450px] p-0 border-l-0 overflow-hidden flex flex-col">
-        <div className="h-full flex flex-col focus-visible:outline-none">
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="px-5 py-4 border-b sticky top-0 z-10 bg-white"
-          >
-            <SheetHeader className="space-y-1">
-              <div className="flex items-start justify-between">
-                <div>
-                  <SheetTitle className="text-lg font-bold">Process Payment</SheetTitle>
-                  <SheetDescription className="text-[10px] uppercase font-bold tracking-tight">
-                    PO <span className="font-mono text-primary">{purchaseOrderNumber}</span>
+      <SheetContent className="w-full sm:max-w-[560px] p-0 border-l-0 flex flex-col max-h-[100dvh]">
+        <div className="h-full flex flex-col focus-visible:outline-none min-h-0">
+          <div className="px-6 py-5 border-b shrink-0 bg-background">
+            <SheetHeader className="space-y-2 text-left">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <SheetTitle className="text-xl font-semibold tracking-tight">Record supplier payment</SheetTitle>
+                  <SheetDescription className="text-sm font-medium text-muted-foreground">
+                    Purchase order{' '}
+                    <span className="font-mono font-semibold text-foreground">{purchaseOrderNumber}</span>
                   </SheetDescription>
                 </div>
                 <button
+                  type="button"
                   onClick={() => onOpenChange(false)}
-                  className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="p-2 rounded-lg hover:bg-muted transition-colors shrink-0"
+                  aria-label="Close"
                 >
-                  <X className="w-4 h-4 text-slate-400" />
+                  <X className="w-5 h-5 text-muted-foreground" />
                 </button>
               </div>
             </SheetHeader>
-          </motion.div>
+          </div>
 
-          {/* Content - Optimized for Zero Scroll */}
-          <div className="flex-1 overflow-hidden px-5 py-4 space-y-3 bg-slate-50/30">
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-5 bg-muted/30">
             {/* Loading Indicator */}
             {isLoadingSuggested && !suggested && (
-              <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Fetching Insights...</p>
+              <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <p className="text-sm font-medium text-muted-foreground">Loading payment limits…</p>
               </div>
             )}
 
@@ -241,9 +212,12 @@ export function PaymentDrawer({
             <AnimatePresence>
               {suggestionError && !isLoadingSuggested && (
                 <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
+                  <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-destructive">Unable to Load Details</p>
+                    <p className="text-sm font-semibold text-destructive">Unable to load payment details</p>
+                    <p className="text-sm text-destructive/90 mt-1">
+                      Try again later or confirm this purchase order still exists.
+                    </p>
                   </div>
                 </div>
               )}
@@ -251,126 +225,117 @@ export function PaymentDrawer({
 
             {/* Unified Dashboard View */}
             {suggested && (
-              <div className="space-y-4">
-                {/* Financial Summary Strip */}
-                <div className="grid grid-cols-4 gap-1.5">
-                  <div className="bg-white border border-slate-100 p-2 rounded-xl shadow-sm flex flex-col justify-center">
-                    <p className="text-[7px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Agreed</p>
-                    <p className="text-[10px] font-bold text-slate-900 truncate">{formatCurrency(suggested.agreedOrderTotal || 0)}</p>
-                  </div>
-                  <div className="bg-white border border-slate-100 p-2 rounded-xl shadow-sm flex flex-col justify-center">
-                    <p className="text-[7px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Recvd</p>
-                    <p className="text-[10px] font-bold text-emerald-600 truncate">{formatCurrency(suggested.goodsReceivedValue || 0)}</p>
-                  </div>
-                  <div className="bg-white border border-slate-100 p-2 rounded-xl shadow-sm flex flex-col justify-center">
-                    <p className="text-[7px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Paid</p>
-                    <p className="text-[10px] font-bold text-blue-600 truncate">{formatCurrency(suggested.previouslyPaidAmount || 0)}</p>
-                  </div>
-                  <div className="bg-orange-50/50 border border-orange-100 p-2 rounded-xl shadow-sm flex flex-col justify-center">
-                    <p className="text-[7px] font-black text-orange-400 uppercase tracking-tighter mb-0.5">Outstanding</p>
-                    <p className="text-[10px] font-black text-orange-600 truncate">{formatCurrency(suggested.totalOutstanding || 0)}</p>
-                  </div>
+              <div className="space-y-5">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  You can only pay up to the value of goods received so far, and never more than the PO outstanding balance.
+                </p>
+
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+                  <SummaryTile label="Agreed order total" value={suggested.agreedOrderTotal || 0} />
+                  <SummaryTile label="Goods received (value)" value={suggested.goodsReceivedValue || 0} emphasize="emerald" />
+                  <SummaryTile label="Previously paid" value={suggested.previouslyPaidAmount || 0} emphasize="blue" />
+                  <SummaryTile label="Outstanding" value={suggested.totalOutstanding || 0} emphasize="amber" />
                 </div>
 
-                {/* Decision Layer - Zero Scroll Optimized */}
-                <div className="space-y-2">
-                  {/* Suggested Payment - New Premium Gradient */}
-                  <div className="relative p-3 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-700 shadow-lg shadow-indigo-200 overflow-hidden border border-white/10 flex items-center justify-between">
-                    <div className="absolute right-0 top-0 p-2 opacity-10">
-                      <DollarSign className="w-8 h-8 text-white" />
-                    </div>
-                    <div className="relative z-10">
-                      <p className="text-[7px] font-black uppercase tracking-widest text-white/60 mb-0.5">Suggested Payment</p>
-                      <p className="text-xl font-black text-white tracking-tighter">
-                        {formatCurrency(suggested.suggestedPayableAmount || 0)}
-                      </p>
-                    </div>
-                    <Badge className="relative z-10 bg-white/20 text-white border-0 font-black text-[7px] h-4">SMART VALUE</Badge>
-                  </div>
-
-                  {/* Account Insights - Detailed but Compact */}
-                  <div className="bg-white border border-slate-100 rounded-2xl p-3 space-y-2 shadow-sm">
-                    <div className="flex items-center justify-between border-b border-slate-50 pb-1.5">
-                      <p className="text-[8px] font-black text-slate-800 uppercase tracking-tight">Source Account Insights</p>
-                      <div className="flex items-center gap-1.5">
-                        <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", selectedAccount ? "bg-emerald-500" : "bg-slate-300")} />
-                        <p className="text-[8px] font-bold text-slate-400 uppercase">{selectedAccount ? 'Active' : 'Pending Selection'}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-4 gap-2">
-                      <div>
-                        <p className="text-[6px] font-black text-slate-400 uppercase mb-0.5">Bank / Institution</p>
-                        <p className="text-[9px] font-bold text-slate-700 truncate">{selectedAccount?.bankName || '---'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[6px] font-black text-slate-400 uppercase mb-0.5">Branch / Loc</p>
-                        <p className="text-[9px] font-bold text-slate-700 truncate">{selectedAccount?.bankBranch || '---'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[6px] font-black text-slate-400 uppercase mb-0.5">Account Number</p>
-                        <p className="text-[9px] font-mono font-bold text-slate-500 truncate">{selectedAccount?.accountNumber || '---'}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[6px] font-black text-slate-400 uppercase mb-0.5">Available Funds</p>
-                        <p className="text-[10px] font-black text-emerald-600 truncate">
-                          {selectedAccount ? formatCurrency(selectedAccount.currentBalance) : '---'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                <div className="rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-md">
+                  <p className="text-sm font-medium opacity-90">Maximum you can pay now</p>
+                  <p className="text-3xl font-bold tracking-tight mt-1 tabular-nums">
+                    {formatCurrency(suggested.suggestedPayableAmount || 0)}
+                  </p>
+                  <p className="text-xs opacity-90 mt-2">
+                    Same rule the server uses when you submit (received goods vs paid vs outstanding).
+                  </p>
                 </div>
 
-                {/* High Density Form Layer */}
-                <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+                <div className="rounded-xl border bg-card p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-2 border-b pb-3 mb-4">
+                    <p className="text-sm font-semibold">Selected account</p>
+                    <Badge variant={selectedAccount ? 'default' : 'secondary'} className="text-xs font-medium">
+                      {selectedAccount ? 'Ready' : 'Choose below'}
+                    </Badge>
+                  </div>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Bank</dt>
+                      <dd className="font-medium mt-0.5">{selectedAccount?.bankName ?? '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Branch</dt>
+                      <dd className="font-medium mt-0.5">{selectedAccount?.bankBranch ?? '—'}</dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Account number</dt>
+                      <dd className="font-mono font-medium mt-0.5">{selectedAccount?.accountNumber ?? '—'}</dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Available balance</dt>
+                      <dd className="text-lg font-semibold text-emerald-600 tabular-nums mt-0.5">
+                        {selectedAccount ? formatCurrency(selectedAccount.currentBalance) : '—'}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className="rounded-xl border bg-card p-5 shadow-sm">
                   <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <FormField
-                          control={form.control}
-                          name="accountId"
-                          render={({ field }) => (
-                            <FormItem className="col-span-2">
-                              <FormLabel className="text-[8px] font-black uppercase text-slate-500">Source Account</FormLabel>
-                              <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
-                                <FormControl>
-                                  <SelectTrigger className="h-9 rounded-xl bg-slate-50/50 border-slate-100 text-[11px] font-bold">
-                                    <SelectValue placeholder="Choose account" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent className="rounded-xl border-slate-100">
-                                  {accountsList?.map(a => (
-                                    <SelectItem key={a.id} value={a.id.toString()} className="rounded-lg">
-                                      <div className="flex flex-col py-0.5">
-                                        <span className="text-xs font-bold">{a.accountName}</span>
-                                        <span className="text-[9px] text-slate-400">{formatCurrency(a.currentBalance)}</span>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
-                          )}
-                        />
+                    <form id="po-payment-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="accountId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">Pay from account</FormLabel>
+                            <Select onValueChange={(value) => field.onChange(parseInt(value, 10))} value={field.value ? field.value.toString() : undefined}>
+                              <FormControl>
+                                <SelectTrigger className="h-11 text-base">
+                                  <SelectValue placeholder="Select account" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {accountsList?.map((a) => (
+                                  <SelectItem key={a.id} value={a.id.toString()}>
+                                    <div className="flex flex-col py-1 gap-0.5">
+                                      <span className="font-medium">{a.accountName}</span>
+                                      <span className="text-xs text-muted-foreground tabular-nums">{formatCurrency(a.currentBalance)} available</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
                           name="amount"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[8px] font-black uppercase text-slate-500">Payment Amount</FormLabel>
+                              <FormLabel className="text-sm font-medium">Amount</FormLabel>
                               <FormControl>
                                 <div className="relative">
-                                  <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" aria-hidden />
                                   <Input
                                     type="number"
+                                    inputMode="decimal"
                                     step="0.01"
+                                    min={0}
                                     {...field}
-                                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                                    className="h-9 pl-7 rounded-xl bg-slate-50/50 border-slate-100 font-mono font-black text-xs"
+                                    value={field.value === undefined || field.value === null ? '' : field.value}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      field.onChange(v === '' ? 0 : parseFloat(v));
+                                    }}
+                                    className="h-11 pl-8 text-base font-medium tabular-nums"
                                   />
                                 </div>
                               </FormControl>
+                              <FormDescription className="text-xs">
+                                Max {formatCurrency(suggested.suggestedPayableAmount || 0)}
+                              </FormDescription>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
@@ -380,35 +345,47 @@ export function PaymentDrawer({
                           name="paymentMode"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[8px] font-black uppercase text-slate-500">Mode</FormLabel>
-                              <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
+                              <FormLabel className="text-sm font-medium">Payment mode</FormLabel>
+                              <Select onValueChange={(value) => field.onChange(parseInt(value, 10))} value={field.value?.toString()}>
                                 <FormControl>
-                                  <SelectTrigger className="h-9 rounded-xl bg-slate-50/50 border-slate-100 text-[11px] font-bold">
+                                  <SelectTrigger className="h-11 text-base">
                                     <SelectValue />
                                   </SelectTrigger>
                                 </FormControl>
-                                <SelectContent className="rounded-xl border-slate-100">
+                                <SelectContent>
                                   {[
-                                    { val: 1, label: 'Cash' }, { val: 2, label: 'Cheque' },
-                                    { val: 3, label: 'Transfer' }, { val: 4, label: 'Credit' }, { val: 5, label: 'Debit' }
-                                  ].map(m => (
-                                    <SelectItem key={m.val} value={m.val.toString()} className="text-xs">{m.label}</SelectItem>
+                                    { val: PaymentMode.Cash, label: PAYMENT_MODE_MAP[PaymentMode.Cash] },
+                                    { val: PaymentMode.Cheque, label: PAYMENT_MODE_MAP[PaymentMode.Cheque] },
+                                    { val: PaymentMode.BankTransfer, label: PAYMENT_MODE_MAP[PaymentMode.BankTransfer] },
+                                    { val: PaymentMode.CreditCard, label: PAYMENT_MODE_MAP[PaymentMode.CreditCard] },
+                                    { val: PaymentMode.DebitCard, label: PAYMENT_MODE_MAP[PaymentMode.DebitCard] },
+                                  ].map((m) => (
+                                    <SelectItem key={m.val} value={m.val.toString()} className="text-base">
+                                      <span className="flex items-center gap-2">
+                                        {PAYMENT_MODE_ICONS[m.val as PaymentMode]}
+                                        {m.label}
+                                      </span>
+                                    </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
+                      </div>
 
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
                           name="paymentDate"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[8px] font-black uppercase text-slate-500">Date</FormLabel>
+                              <FormLabel className="text-sm font-medium">Payment date</FormLabel>
                               <FormControl>
-                                <Input type="date" {...field} className="h-9 px-2 rounded-xl bg-slate-50/50 border-slate-100 text-[10px] font-bold" />
+                                <Input type="date" {...field} value={field.value ?? ''} className="h-11 text-base" />
                               </FormControl>
+                              <FormDescription className="text-xs">Leave empty to use today on the server.</FormDescription>
                             </FormItem>
                           )}
                         />
@@ -418,38 +395,44 @@ export function PaymentDrawer({
                           name="referenceNumber"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[8px] font-black uppercase text-slate-500">Reference #</FormLabel>
+                              <FormLabel className="text-sm font-medium">Reference number</FormLabel>
                               <FormControl>
-                                <Input placeholder="Optional" {...field} className="h-9 rounded-xl bg-slate-50/50 border-slate-100 text-[11px] font-bold" />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="notes"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[8px] font-black uppercase text-slate-500">Internal Notes</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Brief remarks..." {...field} className="h-9 rounded-xl bg-slate-50/50 border-slate-100 text-[11px] font-bold" />
+                                <Input placeholder="Cheque / transfer ref." {...field} className="h-11 text-base" />
                               </FormControl>
                             </FormItem>
                           )}
                         />
                       </div>
+
+                      <FormField
+                        control={form.control}
+                        name="notes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">Notes</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Optional internal note" {...field} className="h-11 text-base" />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
                     </form>
                   </Form>
                 </div>
 
-                {/* Status Bar */}
                 {validationErrors.length > 0 && (
-                  <div className="bg-amber-50/50 border border-amber-200/50 rounded-xl px-4 py-2 flex items-center gap-2">
-                    <AlertCircle className="w-3 h-3 text-amber-500" />
-                    <p className="text-[9px] font-black text-amber-800 uppercase tracking-tight truncate flex-1">
-                      {validationErrors[0]}
-                    </p>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/80 dark:bg-amber-950/30 px-4 py-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Fix before paying</p>
+                        <ul className="text-sm text-amber-900/90 dark:text-amber-50/90 list-disc pl-4 space-y-1">
+                          {validationErrors.map((msg) => (
+                            <li key={msg}>{msg}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -457,71 +440,48 @@ export function PaymentDrawer({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t bg-white">
+          <div className="p-5 border-t bg-background shrink-0 space-y-2">
             <Button
-              onClick={form.handleSubmit(onSubmit)}
-              className="w-full h-11 rounded-xl gap-2 font-black shadow-md shadow-primary/10 active:scale-95 transition-all text-xs"
-              disabled={!canSubmit || isProcessing || !suggested}
+              type="submit"
+              form="po-payment-form"
+              className="w-full h-12 rounded-lg gap-2 text-base font-semibold"
+              disabled={!canSubmit || isProcessing || !suggested || isLoadingAccounts}
             >
-              {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-              Settle {suggested && formatCurrency(form.watch('amount'))}
+              {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+              Pay {suggested ? formatCurrency(amount || 0) : ''}
             </Button>
+            {isLoadingAccounts && (
+              <p className="text-xs text-center text-muted-foreground">Loading accounts…</p>
+            )}
           </div>
         </div>
       </SheetContent>
     </Sheet>
   );
+}
 
-  interface FinancialDetailCardProps {
-    label: string;
-    value: number;
-    color: string;
-    icon?: React.ReactNode;
-    description?: string;
-    isBold?: boolean;
-  }
+function SummaryTile({
+  label,
+  value,
+  emphasize,
+}: {
+  label: string;
+  value: number;
+  emphasize?: 'emerald' | 'blue' | 'amber';
+}) {
+  const valueClass =
+    emphasize === 'emerald'
+      ? 'text-emerald-700 dark:text-emerald-400'
+      : emphasize === 'blue'
+        ? 'text-blue-700 dark:text-blue-400'
+        : emphasize === 'amber'
+          ? 'text-amber-700 dark:text-amber-400'
+          : 'text-foreground';
 
-  function FinancialDetailCard({ label, value, color, icon, description, isBold }: FinancialDetailCardProps) {
-    return (
-      <motion.div
-        variants={itemVariants}
-        className={cn(
-          'rounded-3xl p-5 border shadow-sm transition-all duration-500 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group flex flex-col justify-between h-full',
-          color,
-          isBold ? 'ring-1 ring-orange-200' : ''
-        )}
-      >
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="p-2 rounded-xl bg-white shadow-sm border border-slate-50 group-hover:scale-110 transition-transform duration-300">
-              {icon}
-            </div>
-            {isBold && (
-              <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-0 font-black text-[7px] px-1.5 h-4">
-                ACTION REQ
-              </Badge>
-            )}
-          </div>
-
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-              {label}
-            </p>
-            <p className={cn(
-              'font-mono tracking-tighter leading-none',
-              isBold ? 'text-2xl font-black text-slate-900' : 'text-xl font-bold text-slate-800'
-            )}>
-              {formatCurrency(value)}
-            </p>
-          </div>
-        </div>
-
-        {description && (
-          <p className="text-[9px] font-medium text-slate-400 mt-3 line-clamp-1 italic">
-            {description}
-          </p>
-        )}
-      </motion.div>
-    );
-  }
+  return (
+    <div className="rounded-xl border bg-card p-4 shadow-sm">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+      <p className={cn('text-lg font-semibold tabular-nums mt-1', valueClass)}>{formatCurrency(value)}</p>
+    </div>
+  );
 }

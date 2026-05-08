@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  getReceiveLineFieldIssues,
+  hasAnyReceiveQuantity,
+} from "@/lib/receivePurchaseOrderValidation";
 
 import { SYSTEM_CONFIGURATION_DATA_TYPES } from '@/types/api/systemConfiguration';
 
@@ -207,24 +211,50 @@ export const updatePurchaseOrderSchema = z.object({
 export type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;
 export type UpdatePurchaseOrderFormData = z.infer<typeof updatePurchaseOrderSchema>;
 
-// Receive Items Schema
+// Receive Items Schema — lines with qty 0 skip batch/dates; lines with qty > 0 must match POST /PurchaseOrders/receive expectations
 export const receiveItemLineSchema = z.object({
   purchaseOrderItemId: z.coerce.number().int().min(1),
-  productName: z.string(), // For UI display only
-  orderedQuantity: z.coerce.number(), // For validation/UI display
-  previouslyReceived: z.coerce.number(), // For validation/UI display
-  receivedQuantity: z.coerce.number().min(0, "Must be at least 0"),
-  batchNumber: z.string().min(1, "Batch Number is required"),
-  manufactureDate: z.string().min(1, "Manufacture Date is required"),
-  expiryDate: z.string().min(1, "Expiry Date is required"),
+  productName: z.string(),
+  orderedQuantity: z.coerce.number().int().min(0),
+  previouslyReceived: z.coerce.number().int().min(0),
+  receivedQuantity: z.coerce.number().min(0),
+  batchNumber: z.string().optional().default(""),
+  manufactureDate: z.string().optional().default(""),
+  expiryDate: z.string().optional().default(""),
   notes: z.string().optional().default(""),
 });
 
-export const receiveItemsSchema = z.object({
-  purchaseOrderId: z.coerce.number().int().min(1),
-  actualDeliveryDate: z.string().min(1, "Actual Delivery Date is required"),
-  items: z.array(receiveItemLineSchema).min(1, "At least one item is required"),
-});
+export const receiveItemsSchema = z
+  .object({
+    purchaseOrderId: z.coerce.number().int().min(1),
+    actualDeliveryDate: z.string().min(1, "Delivery date is required"),
+    items: z.array(receiveItemLineSchema).min(1, "At least one line is required"),
+  })
+  .superRefine((data, ctx) => {
+    data.items.forEach((item, i) => {
+      const fieldIssues = getReceiveLineFieldIssues(item);
+      (["receivedQuantity", "batchNumber", "manufactureDate", "expiryDate"] as const).forEach(
+        (key) => {
+          const msg = fieldIssues[key];
+          if (msg) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: msg,
+              path: ["items", i, key],
+            });
+          }
+        }
+      );
+    });
+
+    if (!hasAnyReceiveQuantity(data.items)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter received quantity for at least one product.",
+        path: ["items"],
+      });
+    }
+  });
 
 export type ReceiveItemsFormData = z.infer<typeof receiveItemsSchema>;
 export type ReceiveItemLineFormData = z.infer<typeof receiveItemLineSchema>;

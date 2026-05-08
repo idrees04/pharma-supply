@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { usePurchaseOrder, usePurchaseOrderStatuses } from '@/api/services/purchaseOrders';
+import { usePurchaseOrder, usePurchaseOrderStatuses, useSuggestedPayment } from '@/api/services/purchaseOrders';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import {
@@ -48,6 +48,13 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from '@/components/ui/breadcrumb';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { unwrapSuggestedPayment } from '@/lib/purchaseOrderPayment';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -75,6 +82,45 @@ export default function PurchaseOrderView() {
 
   const { data: po, isPending, error, refetch } = usePurchaseOrder(poId);
   const { data: statuses = [] } = usePurchaseOrderStatuses();
+  const poCancelled = po?.status === 8;
+  const { data: paySuggestionRaw, isPending: paySuggestionLoading, error: paySuggestionError } =
+    useSuggestedPayment(po && !poCancelled ? po.id : null);
+  const paySuggestion = useMemo(() => unwrapSuggestedPayment(paySuggestionRaw), [paySuggestionRaw]);
+  const maxPayableNow = paySuggestion?.suggestedPayableAmount ?? 0;
+
+  const payDisabled =
+    poCancelled ||
+    paySuggestionLoading ||
+    (!paySuggestionError && maxPayableNow <= 0);
+
+  const payDisabledReason = poCancelled
+    ? 'This purchase order is cancelled. Payments are not allowed.'
+    : paySuggestionLoading
+      ? 'Checking how much you can pay against received goods…'
+      : !paySuggestionError && maxPayableNow <= 0
+        ? 'Nothing to pay yet: receive goods for this PO first, or the payable balance is already settled.'
+        : '';
+
+  /** POST /PurchaseOrders/receive rejects Received (5) and Cancelled (8); Closed (9) blocked in UI. */
+  const receiveDisabled =
+    !po ||
+    po.status === 5 ||
+    po.status === 8 ||
+    po.status === 9 ||
+    (po.items?.every((line) => line.remainingQuantity <= 0) ?? true);
+
+  const receiveDisabledReason =
+    !po
+      ? ''
+      : po.status === 8
+        ? 'Cancelled purchase orders cannot receive goods.'
+        : po.status === 5
+          ? 'This order is already fully received.'
+          : po.status === 9
+            ? 'This purchase order is closed.'
+            : po.items?.every((line) => line.remainingQuantity <= 0)
+              ? 'All lines are fully received; there is nothing left to receive.'
+              : '';
   const [isEditSheetOpen, setIsEditSheetOpen] = React.useState(false);
   const [isReceiveSheetOpen, setIsReceiveSheetOpen] = React.useState(false);
   const [isPaymentDrawerOpen, setIsPaymentDrawerOpen] = React.useState(false);
@@ -136,7 +182,7 @@ export default function PurchaseOrderView() {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="max-w-7xl mx-auto space-y-8 py-6 pb-20 px-4 md:px-6"
+      className="w-full max-w-none mx-auto space-y-8 py-6 pb-20"
     >
       {/* Breadcrumb Intelligence */}
       <motion.div variants={itemVariants}>
@@ -184,30 +230,65 @@ export default function PurchaseOrderView() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button
             variant="outline"
-            className="gap-2 h-11 px-5 border-slate-200 hover:bg-slate-50 shadow-sm transition-all hover:scale-[1.02]"
+            className="gap-2 h-12 px-5 text-base border-slate-200 hover:bg-slate-50 shadow-sm"
             onClick={() => setIsEditSheetOpen(true)}
           >
-            <Edit2 className="h-4 w-4 text-primary" />
-            <span className="font-bold text-slate-700">Update Order</span>
+            <Edit2 className="h-5 w-5 text-primary shrink-0" />
+            <span className="font-semibold text-slate-700">Update order</span>
           </Button>
-          <Button
-            className="gap-2 h-11 px-5 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
-            onClick={() => setIsReceiveSheetOpen(true)}
-          >
-            <PackageCheck className="h-4 w-4" />
-            <span className="font-bold">Receive Goods</span>
-          </Button>
-          <Button
-            variant="secondary"
-            className="gap-2 h-11 px-5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-95 font-bold"
-            onClick={() => setIsPaymentDrawerOpen(true)}
-          >
-            <CreditCard className="h-4 w-4" />
-            <span>Pay</span>
-          </Button>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className={receiveDisabled ? 'inline-flex cursor-not-allowed' : 'inline-flex'}>
+                  <Button
+                    type="button"
+                    className="gap-2 h-12 px-5 text-base shadow-lg shadow-primary/20 disabled:opacity-60"
+                    disabled={receiveDisabled}
+                    onClick={() => !receiveDisabled && setIsReceiveSheetOpen(true)}
+                  >
+                    <PackageCheck className="h-5 w-5 shrink-0" />
+                    <span className="font-semibold">Receive goods</span>
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {receiveDisabled && receiveDisabledReason && (
+                <TooltipContent side="bottom" className="max-w-xs text-sm">
+                  {receiveDisabledReason}
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className={payDisabled ? 'inline-flex cursor-not-allowed' : 'inline-flex'}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="gap-2 h-12 px-6 text-base bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white border-0 shadow-lg shadow-emerald-500/25 font-semibold disabled:opacity-60"
+                    disabled={payDisabled}
+                    onClick={() => !payDisabled && setIsPaymentDrawerOpen(true)}
+                  >
+                    <CreditCard className="h-5 w-5 shrink-0" />
+                    Pay supplier
+                    {!paySuggestionLoading && paySuggestion && maxPayableNow > 0 && (
+                      <span className="ml-1 rounded-md bg-white/20 px-2 py-0.5 text-sm tabular-nums font-bold">
+                        {formatCurrency(maxPayableNow)}
+                      </span>
+                    )}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {payDisabled && payDisabledReason && (
+                <TooltipContent side="bottom" className="max-w-xs text-sm">
+                  {payDisabledReason}
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
           {/* <Button variant="ghost" size="icon" className="h-11 w-11 rounded-xl hover:bg-slate-100" onClick={() => window.print()}>
             <Save className="h-5 w-5 text-slate-500" />
           </Button> */}

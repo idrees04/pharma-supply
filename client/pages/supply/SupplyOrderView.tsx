@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSupplyOrder, useSupplyOrderStatuses } from '@/api/services/supplyOrders.service';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import {
   ArrowLeft,
   Loader2,
@@ -10,6 +10,7 @@ import {
   Calendar,
   MapPin,
   Package,
+  FileText,
   User,
   StickyNote,
   DollarSign,
@@ -17,12 +18,15 @@ import {
   Clock,
   XCircle,
   Truck,
+  Mail,
   Save,
   TrendingUp,
+  PackageCheck,
   Edit2,
   FileType2
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency, cn } from '@/lib/utils';
 import { motion, Variants } from 'framer-motion';
@@ -42,6 +46,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import SupplyOrderForm from './SupplyOrderForm';
+import { InvoiceCreationPanel } from './InvoiceCreationPanel';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -474,6 +479,15 @@ export default function SupplyOrderView() {
               Generate and download invoice from supply order <span className="font-mono font-bold text-foreground">{so.supplyOrderNumber}</span>
             </DialogDescription>
           </DialogHeader>
+          <div className="p-6">
+            {soId && (
+              <InvoiceCreationPanel
+                supplyOrderId={soId}
+                supplyOrder={so}
+                onSuccess={() => setIsInvoiceModalOpen(false)}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </motion.div>

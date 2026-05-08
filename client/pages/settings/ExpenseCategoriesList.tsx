@@ -1,38 +1,38 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/context/AuthContext";
+import React, { useMemo, useState } from 'react';
+import { Plus, Edit2, Trash2, AlertCircle, Search, Tags, Filter } from 'lucide-react';
+import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, AlertCircle, Loader } from "lucide-react";
-import { toast } from "sonner";
-import ExpenseCategoryForm from "./ExpenseCategoryForm";
-import { 
-  useExpenseCategories, 
-  useDeleteExpenseCategory 
-} from "@/api/services/expenseCategories";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { DataTable, Column } from '@/components/common/DataTable';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import ExpenseCategoryForm from './ExpenseCategoryForm';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
-import { ExpenseCategory } from "@/types/api/expenseCategories";
+  useExpenseCategories,
+  useDeleteExpenseCategory,
+} from '@/api/services/expenseCategories';
+import type { ExpenseCategory } from '@/types/api/expenseCategories';
+import { cn } from '@/lib/utils';
+
+const ITEMS_PER_PAGE = 10;
 
 export default function ExpenseCategoriesList() {
   const { hasPermission } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>(
-    undefined,
-  );
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>(undefined);
+  const [categoryToDelete, setCategoryToDelete] = useState<ExpenseCategory | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const canCreate = hasPermission('expenses', 'create');
   const canUpdate = hasPermission('expenses', 'update');
@@ -46,29 +46,89 @@ export default function ExpenseCategoriesList() {
 
   const deleteCategoryMutation = useDeleteExpenseCategory();
 
+  const filteredCategories = useMemo(() => {
+    if (!searchTerm.trim()) return categories;
+    const q = searchTerm.trim().toLowerCase();
+    return categories.filter(
+      (c) =>
+        c.categoryName.toLowerCase().includes(q) ||
+        (c.categoryCode?.toLowerCase().includes(q) ?? false) ||
+        (c.description?.toLowerCase().includes(q) ?? false),
+    );
+  }, [categories, searchTerm]);
+
+  const columns: Column<ExpenseCategory>[] = useMemo(
+    () => [
+      {
+        header: 'ID',
+        accessor: 'id',
+        className: 'w-14 text-muted-foreground tabular-nums',
+      },
+      {
+        header: 'Name',
+        accessor: (row) => (
+          <span className="font-semibold text-slate-900">{row.categoryName}</span>
+        ),
+      },
+      {
+        header: 'Code',
+        accessor: (row) => (
+          <span className="font-mono text-xs text-muted-foreground">{row.categoryCode || '—'}</span>
+        ),
+      },
+      {
+        header: 'Description',
+        accessor: (row) => {
+          const d = row.description?.trim();
+          if (!d) return <span className="text-muted-foreground">—</span>;
+          const short = d.length > 48 ? `${d.slice(0, 48)}…` : d;
+          return (
+            <span className="max-w-[240px] truncate text-sm text-muted-foreground" title={d}>
+              {short}
+            </span>
+          );
+        },
+        mobileHidden: true,
+      },
+      {
+        header: 'Order',
+        accessor: (row) => (
+          <span className="tabular-nums text-sm text-muted-foreground">{row.displayOrder}</span>
+        ),
+        className: 'w-20 text-right',
+      },
+    ],
+    [],
+  );
+
   const handleEdit = (category: ExpenseCategory) => {
     setSelectedCategoryId(category.id);
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (category: ExpenseCategory) => {
-    if (!confirm(`Are you sure you want to delete "${category.categoryName}"?`)) {
-      return;
-    }
+  const handleDeleteClick = (category: ExpenseCategory) => {
+    setCategoryToDelete(category);
+    setIsDeleteOpen(true);
+  };
 
-    deleteCategoryMutation.mutate(category.id, {
+  const confirmDelete = () => {
+    if (!categoryToDelete) return;
+    deleteCategoryMutation.mutate(categoryToDelete.id, {
       onSuccess: () => {
-        toast.success("Category deleted successfully");
+        toast.success('Category removed');
+        setIsDeleteOpen(false);
+        setCategoryToDelete(null);
       },
       onError: (err) => {
-        toast.error(err.userMessage || "Failed to delete category");
-      }
+        toast.error(err.userMessage || 'Failed to delete category');
+      },
     });
   };
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setSelectedCategoryId(undefined);
+    setRefreshTrigger((n) => n + 1);
   };
 
   const handleCreate = () => {
@@ -76,28 +136,30 @@ export default function ExpenseCategoriesList() {
     setIsDialogOpen(true);
   };
 
-  const handleFormSuccess = () => {
-    handleCloseDialog();
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setSelectedCategoryId(undefined);
+      setRefreshTrigger((n) => n + 1);
+    }
   };
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-6 animate-slide-up">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Expense Categories</h1>
-            <p className="text-muted-foreground">Manage categories for daily expenses</p>
+            <h1 className="text-3xl font-bold tracking-tight">Expense categories</h1>
+            <p className="text-muted-foreground">Classify daily expenses</p>
           </div>
         </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-red-600" />
-          <h3 className="mt-4 text-lg font-semibold text-red-900">
-            Error Loading Categories
-          </h3>
-          <p className="text-red-700">
-            {error.userMessage || "Failed to load categories"}
+          <h3 className="mt-4 text-lg font-semibold text-red-900">Could not load categories</h3>
+          <p className="mt-1 text-sm text-red-700">
+            {(error as { userMessage?: string }).userMessage || 'Request failed'}
           </p>
-          <Button onClick={() => window.location.reload()} className="mt-4">
+          <Button className="mt-4" variant="outline" onClick={() => window.location.reload()}>
             Retry
           </Button>
         </div>
@@ -106,115 +168,149 @@ export default function ExpenseCategoriesList() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-slide-up">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Expense Categories</h1>
-          <p className="text-muted-foreground">Manage categories for daily expenses</p>
-        </div>
-        {canCreate && (
-          <Button onClick={handleCreate} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Add Category
-          </Button>
-        )}
-      </div>
-
-      {isLoading && (
-        <div className="flex items-center justify-center p-8">
-          <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      )}
-
-      {!isLoading && categories.length === 0 && (
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
-          <h3 className="mt-4 text-lg font-semibold">No categories yet</h3>
+          <h1 className="text-3xl font-bold tracking-tight">Expense categories</h1>
           <p className="text-muted-foreground">
-            Create your first category to organize expenses
+            Only <span className="font-medium text-foreground">active</span> categories are listed (
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">GET /api/ExpenseCategories</code>
+            ). Set inactive on edit to hide a category from pickers and this list.
           </p>
         </div>
-      )}
+        {canCreate ? (
+          <Button onClick={handleCreate} className="gap-2 shadow-md">
+            <Plus className="h-4 w-4" />
+            Add category
+          </Button>
+        ) : null}
+      </div>
 
-      {!isLoading && categories.length > 0 && (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead className="w-28 text-center">Status</TableHead>
-                {(canUpdate || canDelete) && <TableHead className="text-right w-24">Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categories.map((cat) => (
-                <TableRow key={cat.id}>
-                  <TableCell className="font-medium">{cat.categoryName}</TableCell>
-                  <TableCell>{cat.categoryCode || "-"}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge
-                      variant={cat.isActive ? "default" : "secondary"}
-                      className={cn(
-                        "font-medium whitespace-nowrap gap-1.5",
-                        cat.isActive
-                          ? "bg-green-100 text-green-800 hover:bg-green-200"
-                          : "bg-muted text-muted-foreground border-border hover:bg-muted/80",
-                      )}
-                    >
-                      {cat.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  {(canUpdate || canDelete) && (
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {canUpdate && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(cat)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {canDelete && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(cat)}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedCategoryId ? "Edit Category" : "Add Category"}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedCategoryId ? "Update the category details" : "Create a new expense category"}
-            </DialogDescription>
-          </DialogHeader>
-          <ExpenseCategoryForm
-            categoryId={selectedCategoryId}
-            onSuccess={handleFormSuccess}
-            onCancel={handleCloseDialog}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <KPIBox
+          label="Active categories"
+          value={categories.length}
+          icon={<Tags className="h-4 w-4" />}
+          accent="bg-primary"
+        />
+        {searchTerm.trim() ? (
+          <KPIBox
+            label="Matching search"
+            value={filteredCategories.length}
+            icon={<Filter className="h-4 w-4" />}
+            accent="bg-slate-500"
           />
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm md:flex-row md:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+          <Input
+            placeholder="Search name, code, or description…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="h-10 border-slate-200 bg-slate-50 pl-10 focus:bg-background"
+          />
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <DataTable
+          columns={columns}
+          data={filteredCategories}
+          isLoading={isLoading}
+          onEdit={canUpdate ? handleEdit : undefined}
+          onDelete={canDelete ? handleDeleteClick : undefined}
+          itemsPerPage={ITEMS_PER_PAGE}
+          emptyMessage={
+            searchTerm.trim()
+              ? 'No categories match your search.'
+              : 'No categories yet. Add one to classify expenses.'
+          }
+          showSearch={false}
+          showToolbar={false}
+          showColumnVisibility={false}
+          resetSortTrigger={refreshTrigger}
+        />
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
+        <DialogContent
+          className={cn(
+            'gap-0 overflow-hidden p-0 sm:max-w-lg',
+            !selectedCategoryId && 'sm:max-w-[480px]',
+          )}
+        >
+          <div className="border-b bg-muted/40 px-6 py-4">
+            <DialogHeader className="space-y-1 text-left">
+              <DialogTitle className="text-xl font-semibold tracking-tight">
+                {selectedCategoryId ? 'Edit expense category' : 'New expense category'}
+              </DialogTitle>
+              <DialogDescription className="text-sm leading-snug">
+                {selectedCategoryId
+                  ? 'Change details or deactivate to hide from lists and expense forms.'
+                  : 'Add a label for grouping expenses. Required API fields are sent even when optional on screen.'}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="max-h-[min(72vh,560px)] overflow-y-auto px-6 py-5">
+            <ExpenseCategoryForm
+              categoryId={selectedCategoryId}
+              onSuccess={handleCloseDialog}
+              onCancel={() => handleDialogOpenChange(false)}
+            />
+          </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="Remove category"
+        description={
+          <span>
+            Soft-delete <span className="font-semibold">{categoryToDelete?.categoryName}</span>? It will no longer
+            appear in lists; expenses already linked keep history.
+          </span>
+        }
+        onConfirm={confirmDelete}
+        isLoading={deleteCategoryMutation.isPending}
+        confirmText="Remove"
+        variant="destructive"
+      />
     </div>
+  );
+}
+
+function KPIBox({
+  label,
+  value,
+  icon,
+  accent,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  accent: string;
+}) {
+  return (
+    <Card className="relative overflow-hidden p-4 transition-all hover:shadow-md">
+      <div
+        className={cn(
+          'absolute -right-8 -top-8 h-16 w-16 rounded-full opacity-[0.06] transition-transform duration-500 group-hover:scale-150',
+          accent,
+        )}
+      />
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+          <p className="mt-0.5 text-2xl font-bold tracking-tight tabular-nums">{value}</p>
+        </div>
+      </div>
+    </Card>
   );
 }

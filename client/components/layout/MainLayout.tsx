@@ -324,8 +324,8 @@ export function MainLayout({ children }: MainLayoutProps) {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
-          <div className="p-4 md:p-6 max-w-7xl mx-auto">{children}</div>
+        <main className="min-w-0 flex-1 overflow-auto">
+          <div className="w-full p-4 md:p-6">{children}</div>
         </main>
       </div>
     </div>

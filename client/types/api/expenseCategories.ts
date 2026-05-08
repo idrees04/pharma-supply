@@ -1,6 +1,6 @@
 import { ApiResponse } from './common';
 
-// DTOs
+// DTOs (matches backend ExpenseCategoryDto)
 export interface ExpenseCategory {
     id: number;
     categoryName: string;
@@ -8,15 +8,24 @@ export interface ExpenseCategory {
     description: string | null;
     displayOrder: number;
     isActive: boolean;
-    // In the spec, the request/response uses the full ExpenseCategory entity.
-    // We'll use this interface for both request and response, but omit fields that shouldn't be sent.
 }
 
-// Request DTOs (same as entity for POST/PUT)
-export type CreateExpenseCategoryRequest = Omit<ExpenseCategory, 'id' | 'isActive'> & {
-    isActive?: boolean;
-};
-export type UpdateExpenseCategoryRequest = Partial<Omit<ExpenseCategory, 'id'>>;
+/** POST /api/ExpenseCategories — backend uses non-nullable strings; send "" not null. */
+export interface CreateExpenseCategoryRequest {
+    categoryName: string;
+    categoryCode: string;
+    description: string;
+    displayOrder: number;
+}
+
+/** PUT /api/ExpenseCategories/{id} */
+export interface UpdateExpenseCategoryRequest {
+    categoryName: string;
+    categoryCode: string;
+    description: string;
+    displayOrder: number;
+    isActive: boolean;
+}
 
 // Response types
 export type GetExpenseCategoriesResponse = ApiResponse<ExpenseCategory[]>;

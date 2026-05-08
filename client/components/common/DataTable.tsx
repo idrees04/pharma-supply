@@ -72,6 +72,10 @@ interface DataTableProps<T> {
   onRowClick?: (item: T) => void;
   renderExpandedRow?: (item: T) => React.ReactNode;
   resetSortTrigger?: number;
+  /** Keep API row order; disable client-side default ID sort and header sort toggles (use with server-side sorting). */
+  preserveServerOrder?: boolean;
+  /** Hide built-in pagination footer (use server-driven pagination outside the table). */
+  hidePaginationFooter?: boolean;
 }
 
 export function DataTable<T extends { id?: string | number }>({
@@ -88,6 +92,8 @@ export function DataTable<T extends { id?: string | number }>({
   onRowClick,
   renderExpandedRow,
   resetSortTrigger,
+  preserveServerOrder = false,
+  hidePaginationFooter = false,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState('');
@@ -122,14 +128,17 @@ export function DataTable<T extends { id?: string | number }>({
           return (
             <div
               className={cn(
-                "flex items-center gap-1 cursor-pointer select-none group",
+                'flex items-center gap-1 select-none group',
+                preserveServerOrder ? 'cursor-default' : 'cursor-pointer',
                 col.className,
-                col.mobileHidden && "hidden md:flex"
+                col.mobileHidden && 'hidden md:flex',
               )}
-              onClick={() => column.toggleSorting()}
+              onClick={preserveServerOrder ? undefined : () => column.toggleSorting()}
             >
               {col.header}
-              <ArrowUpDown className="ml-1 h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+              {!preserveServerOrder ? (
+                <ArrowUpDown className="ml-1 h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+              ) : null}
             </div>
           );
         },
@@ -228,28 +237,26 @@ export function DataTable<T extends { id?: string | number }>({
     }
 
     return cols;
-  }, [userColumns, onEdit, onDelete, expandedRows, renderExpandedRow]);
+  }, [userColumns, onEdit, onDelete, expandedRows, renderExpandedRow, preserveServerOrder]);
 
 
-  // Default client-side sorting by ID descending (latest first)
+  // Default client-side sorting by ID descending (latest first); skip when server supplies order
   const sortedData = React.useMemo(() => {
     if (!data || !Array.isArray(data)) return [];
+    if (preserveServerOrder) return [...data];
 
-    // Create a shallow copy to avoid mutating the original prop
     const copy = [...data];
 
-    // Only apply default sort if no explicit sorting state is set in the table
     if (sorting.length === 0) {
       copy.sort((a, b) => {
-        // If both objects have an 'id' property of type number
         if (typeof a.id === 'number' && typeof b.id === 'number') {
           return b.id - a.id;
         }
-        return 0; // Fallback if no numeric ID
+        return 0;
       });
     }
     return copy;
-  }, [data, sorting]);
+  }, [data, sorting, preserveServerOrder]);
 
   const table = useReactTable({
     data: sortedData,
@@ -262,6 +269,7 @@ export function DataTable<T extends { id?: string | number }>({
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onColumnVisibilityChange: setColumnVisibility,
+    enableSorting: !preserveServerOrder,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -424,6 +432,7 @@ export function DataTable<T extends { id?: string | number }>({
         </Table>
       </div>
 
+      {!hidePaginationFooter ? (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
         <div className="text-sm text-muted-foreground font-medium">
           Showing <span className="text-foreground">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> - {' '}
@@ -477,6 +486,7 @@ export function DataTable<T extends { id?: string | number }>({
           </Button>
         </div>
       </div>
+      ) : null}
     </div>
   );
 }

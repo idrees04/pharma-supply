@@ -153,6 +153,7 @@ export function useAdjustStock(productId: number) {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: ['inventory', 'stocks'] });
+                queryClient.invalidateQueries({ queryKey: ['products', 'low-stock'] });
             },
         }
     );

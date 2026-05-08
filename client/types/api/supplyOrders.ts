@@ -5,6 +5,7 @@
  */
 
 import { ApiResponse, PaginatedResponse } from './products';
+import type { DeliveryChallan } from './deliveryChallans';
 
 /**
  * Supply Order Item entity
@@ -75,8 +76,21 @@ export interface CreateSupplyOrderRequest {
   }[];
 }
 
+/** Line payload for PUT — matches backend UpdateSupplyOrderItemDto */
+export interface UpdateSupplyOrderItemRequest {
+  id?: number;
+  productId: number;
+  orderedQuantity: number;
+  unitPrice: number;
+  taxPercentage: number;
+  discountPercentage: number;
+  fulfillmentSource: number;
+  supplierId?: number | null;
+}
+
 /**
  * Request for updating a Supply Order
+ * Items are optional; when sent and the order is Draft or Pending, the API replaces lines and recalculates totals.
  */
 export interface UpdateSupplyOrderRequest {
   requiredByDate: string;
@@ -84,6 +98,16 @@ export interface UpdateSupplyOrderRequest {
   shippingAddress: string;
   notes: string;
   status: number;
+  items?: UpdateSupplyOrderItemRequest[];
+}
+
+/** One option from GET /api/Enums/SupplyOrderStatus */
+export interface SupplyOrderStatusOption {
+  value: number;
+  /** UI label (DisplayName from API) */
+  name: string;
+  /** Enum member name, e.g. Draft, Pending, Cancelled */
+  code: string;
 }
 
 /**
@@ -97,9 +121,47 @@ export interface SupplyOrderListQueryParams {
   sortDescending?: boolean;
 }
 
+/** Summary row from GET /api/SupplyOrders/{id}/delivery-challans */
+export interface DeliveryChallanSummary {
+  id: number;
+  challanNumber: string;
+  dispatchDate: string;
+  status: number;
+}
+
+/** POST /api/SupplyOrders/{id}/delivery-challans — matches CreateDeliveryChallanRequest */
+export interface CreateDeliveryChallanLineInput {
+  supplyOrderItemId: number;
+  quantityToDispatch: number;
+}
+
+export interface CreateDeliveryChallanFromSupplyOrderRequest {
+  dispatchDate: string;
+  notes?: string | null;
+  items: CreateDeliveryChallanLineInput[];
+}
+
+/** GET /api/SupplyOrders/{id}/dispatch-suggestion */
+export interface SupplyOrderDispatchLineSuggestion {
+  supplyOrderItemId: number;
+  productId: number;
+  productName: string | null;
+  remainingToFulfill: number;
+  availableInInventory: number;
+  maxDispatchableQuantity: number;
+}
+
+export interface SupplyOrderDispatchSuggestion {
+  supplyOrderId: number;
+  supplyOrderNumber: string;
+  lines: SupplyOrderDispatchLineSuggestion[];
+}
+
 /**
  * API response types
  */
+export type GetSupplyOrderDeliveryChallansResponse = ApiResponse<DeliveryChallanSummary[]>;
+export type GetSupplyOrderDispatchSuggestionResponse = ApiResponse<SupplyOrderDispatchSuggestion>;
 export type GetSupplyOrdersListResponse = ApiResponse<PaginatedResponse<SupplyOrder>>;
 export type GetSupplyOrderResponse = ApiResponse<SupplyOrder>;
 export type CreateSupplyOrderResponse = ApiResponse<SupplyOrder>;
@@ -107,3 +169,4 @@ export type UpdateSupplyOrderResponse = ApiResponse<SupplyOrder>;
 export type DeleteSupplyOrderResponse = ApiResponse<boolean>;
 export type GetSupplyOrdersByStatusResponse = ApiResponse<SupplyOrder[]>;
 export type GetSupplyOrderStatusesResponse = ApiResponse<{ value: number; name: string }[]>;
+export type CreateDeliveryChallanFromSupplyOrderResponse = ApiResponse<DeliveryChallan>;

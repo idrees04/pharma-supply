@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertCircle,
@@ -413,6 +414,19 @@ export default function InvoiceList() {
         </span>
       ),
       className: 'w-28 text-right',
+    },
+    {
+      header: '',
+      accessor: (row) => (
+        <Link
+          to={`/invoices/${row.id}`}
+          className="text-sm font-medium text-primary hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          Details
+        </Link>
+      ),
+      className: 'w-[72px]',
     },
   ], []);
 

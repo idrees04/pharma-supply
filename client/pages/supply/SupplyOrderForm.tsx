@@ -335,11 +335,11 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
       form.reset({
         hospitalId: existingSO.hospitalId,
         orderDate: existingSO.orderDate.split('T')[0],
-        requiredByDate: existingSO.requiredByDate.split('T')[0],
-        requestedBy: existingSO.requestedBy,
-        shippingAddress: existingSO.shippingAddress,
-        notes: existingSO.notes || '',
-        items: existingSO.items.map(item => ({
+        requiredByDate: existingSO.requiredByDate?.split('T')[0] ?? '',
+        requestedBy: existingSO.requestedBy ?? '',
+        shippingAddress: existingSO.shippingAddress ?? '',
+        notes: existingSO.notes ?? '',
+        items: (existingSO.items ?? []).map(item => ({
           productId: item.productId,
           orderedQuantity: item.orderedQuantity,
           unitPrice: item.unitPrice,
@@ -372,6 +372,18 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
         shippingAddress: data.shippingAddress,
         notes: data.notes || '',
         status: data.status ?? existingSO?.status ?? 1,
+        items:
+          data.items?.length > 0
+            ? data.items.map((item) => ({
+                productId: item.productId,
+                orderedQuantity: item.orderedQuantity,
+                unitPrice: item.unitPrice,
+                taxPercentage: item.taxPercentage,
+                discountPercentage: item.discountPercentage,
+                fulfillmentSource: item.fulfillmentSource,
+                supplierId: item.supplierId > 0 ? item.supplierId : null,
+              }))
+            : undefined,
       };
       updateSO(updateData, {
         onSuccess: () => {

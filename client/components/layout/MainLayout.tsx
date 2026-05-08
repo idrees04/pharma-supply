@@ -1,5 +1,5 @@
 import { ReactNode, useState, useMemo, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { UserNav } from "./UserNav";
 import { ThemeToggle } from "./ThemeToggle";
@@ -42,6 +42,30 @@ interface MenuItemType {
   /** Module for permission check - if set, item is hidden when user lacks access */
   module?: string;
   children?: MenuItemType[];
+}
+
+/** Match sidebar links including `/reports?module=…` query strings. */
+function menuHrefIsActive(
+  href: string,
+  pathname: string,
+  search: string,
+  exact?: boolean,
+): boolean {
+  const qIdx = href.indexOf("?");
+  const path = qIdx >= 0 ? href.slice(0, qIdx) : href;
+  const qs = qIdx >= 0 ? href.slice(qIdx + 1) : "";
+  if (qs) {
+    if (pathname !== path) return false;
+    const want = new URLSearchParams(qs);
+    const have = new URLSearchParams(search);
+    for (const [k, v] of want.entries()) {
+      if (have.get(k) !== v) return false;
+    }
+    return true;
+  }
+  if (exact) return pathname === path;
+  if (path === "/") return pathname === "/";
+  return pathname === path || pathname.startsWith(`${path}/`);
 }
 
 const menuItems: MenuItemType[] = [
@@ -155,8 +179,33 @@ const menuItems: MenuItemType[] = [
   {
     icon: <BarChart3 className="w-5 h-5" />,
     label: "Reports",
-    href: "/reports",
     module: "reports",
+    children: [
+      {
+        icon: <FileText className="w-4 h-4" />,
+        label: "Supply orders",
+        href: "/reports?module=supply-order",
+        module: "reports",
+      },
+      {
+        icon: <Package className="w-4 h-4" />,
+        label: "Inventory",
+        href: "/reports?module=inventory",
+        module: "reports",
+      },
+      {
+        icon: <Truck className="w-4 h-4" />,
+        label: "Purchase",
+        href: "/reports?module=purchase",
+        module: "reports",
+      },
+      {
+        icon: <DollarSign className="w-4 h-4" />,
+        label: "Finance",
+        href: "/reports?module=finance",
+        module: "reports",
+      },
+    ],
   },
   {
     icon: <Settings className="w-5 h-5" />,
@@ -225,6 +274,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { pathname, search } = location;
   const { canAccess } = useAuth();
 
   // Filter menu items based on user permissions (memoized for performance)
@@ -233,26 +283,19 @@ export function MainLayout({ children }: MainLayoutProps) {
     [canAccess]
   );
 
-  // Automatically expand parent menu based on current route
+  // Automatically expand parent menu based on current route (path + query)
   useEffect(() => {
     for (const item of visibleMenuItems) {
-      if (item.children) {
-        for (const child of item.children) {
-          if (child.href) {
-            const isMatch = child.exact
-              ? location.pathname === child.href
-              : child.href === '/'
-                ? location.pathname === '/'
-                : location.pathname === child.href || location.pathname.startsWith(`${child.href}/`);
-            if (isMatch) {
-              setOpenSubmenu(item.label);
-              return;
-            }
-          }
+      if (!item.children) continue;
+      for (const child of item.children) {
+        if (!child.href) continue;
+        if (menuHrefIsActive(child.href, pathname, search, child.exact)) {
+          setOpenSubmenu(item.label);
+          return;
         }
       }
     }
-  }, [location.pathname, visibleMenuItems]);
+  }, [pathname, search, visibleMenuItems]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -294,7 +337,6 @@ export function MainLayout({ children }: MainLayoutProps) {
                           openSubmenu === item.label ? null : item.label,
                         )
                       }
-                      location={location.pathname}
                       onClose={() => setIsMobileMenuOpen(false)}
                     />
                   ))}
@@ -317,7 +359,6 @@ export function MainLayout({ children }: MainLayoutProps) {
                 onToggle={() =>
                   setOpenSubmenu(openSubmenu === item.label ? null : item.label)
                 }
-                location={location.pathname}
               />
             ))}
           </nav>
@@ -336,7 +377,6 @@ interface SidebarMenuItemProps {
   item: MenuItemType;
   isOpen: boolean;
   onToggle: () => void;
-  location: string;
   onClose?: () => void;
 }
 
@@ -344,15 +384,11 @@ function SidebarMenuItem({
   item,
   isOpen,
   onToggle,
-  location,
   onClose,
 }: SidebarMenuItemProps) {
+  const { pathname, search } = useLocation();
   const isActive = item.href
-    ? item.exact
-      ? location === item.href
-      : item.href === '/'
-        ? location === '/'
-        : location === item.href || location.startsWith(`${item.href}/`)
+    ? menuHrefIsActive(item.href, pathname, search, item.exact)
     : false;
   const hasChildren = item.children && item.children.length > 0;
 
@@ -387,11 +423,7 @@ function SidebarMenuItem({
               <div className="absolute left-6 top-0 bottom-2 w-px bg-border/50" />
               {item.children!.map((child, idx) => {
                 const isChildActive = child.href
-                  ? child.exact
-                    ? location === child.href
-                    : child.href === '/'
-                      ? location === '/'
-                      : location === child.href || location.startsWith(`${child.href}/`)
+                  ? menuHrefIsActive(child.href, pathname, search, child.exact)
                   : false;
 
                 const childLink = (

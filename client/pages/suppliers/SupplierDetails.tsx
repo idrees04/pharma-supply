@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSupplier } from '@/api/services/suppliers';
+import { useSupplier, useSupplierBalance } from '@/api/services/suppliers';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
@@ -29,6 +29,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { LinkedProductsTable } from '@/components/suppliers/LinkedProductsTable';
 import { LinkProductsModal } from '@/components/suppliers/LinkProductsModal';
+import { SupplierPurchaseOrdersSection } from '@/components/suppliers/SupplierPurchaseOrdersSection';
+import { SupplierProcurementCatalogCard } from '@/components/suppliers/SupplierProcurementCatalogCard';
 import { formatCurrency, cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -68,8 +70,14 @@ export default function SupplierDetails() {
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
 
     const { data: supplier, isPending, error } = useSupplier(supplierId);
+    const { data: balanceDetail, isPending: balanceLoading } = useSupplierBalance(supplierId);
 
     const canUpdate = hasPermission('suppliers', 'update');
+
+    const payable = balanceDetail?.outstandingBalance ?? supplier?.outstandingBalance ?? 0;
+    const creditLimit = balanceDetail?.creditLimit ?? supplier?.creditLimit ?? 0;
+    const creditUsedPct =
+      creditLimit > 0 ? Math.min(100, (payable / creditLimit) * 100) : 0;
 
     if (isPending) {
         return (
@@ -111,7 +119,7 @@ export default function SupplierDetails() {
             initial="hidden"
             animate="visible"
             variants={containerVariants}
-            className="max-w-7xl mx-auto space-y-8 py-6 pb-20 px-4 md:px-6"
+            className="w-full max-w-none mx-auto space-y-8 py-6 pb-20"
         >
             {/* Breadcrumb Intelligence */}
             <motion.div variants={itemVariants}>
@@ -275,6 +283,14 @@ export default function SupplierDetails() {
                             <LinkedProductsTable supplierId={supplierId!} />
                         </Card>
                     </motion.div>
+
+                    <motion.div variants={itemVariants}>
+                        <SupplierPurchaseOrdersSection supplierId={supplierId!} />
+                    </motion.div>
+
+                    <motion.div variants={itemVariants}>
+                        <SupplierProcurementCatalogCard supplierId={supplierId!} />
+                    </motion.div>
                 </div>
 
                 {/* Vertical Intelligence Stack */}
@@ -304,9 +320,9 @@ export default function SupplierDetails() {
                                         <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">Amount Payable (PKR)</p>
                                         <h2 className={cn(
                                             "text-5xl font-black tracking-tighter leading-none mb-2",
-                                            supplier.outstandingBalance > supplier.creditLimit ? "text-rose-500" : "text-blue-700"
+                                            payable > creditLimit ? "text-rose-500" : "text-blue-700"
                                         )}>
-                                            {formatCurrency(supplier.outstandingBalance)}
+                                            {formatCurrency(payable)}
                                         </h2>
                                     </div>
 
@@ -314,7 +330,7 @@ export default function SupplierDetails() {
                                         <div className="flex items-center justify-between p-4 rounded-xl bg-white/60 border border-blue-100 shadow-sm">
                                             <div className="space-y-0.5">
                                                 <p className="text-[9px] font-black text-blue-500 uppercase">Credit Limit</p>
-                                                <p className="text-lg font-black text-slate-800">{formatCurrency(supplier.creditLimit)}</p>
+                                                <p className="text-lg font-black text-slate-800">{formatCurrency(creditLimit)}</p>
                                             </div>
                                             <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                                                 <CreditCard className="w-5 h-5" />
@@ -325,19 +341,51 @@ export default function SupplierDetails() {
                                     <div className="px-2 space-y-2">
                                         <div className="flex justify-between text-[10px] font-black text-blue-400 uppercase tracking-widest px-1">
                                             <span>Credit Used</span>
-                                            <span>{Math.min(100, (supplier.outstandingBalance / supplier.creditLimit) * 100).toFixed(0)}%</span>
+                                            <span>{creditUsedPct.toFixed(0)}%</span>
                                         </div>
                                         <div className="h-2 w-full bg-blue-100 rounded-full overflow-hidden">
                                             <motion.div
                                                 initial={{ width: 0 }}
-                                                animate={{ width: `${Math.min(100, (supplier.outstandingBalance / supplier.creditLimit) * 100)}%` }}
+                                                animate={{ width: `${creditUsedPct}%` }}
                                                 className={cn(
                                                     "h-full transition-all duration-1000",
-                                                    supplier.outstandingBalance > (supplier.creditLimit * 0.8) ? "bg-rose-500" : "bg-blue-500"
+                                                    payable > creditLimit * 0.8 ? "bg-rose-500" : "bg-blue-500"
                                                 )}
                                             />
                                         </div>
                                     </div>
+
+                                    {balanceLoading ? (
+                                        <p className="text-center text-[10px] font-bold uppercase tracking-widest text-blue-400 animate-pulse px-2">
+                                            Loading balance analytics…
+                                        </p>
+                                    ) : balanceDetail ? (
+                                        <div className="space-y-3 border-t border-blue-200/60 pt-6 px-2 text-left">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-blue-500">
+                                                From balance API
+                                            </p>
+                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                <div className="rounded-lg bg-white/70 border border-blue-100 p-3">
+                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Available credit</p>
+                                                    <p className="font-black tabular-nums text-slate-800">{formatCurrency(balanceDetail.availableCredit)}</p>
+                                                </div>
+                                                <div className="rounded-lg bg-white/70 border border-blue-100 p-3">
+                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Total PO value</p>
+                                                    <p className="font-black tabular-nums text-slate-800">{formatCurrency(balanceDetail.totalPurchaseAmount)}</p>
+                                                </div>
+                                                <div className="rounded-lg bg-white/70 border border-blue-100 p-3">
+                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Total paid</p>
+                                                    <p className="font-black tabular-nums text-emerald-700">{formatCurrency(balanceDetail.totalPaidAmount)}</p>
+                                                </div>
+                                                <div className="rounded-lg bg-white/70 border border-blue-100 p-3">
+                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">PO counts</p>
+                                                    <p className="font-bold text-slate-800">
+                                                        {balanceDetail.pendingOrders} pending · {balanceDetail.completedOrders} done
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : null}
                                 </CardContent>
                                 <div className="h-1.5 bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400" />
                             </Card>
@@ -370,27 +418,37 @@ export default function SupplierDetails() {
                             </Card>
                         </motion.div>
 
-                        {/* Ancillary Historical Data */}
+                        {/* Balance API shortcuts */}
                         <motion.div variants={itemVariants}>
                             <Card className="border-slate-200 shadow-none">
                                 <CardHeader className="pb-3 bg-slate-50/30 border-b">
-                                    <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Quick Info</CardTitle>
+                                    <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                                        Activity
+                                    </CardTitle>
                                 </CardHeader>
-                                <CardContent className="pt-6 space-y-4">
-                                    <div className="p-4 border rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group">
-                                        <div className="flex items-center gap-4">
-                                            <History className="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
-                                            <span className="text-xs font-bold text-slate-600">Purchase History</span>
-                                        </div>
-                                        <span className="text-xs font-black text-slate-900">Premium</span>
-                                    </div>
-                                    <div className="p-4 border rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group">
-                                        <div className="flex items-center gap-4">
-                                            <ShieldCheck className="w-5 h-5 text-slate-300 group-hover:text-emerald-500" />
-                                            <span className="text-xs font-bold text-slate-600">Verification Status</span>
-                                        </div>
-                                        <Badge className="bg-emerald-50 text-emerald-600 border-none text-[8px] font-black">CLEARED</Badge>
-                                    </div>
+                                <CardContent className="pt-6 space-y-3">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full justify-between gap-2 h-auto py-3 px-4"
+                                        onClick={() =>
+                                            document.getElementById('supplier-purchase-orders')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                                        }
+                                    >
+                                        <span className="flex items-center gap-3">
+                                            <History className="w-5 h-5 text-blue-500" />
+                                            <span className="text-xs font-bold text-slate-700 text-left">Purchase order list</span>
+                                        </span>
+                                        <span className="text-[10px] font-black text-muted-foreground uppercase">View</span>
+                                    </Button>
+                                    {balanceDetail ? (
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed px-1">
+                                            Totals reflect all POs for this supplier (
+                                            <span className="font-semibold text-foreground">{balanceDetail.pendingOrders}</span> open workflows).
+                                        </p>
+                                    ) : balanceLoading ? (
+                                        <p className="text-[10px] text-muted-foreground animate-pulse px-1">Loading summary…</p>
+                                    ) : null}
                                 </CardContent>
                             </Card>
                         </motion.div>

@@ -1,571 +1,629 @@
-import { useStore } from "@/hooks/useStore";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { BarChart3, Loader2, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import {
-  BarChart3,
-  TrendingUp,
-  DollarSign,
-  Package,
-  Truck,
-  Users,
-  Download,
-  FileJson,
-} from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
-  downloadCSV,
-  downloadJSON,
-  generateSalesReport,
-  generateFinancialReport,
-  generateInventoryReport,
-  generateProcurementReport,
-} from "@/lib/exportUtils";
-import { toast } from "sonner";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { formatCurrency } from '@/lib/utils';
+import { analyticsReportService } from '@/api/services/analyticsReports';
+import type {
+  AnalyticsReportId,
+  AnalyticsReportQueryParams,
+  ReportModuleId,
+} from '@/types/api/analyticsReports';
+import { useGetHospitals } from '@/hooks/useHospitals';
+import { useSupplierList } from '@/api/services/suppliers';
+import { useProductList } from '@/api/services/products';
+import { ApiError } from '@/api/errors';
+
+const MODULE_OPTIONS: { id: ReportModuleId; label: string }[] = [
+  { id: 'supply-order', label: 'Supply orders' },
+  { id: 'inventory', label: 'Inventory' },
+  { id: 'purchase', label: 'Purchase' },
+  { id: 'finance', label: 'Finance' },
+];
+
+const REPORTS_BY_MODULE: Record<ReportModuleId, { id: AnalyticsReportId; label: string }[]> = {
+  'supply-order': [
+    { id: 'pipeline', label: 'Pipeline by status' },
+    { id: 'by-hospital', label: 'Orders by hospital' },
+    { id: 'fulfillment-sla', label: 'Fulfillment / SLA' },
+  ],
+  inventory: [
+    { id: 'stock-position', label: 'Stock position & value' },
+    { id: 'batch-expiry', label: 'Batch expiry window' },
+  ],
+  purchase: [
+    { id: 'payables', label: 'PO payables by supplier' },
+    { id: 'receipt-vs-order', label: 'Receipt vs order (lines)' },
+  ],
+  finance: [
+    { id: 'hospital-ar', label: 'Hospital AR / aging' },
+    { id: 'cash-collections', label: 'Cash collections (receipts)' },
+    { id: 'expenses-summary', label: 'Expenses by category' },
+  ],
+};
+
+function isModule(s: string | null): s is ReportModuleId {
+  return s === 'supply-order' || s === 'inventory' || s === 'purchase' || s === 'finance';
+}
+
+function defaultReportForModule(m: ReportModuleId): AnalyticsReportId {
+  return REPORTS_BY_MODULE[m][0].id;
+}
+
+function parseReport(module: ReportModuleId, r: string | null): AnalyticsReportId {
+  const allowed = REPORTS_BY_MODULE[module].map((x) => x.id);
+  if (r && allowed.includes(r as AnalyticsReportId)) return r as AnalyticsReportId;
+  return defaultReportForModule(module);
+}
+
+function startOfDayISO(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function defaultDateRange() {
+  const to = new Date();
+  const from = new Date();
+  from.setMonth(from.getMonth() - 3);
+  return { from: startOfDayISO(from), to: startOfDayISO(to) };
+}
 
 export default function Reports() {
-  const {
-    purchaseOrders,
-    deliveryChallans,
-    payments,
-    dailyExpenses,
-    taxInvoices,
-    bankAccounts,
-    internalTransfers,
-    products,
-    inventoryItems,
-    suppliers,
-  } = useStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const moduleParam = searchParams.get('module');
+  const reportParam = searchParams.get('report');
 
-  const handleExportSalesReport = () => {
-    try {
-      const reportData = generateSalesReport([], taxInvoices);
-      downloadJSON(reportData, `sales-report-${new Date().toISOString().split('T')[0]}`);
-      toast.success('Sales report exported successfully');
-    } catch (error) {
-      toast.error('Failed to export sales report');
-    }
-  };
+  const module: ReportModuleId = isModule(moduleParam) ? moduleParam : 'supply-order';
+  const reportId = parseReport(module, reportParam);
 
-  const handleExportFinancialReport = () => {
-    try {
-      const reportData = generateFinancialReport(
-        bankAccounts,
-        internalTransfers,
-        payments,
-        dailyExpenses,
-      );
-      downloadJSON(reportData, `financial-report-${new Date().toISOString().split('T')[0]}`);
-      toast.success('Financial report exported successfully');
-    } catch (error) {
-      toast.error('Failed to export financial report');
-    }
-  };
+  const { from: defaultFrom, to: defaultTo } = defaultDateRange();
+  const [dateFrom, setDateFrom] = useState(defaultFrom);
+  const [dateTo, setDateTo] = useState(defaultTo);
+  const [hospitalId, setHospitalId] = useState<string>('');
+  const [supplierId, setSupplierId] = useState<string>('');
+  const [productId, setProductId] = useState<string>('');
 
-  const handleExportInventoryReport = () => {
-    try {
-      const reportData = generateInventoryReport(products, inventoryItems);
-      downloadJSON(reportData, `inventory-report-${new Date().toISOString().split('T')[0]}`);
-      toast.success('Inventory report exported successfully');
-    } catch (error) {
-      toast.error('Failed to export inventory report');
-    }
-  };
+  const { data: hospitalsData } = useGetHospitals({ pageNumber: 1, pageSize: 500 });
+  const { data: suppliersData } = useSupplierList({ pageNumber: 1, pageSize: 500 });
+  const { data: productsData } = useProductList({ pageNumber: 1, pageSize: 500 });
 
-  const handleExportProcurementReport = () => {
-    try {
-      const reportData = generateProcurementReport(purchaseOrders, suppliers);
-      downloadJSON(reportData, `procurement-report-${new Date().toISOString().split('T')[0]}`);
-      toast.success('Procurement report exported successfully');
-    } catch (error) {
-      toast.error('Failed to export procurement report');
-    }
-  };
+  const hospitals = hospitalsData?.data?.items ?? [];
+  const suppliers = suppliersData?.items ?? [];
+  const products = productsData?.items ?? [];
 
-  const handleExportOrdersCSV = () => {
-    try {
-      const csvData = taxInvoices.map((inv) => ({
-        'Invoice ID': inv.invoiceNo,
-        'Customer': inv.customerName,
-        'Date': inv.invoiceDate,
-        'Amount': inv.totalNetAmount,
-      }));
-      downloadCSV(csvData, `tax-invoices-${new Date().toISOString().split('T')[0]}`);
-      toast.success('Invoices exported as CSV');
-    } catch (error) {
-      toast.error('Failed to export invoices');
-    }
-  };
-
-  // Calculate metrics
-  const totalSales = taxInvoices.reduce((sum, inv) => sum + inv.totalNetAmount, 0);
-  const totalPurchase = purchaseOrders.reduce(
-    (sum, po) => sum + po.netPayableAmount,
-    0,
+  const syncUrl = useCallback(
+    (m: ReportModuleId, r: AnalyticsReportId) => {
+      setSearchParams({ module: m, report: r }, { replace: true });
+    },
+    [setSearchParams],
   );
-  const totalExpenses = dailyExpenses.reduce(
-    (sum, exp) => sum + exp.totalAmount,
-    0,
-  );
-  const totalProfit = totalSales - totalPurchase - totalExpenses;
-  const totalPayroll = 0; // Payroll removed
-  const totalDelivered = deliveryChallans.reduce(
-    (sum, dc) => sum + dc.items.reduce((s, item) => s + item.quantity, 0),
-    0,
-  );
-  const totalPaymentsMade = payments.reduce((sum, p) => sum + p.amount, 0);
 
-  const profitMargin =
-    totalSales > 0 ? ((totalProfit / totalSales) * 100).toFixed(2) : "0.00";
-  const expenseRatio =
-    totalSales > 0 ? ((totalExpenses / totalSales) * 100).toFixed(2) : "0.00";
+  useEffect(() => {
+    if (!isModule(moduleParam)) {
+      syncUrl('supply-order', defaultReportForModule('supply-order'));
+      return;
+    }
+    const valid = parseReport(module, reportParam);
+    if (reportParam !== valid) syncUrl(module, valid);
+  }, [moduleParam, reportParam, module, syncUrl]);
 
-  // Get top performed invoices by amount
-  const topInvoices = [...taxInvoices]
-    .sort((a, b) => b.totalNetAmount - a.totalNetAmount)
-    .slice(0, 5);
+  const apiParams: AnalyticsReportQueryParams = useMemo(() => {
+    const p: AnalyticsReportQueryParams = {
+      dateFrom,
+      dateTo,
+    };
+    const hid = hospitalId ? Number(hospitalId) : undefined;
+    const sid = supplierId ? Number(supplierId) : undefined;
+    const pid = productId ? Number(productId) : undefined;
+    if (hid && hid > 0) p.hospitalId = hid;
+    if (sid && sid > 0) p.supplierId = sid;
+    if (pid && pid > 0) p.productId = pid;
+    return p;
+  }, [dateFrom, dateTo, hospitalId, supplierId, productId]);
 
-  // Get invoice payment status breakdown (simulated from taxInvoices as a placeholder)
-  const paymentStatusBreakdown = {
-    cleared: taxInvoices.length,
-    partial: 0,
-    pending: 0,
-  };
+  const queryFn = useCallback(async () => {
+    switch (reportId) {
+      case 'pipeline':
+        return analyticsReportService.getSupplyOrderPipeline(apiParams);
+      case 'by-hospital':
+        return analyticsReportService.getSupplyOrdersByHospital(apiParams);
+      case 'fulfillment-sla':
+        return analyticsReportService.getSupplyOrderFulfillmentSla(apiParams);
+      case 'stock-position':
+        return analyticsReportService.getInventoryStockPosition(apiParams);
+      case 'batch-expiry':
+        return analyticsReportService.getInventoryBatchExpiry(apiParams);
+      case 'payables':
+        return analyticsReportService.getPurchasePayables(apiParams);
+      case 'receipt-vs-order':
+        return analyticsReportService.getPurchaseReceiptVsOrder(apiParams);
+      case 'hospital-ar':
+        return analyticsReportService.getHospitalAr(apiParams);
+      case 'cash-collections':
+        return analyticsReportService.getCashCollections(apiParams);
+      case 'expenses-summary':
+        return analyticsReportService.getExpensesSummary(apiParams);
+      default:
+        throw new Error('Unknown report');
+    }
+  }, [reportId, apiParams]);
 
-  // Get top performing items
-  const itemSalesMap = new Map<string, number>();
-  taxInvoices.forEach((inv) => {
-    inv.items.forEach((item) => {
-      const key = item.product;
-      itemSalesMap.set(key, (itemSalesMap.get(key) || 0) + item.amount);
-    });
+  const { data, isPending, error, refetch, isFetching } = useQuery({
+    queryKey: ['analytics-report', reportId, apiParams],
+    queryFn,
+    staleTime: 60 * 1000,
   });
 
-  const topItems = Array.from(itemSalesMap.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  useEffect(() => {
+    if (error instanceof ApiError) toast.error(error.userMessage || 'Report failed to load');
+    else if (error) toast.error('Report failed to load');
+  }, [error]);
+
+  const showHospital =
+    reportId === 'pipeline' ||
+    reportId === 'by-hospital' ||
+    reportId === 'fulfillment-sla' ||
+    reportId === 'hospital-ar' ||
+    reportId === 'cash-collections';
+  const showSupplier = reportId === 'payables' || reportId === 'receipt-vs-order';
+  const showProduct =
+    reportId === 'stock-position' || reportId === 'batch-expiry' || reportId === 'receipt-vs-order';
+
+  const reportLabel = REPORTS_BY_MODULE[module].find((x) => x.id === reportId)?.label ?? reportId;
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Reports & Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Comprehensive business insights and performance metrics
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+        <p className="text-muted-foreground mt-1">
+          Choose a module and report, set filters, then refresh. Data comes from the analytics API.
+        </p>
+      </div>
+
+      <Card className="p-4 md:p-6 space-y-4 shadow-sm">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-2">
+            <Label>Module</Label>
+            <Select
+              value={module}
+              onValueChange={(v) => {
+                const m = v as ReportModuleId;
+                syncUrl(m, defaultReportForModule(m));
+              }}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Module" />
+              </SelectTrigger>
+              <SelectContent>
+                {MODULE_OPTIONS.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Report name</Label>
+            <Select
+              value={reportId}
+              onValueChange={(v) => syncUrl(module, v as AnalyticsReportId)}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Report" />
+              </SelectTrigger>
+              <SelectContent>
+                {REPORTS_BY_MODULE[module].map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="rep-df">Date from</Label>
+            <input
+              id="rep-df"
+              type="date"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="rep-dt">Date to</Label>
+            <input
+              id="rep-dt"
+              type="date"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {showHospital ? (
+            <div className="space-y-2">
+              <Label>Hospital</Label>
+              <Select value={hospitalId || '__all'} onValueChange={(v) => setHospitalId(v === '__all' ? '' : v)}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="All hospitals" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">All hospitals</SelectItem>
+                  {hospitals.map((h) => (
+                    <SelectItem key={h.id} value={String(h.id)}>
+                      {h.hospitalName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+
+          {showSupplier ? (
+            <div className="space-y-2">
+              <Label>Supplier</Label>
+              <Select value={supplierId || '__all'} onValueChange={(v) => setSupplierId(v === '__all' ? '' : v)}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="All suppliers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">All suppliers</SelectItem>
+                  {suppliers.map((s) => (
+                    <SelectItem key={s.id} value={String(s.id)}>
+                      {s.supplierName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+
+          {showProduct ? (
+            <div className="space-y-2">
+              <Label>Product</Label>
+              <Select value={productId || '__all'} onValueChange={(v) => setProductId(v === '__all' ? '' : v)}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="All products" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">All products</SelectItem>
+                  {products.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.productCode} — {p.productName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" variant="default" className="gap-2" onClick={() => refetch()} disabled={isFetching}>
+            {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh report
+          </Button>
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 shrink-0" />
+            <span className="font-medium text-foreground">{reportLabel}</span>
+            <span className="hidden sm:inline">— dates apply per report (see API).</span>
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportSalesReport}
-            className="gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Sales Report
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportFinancialReport}
-            className="gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Financial Report
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportInventoryReport}
-            className="gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Inventory Report
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportProcurementReport}
-            className="gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Procurement Report
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportOrdersCSV}
-            className="gap-2"
-          >
-            <FileJson className="w-4 h-4" />
-            Orders CSV
-          </Button>
-        </div>
-      </div>
+      </Card>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          icon={<DollarSign className="w-6 h-6" />}
-          label="Total Revenue"
-          value={formatCurrency(totalSales)}
-          color="bg-blue-500"
-        />
-        <MetricCard
-          icon={<Package className="w-6 h-6" />}
-          label="Total Cost"
-          value={formatCurrency(totalPurchase)}
-          color="bg-amber-500"
-        />
-        <MetricCard
-          icon={<TrendingUp className="w-6 h-6" />}
-          label="Total Profit"
-          value={formatCurrency(totalProfit)}
-          color="bg-green-500"
-        />
-        <MetricCard
-          icon={<BarChart3 className="w-6 h-6" />}
-          label="Profit Margin"
-          value={`${profitMargin}%`}
-          color="bg-purple-500"
-        />
-      </div>
-
-      {/* Operating Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          icon={<Truck className="w-6 h-6" />}
-          label="Items Delivered"
-          value={totalDelivered.toString()}
-          color="bg-indigo-500"
-        />
-        <MetricCard
-          icon={<DollarSign className="w-6 h-6" />}
-          label="Expenses"
-          value={formatCurrency(totalExpenses)}
-          color="bg-red-500"
-        />
-        <MetricCard
-          icon={<Users className="w-6 h-6" />}
-          label="Payroll"
-          value={formatCurrency(totalPayroll)}
-          color="bg-pink-500"
-        />
-        <MetricCard
-          icon={<DollarSign className="w-6 h-6" />}
-          label="Payments Made"
-          value={formatCurrency(totalPaymentsMade)}
-          color="bg-teal-500"
-        />
-      </div>
-
-      {/* Analysis Tabs */}
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="sales">Sales Analysis</TabsTrigger>
-          <TabsTrigger value="operations">Operations</TabsTrigger>
-        </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Summary Card */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Financial Summary</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                  <span>Total Purchase Orders</span>
-                  <span className="font-semibold">{purchaseOrders.length}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                  <span>Supply Orders</span>
-                  <span className="font-semibold">{useStore.getState().supplyOrders.length}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                  <span>Invoices Generated</span>
-                  <span className="font-semibold">{taxInvoices.length}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-amber-50 rounded-lg">
-                  <span>Expense Vouchers</span>
-                  <span className="font-semibold">{dailyExpenses.length}</span>
-                </div>
-              </div>
-            </Card>
-
-            {/* Payment Status */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">
-                Payment Status Breakdown
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span>Cleared</span>
-                  </div>
-                  <span className="font-semibold">
-                    {paymentStatusBreakdown.cleared} orders
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                    <span>Partial</span>
-                  </div>
-                  <span className="font-semibold">
-                    {paymentStatusBreakdown.partial} orders
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span>Pending</span>
-                  </div>
-                  <span className="font-semibold">
-                    {paymentStatusBreakdown.pending} orders
-                  </span>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Sales Analysis Tab */}
-        <TabsContent value="sales" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top Invoices */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">
-                Top Invoices by Amount
-              </h3>
-              <div className="space-y-3">
-                {topInvoices.length > 0 ? (
-                  topInvoices.map((inv, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-3 bg-muted rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">
-                          {inv.customerName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {inv.invoiceNo}
-                        </p>
-                      </div>
-                      <span className="font-semibold">
-                        {formatCurrency(inv.totalNetAmount)}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No invoice data available
-                  </p>
-                )}
-              </div>
-            </Card>
-
-            {/* Top Items */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Top Selling Items</h3>
-              <div className="space-y-3">
-                {topItems.length > 0 ? (
-                  topItems.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-3 bg-muted rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{item[0]}</p>
-                        <p className="text-xs text-muted-foreground">
-                          #{idx + 1}
-                        </p>
-                      </div>
-                      <span className="font-semibold">
-                        {formatCurrency(item[1])}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No item data available
-                  </p>
-                )}
-              </div>
-            </Card>
-          </div>
-
-          {/* Detailed Metrics */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Detailed Metrics</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Revenue</p>
-                <p className="text-3xl font-bold">
-                  {formatCurrency(totalSales)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  From {taxInvoices.length} invoices
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Cost of Goods
-                </p>
-                <p className="text-3xl font-bold">
-                  {formatCurrency(totalPurchase)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {((totalPurchase / totalSales) * 100 || 0).toFixed(2)}% of
-                  revenue
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Gross Profit
-                </p>
-                <p className="text-3xl font-bold text-green-600">
-                  {formatCurrency(totalProfit)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {profitMargin}% margin
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Operating Expenses
-                </p>
-                <p className="text-3xl font-bold">
-                  {formatCurrency(totalExpenses + totalPayroll)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {expenseRatio}% of revenue
-                </p>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* Operations Tab */}
-        <TabsContent value="operations" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Delivery Metrics */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Delivery Metrics</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm">Total Delivery Challans</span>
-                  <span className="font-semibold">
-                    {deliveryChallans.length}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm">Total Items Delivered</span>
-                  <span className="font-semibold">{totalDelivered}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm">Avg Items per DC</span>
-                  <span className="font-semibold">
-                    {(totalDelivered / (deliveryChallans.length || 1)).toFixed(
-                      2,
-                    )}
-                  </span>
-                </div>
-              </div>
-            </Card>
-
-            {/* Payroll Removed */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Operations Summary</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm">Total Suppliers</span>
-                  <span className="font-semibold">{suppliers.length}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm">Total Products</span>
-                  <span className="font-semibold">{products.length}</span>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* PO and Invoice Status */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Procurement Status</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Purchase Orders
-                </p>
-                <p className="text-3xl font-bold">{purchaseOrders.length}</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {formatCurrency(
-                    purchaseOrders.reduce(
-                      (sum, po) => sum + po.netPayableAmount,
-                      0,
-                    ),
-                  )}{" "}
-                  total value
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Tax Invoices
-                </p>
-                <p className="text-3xl font-bold">{taxInvoices.length}</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {formatCurrency(
-                    taxInvoices.reduce(
-                      (sum, inv) => sum + inv.totalNetAmount,
-                      0,
-                    ),
-                  )}{" "}
-                  total value
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Payments Made
-                </p>
-                <p className="text-3xl font-bold">{payments.length}</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {formatCurrency(totalPaymentsMade)} total
-                </p>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <ReportResults reportId={reportId} data={data} isPending={isPending} error={error} />
     </div>
   );
 }
 
-interface MetricCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  color: string;
+function ReportResults({
+  reportId,
+  data,
+  isPending,
+  error,
+}: {
+  reportId: AnalyticsReportId;
+  data: unknown;
+  isPending: boolean;
+  error: Error | null;
+}) {
+  if (isPending && !data) {
+    return (
+      <Card className="flex min-h-[240px] items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-destructive/50 bg-destructive/5 p-6 text-sm text-destructive">
+        {error instanceof ApiError ? error.userMessage : error.message}
+      </Card>
+    );
+  }
+
+  if (!data) {
+    return (
+      <Card className="p-6 text-sm text-muted-foreground">
+        No data. Adjust filters and click Refresh report.
+      </Card>
+    );
+  }
+
+  switch (reportId) {
+    case 'pipeline': {
+      const d = data as import('@/types/api/analyticsReports').SupplyOrderPipelineReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip
+            items={[
+              { label: 'Orders', value: String(d.totalOrderCount) },
+              { label: 'Total amount', value: formatCurrency(d.grandTotalAmount) },
+            ]}
+          />
+          <DataCardTable
+            headers={['Status', 'Orders', 'Amount']}
+            rows={d.rows.map((r) => [r.statusName, String(r.orderCount), formatCurrency(r.totalAmount)])}
+          />
+        </div>
+      );
+    }
+    case 'by-hospital': {
+      const d = data as import('@/types/api/analyticsReports').SupplyOrdersByHospitalReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip
+            items={[
+              { label: 'Orders', value: String(d.totalOrderCount) },
+              { label: 'Total amount', value: formatCurrency(d.grandTotalAmount) },
+            ]}
+          />
+          <DataCardTable
+            headers={['Hospital', 'Orders', 'Amount']}
+            rows={d.rows.map((r) => [r.hospitalName, String(r.orderCount), formatCurrency(r.totalAmount)])}
+          />
+        </div>
+      );
+    }
+    case 'fulfillment-sla': {
+      const d = data as import('@/types/api/analyticsReports').SupplyOrderFulfillmentSlaReportDto;
+      return (
+        <DataCardTable
+          headers={['SO #', 'Hospital', 'Order', 'Required', 'Fulfilled', '1st dispatch', 'Δ days']}
+          rows={d.rows.map((r) => [
+            r.supplyOrderNumber,
+            r.hospitalName,
+            fmtDate(r.orderDate),
+            fmtDate(r.requiredByDate),
+            fmtDate(r.fulfilledDate),
+            fmtDate(r.firstDispatchDate),
+            r.daysVarianceVsRequired == null ? '—' : String(r.daysVarianceVsRequired),
+          ])}
+        />
+      );
+    }
+    case 'stock-position': {
+      const d = data as import('@/types/api/analyticsReports').InventoryStockPositionReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip items={[{ label: 'Stock value', value: formatCurrency(d.grandTotalStockValue) }]} />
+          <DataCardTable
+            headers={['Code', 'Product', 'Avail', 'Reserved', 'Total', 'Avg cost', 'Value']}
+            rows={d.rows.map((r) => [
+              r.productCode,
+              r.productName,
+              String(r.availableQuantity),
+              String(r.reservedQuantity),
+              String(r.totalQuantity),
+              formatCurrency(r.averageCost),
+              formatCurrency(r.totalValue),
+            ])}
+          />
+        </div>
+      );
+    }
+    case 'batch-expiry': {
+      const d = data as import('@/types/api/analyticsReports').InventoryBatchExpiryReportDto;
+      return (
+        <DataCardTable
+          headers={['Product', 'Batch', 'Expiry', 'Qty', 'Rate', 'Days left']}
+          rows={d.rows.map((r) => [
+            `${r.productCode} ${r.productName}`,
+            r.batchNumber,
+            fmtDate(r.expiryDate),
+            String(r.currentQuantity),
+            formatCurrency(r.purchaseRate),
+            r.daysUntilExpiry == null ? '—' : String(r.daysUntilExpiry),
+          ])}
+        />
+      );
+    }
+    case 'payables': {
+      const d = data as import('@/types/api/analyticsReports').PurchaseOrderPayablesReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip
+            items={[
+              { label: 'Outstanding', value: formatCurrency(d.totalOutstanding) },
+              { label: 'Paid', value: formatCurrency(d.totalPaid) },
+            ]}
+          />
+          <DataCardTable
+            headers={['Supplier', 'POs', 'Total', 'Paid', 'Outstanding']}
+            rows={d.rows.map((r) => [
+              r.supplierName,
+              String(r.purchaseOrderCount),
+              formatCurrency(r.totalAmount),
+              formatCurrency(r.paidAmount),
+              formatCurrency(r.outstandingAmount),
+            ])}
+          />
+        </div>
+      );
+    }
+    case 'receipt-vs-order': {
+      const d = data as import('@/types/api/analyticsReports').PurchaseReceiptVsOrderReportDto;
+      return (
+        <DataCardTable
+          headers={['PO #', 'Supplier', 'Product', 'Ordered', 'Received', 'Remain', 'Fill %']}
+          rows={d.rows.map((r) => [
+            r.purchaseOrderNumber,
+            r.supplierName,
+            `${r.productCode} ${r.productName}`,
+            String(r.orderedQuantity),
+            String(r.receivedQuantity),
+            String(r.remainingQuantity),
+            r.fillRatePercent == null ? '—' : `${r.fillRatePercent}%`,
+          ])}
+        />
+      );
+    }
+    case 'hospital-ar': {
+      const d = data as import('@/types/api/analyticsReports').HospitalInvoicesArReportDto;
+      const a = d.agingSummary;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip
+            items={[
+              { label: 'Outstanding', value: formatCurrency(d.totalOutstanding) },
+              { label: 'Current', value: formatCurrency(a.current) },
+              { label: '1–30', value: formatCurrency(a.days1To30) },
+              { label: '31–60', value: formatCurrency(a.days31To60) },
+              { label: '61–90', value: formatCurrency(a.days61To90) },
+              { label: '90+', value: formatCurrency(a.daysOver90) },
+            ]}
+          />
+          <DataCardTable
+            headers={['Invoice', 'Hospital', 'Due', 'Outstanding', 'Bucket', 'Days late']}
+            rows={d.rows.map((r) => [
+              r.invoiceNumber,
+              r.hospitalName,
+              fmtDate(r.dueDate),
+              formatCurrency(r.outstandingAmount),
+              r.agingBucket ?? '—',
+              r.daysPastDue == null ? '—' : String(r.daysPastDue),
+            ])}
+          />
+        </div>
+      );
+    }
+    case 'cash-collections': {
+      const d = data as import('@/types/api/analyticsReports').CashCollectionsReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip items={[{ label: 'Collected', value: formatCurrency(d.totalCollected) }]} />
+          <DataCardTable
+            headers={['Payment #', 'Date', 'Amount', 'Mode', 'Hospital']}
+            rows={d.rows.map((r) => [
+              r.paymentNumber,
+              fmtDate(r.paymentDate),
+              formatCurrency(r.amount),
+              r.paymentModeName,
+              r.hospitalName ?? '—',
+            ])}
+          />
+        </div>
+      );
+    }
+    case 'expenses-summary': {
+      const d = data as import('@/types/api/analyticsReports').ExpensesSummaryReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip items={[{ label: 'Total expenses', value: formatCurrency(d.grandTotal) }]} />
+          <DataCardTable
+            headers={['Category', 'Count', 'Amount']}
+            rows={d.rows.map((r) => [r.categoryName, String(r.expenseCount), formatCurrency(r.totalAmount)])}
+          />
+        </div>
+      );
+    }
+    default:
+      return null;
+  }
 }
 
-function MetricCard({ icon, label, value, color }: MetricCardProps) {
+function SummaryStrip({ items }: { items: { label: string; value: string }[] }) {
   return (
-    <Card className="p-6 relative overflow-hidden">
-      <div
-        className={`absolute top-0 right-0 w-24 h-24 ${color} opacity-10 rounded-full -mr-12 -mt-12`}
-      />
-      <div className="relative z-10">
-        <div
-          className={`w-12 h-12 rounded-lg ${color} bg-opacity-10 flex items-center justify-center mb-3`}
-        >
-          <div className={`${color} bg-opacity-20 text-white`}>{icon}</div>
-        </div>
-        <p className="text-sm text-muted-foreground mb-1">{label}</p>
-        <p className="text-2xl font-bold">{value}</p>
+    <div className="flex flex-wrap gap-3">
+      {items.map((it) => (
+        <Card key={it.label} className="px-4 py-3 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{it.label}</p>
+          <p className="text-lg font-bold tabular-nums">{it.value}</p>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function DataCardTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+  return (
+    <Card className="overflow-hidden shadow-sm">
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {headers.map((h) => (
+                <TableHead key={h}>{h}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={headers.length} className="text-muted-foreground">
+                  No rows
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((row, i) => (
+                <TableRow key={i}>
+                  {row.map((cell, j) => (
+                    <TableCell key={j} className="max-w-[280px] truncate">
+                      {cell}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
     </Card>
   );
+}
+
+function fmtDate(iso: string | null | undefined) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleDateString();
+  } catch {
+    return iso;
+  }
 }

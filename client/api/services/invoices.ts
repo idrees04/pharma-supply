@@ -6,9 +6,13 @@ import type {
   CreateInvoiceFromSupplyOrderResponse,
   GetInvoiceResponse,
   GetInvoicesResponse,
+  GetInvoicesBySupplyOrderResponse,
   GetOutstandingInvoicesResponse,
   GetOverdueInvoicesResponse,
+  InvoiceDto,
   InvoiceListQueryParams,
+  ProcessInvoicePaymentRequest,
+  ProcessInvoicePaymentResponse,
 } from '@/types/api/invoices';
 
 class InvoiceService {
@@ -41,12 +45,29 @@ class InvoiceService {
     return get<GetOverdueInvoicesResponse>('/api/Invoices/overdue');
   }
 
+  async getBySupplyOrder(supplyOrderId: number): Promise<InvoiceDto[]> {
+    const response = await get<GetInvoicesBySupplyOrderResponse>(
+      `/api/Invoices/by-supply-order/${supplyOrderId}`
+    );
+    return response.data;
+  }
+
   async createFromSupplyOrder(
     supplyOrderId: number,
     data: CreateInvoiceFromSupplyOrderRequest
   ): Promise<CreateInvoiceFromSupplyOrderResponse> {
     return post<CreateInvoiceFromSupplyOrderResponse, CreateInvoiceFromSupplyOrderRequest>(
       `/api/Invoices/from-supply-order/${supplyOrderId}`,
+      data
+    );
+  }
+
+  async processPayment(
+    invoiceId: number,
+    data: ProcessInvoicePaymentRequest
+  ): Promise<ProcessInvoicePaymentResponse> {
+    return post<ProcessInvoicePaymentResponse, ProcessInvoicePaymentRequest>(
+      `/api/Invoices/${invoiceId}/payments`,
       data
     );
   }

@@ -16,8 +16,12 @@ import type {
   GetInvoicesResponse,
   GetOutstandingInvoicesResponse,
   GetOverdueInvoicesResponse,
+  InvoiceDto,
   InvoiceListQueryParams,
+  ProcessInvoicePaymentRequest,
+  ProcessInvoicePaymentResponse,
 } from '@/types/api/invoices';
+import { accountKeys } from '@/api/services/accounts';
 
 const invoiceKeys = {
   all: ['invoices'] as const,
@@ -27,6 +31,7 @@ const invoiceKeys = {
   detail: (id: number) => [...invoiceKeys.details(), id] as const,
   outstanding: () => [...invoiceKeys.all, 'outstanding'] as const,
   overdue: () => [...invoiceKeys.all, 'overdue'] as const,
+  bySupplyOrder: (supplyOrderId: number) => [...invoiceKeys.all, 'by-supply-order', supplyOrderId] as const,
 };
 
 export function useInvoices(
@@ -44,6 +49,19 @@ export function useInvoices(
       }
       return failureCount < 3;
     },
+    ...options,
+  });
+}
+
+export function useInvoicesBySupplyOrder(
+  supplyOrderId: number | null,
+  options?: Omit<UseQueryOptions<InvoiceDto[], ApiError>, 'queryKey' | 'queryFn'>,
+) {
+  return useQuery({
+    queryKey: supplyOrderId ? invoiceKeys.bySupplyOrder(supplyOrderId) : ['invoices', 'by-supply-order', 'none'],
+    queryFn: () => invoiceService.getBySupplyOrder(supplyOrderId!),
+    enabled: supplyOrderId !== null && supplyOrderId > 0,
+    staleTime: 60 * 1000,
     ...options,
   });
 }
@@ -103,6 +121,28 @@ export function useCreateInvoice(
   });
 }
 
+export function useProcessInvoicePayment(
+  invoiceId: number,
+  options?: Omit<
+    UseMutationOptions<ProcessInvoicePaymentResponse, ApiError, ProcessInvoicePaymentRequest>,
+    'mutationFn'
+  >,
+) {
+  const queryClient = useQueryClient();
+  const userOnSuccess = options?.onSuccess;
+
+  return useMutation({
+    ...options,
+    mutationFn: (data: ProcessInvoicePaymentRequest) => invoiceService.processPayment(invoiceId, data),
+    onSuccess: (data, variables, context, mutation) => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.balances() });
+      userOnSuccess?.(data, variables, context, mutation);
+    },
+  });
+}
+
 export function useCreateInvoiceFromSupplyOrder(
   options?: Omit<
     UseMutationOptions<
@@ -122,6 +162,9 @@ export function useCreateInvoiceFromSupplyOrder(
       queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
       queryClient.invalidateQueries({ queryKey: invoiceKeys.outstanding() });
       queryClient.invalidateQueries({ queryKey: invoiceKeys.overdue() });
+      queryClient.invalidateQueries({
+        queryKey: invoiceKeys.bySupplyOrder(variables.supplyOrderId),
+      });
       options?.onSuccess?.(data, variables, context, mutation);
     },
     ...options,

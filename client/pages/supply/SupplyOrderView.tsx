@@ -46,7 +46,22 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import SupplyOrderForm from './SupplyOrderForm';
-import { InvoiceCreationPanel } from './InvoiceCreationPanel';
+import { SupplyOrderFulfillmentFlow } from './SupplyOrderFulfillmentFlow';
+import { SupplyOrderDocumentsSection } from './SupplyOrderDocumentsSection';
+import type { SupplyOrderStatusOption } from '@/types/api/supplyOrders';
+import type { LucideIcon } from 'lucide-react';
+
+function iconForSupplyOrderStatusCode(code: string): LucideIcon {
+  const key = code.replace(/_/g, '').toLowerCase();
+  if (key === 'draft') return FileText;
+  if (key === 'pending') return Clock;
+  if (key === 'approved') return CheckCircle2;
+  if (key === 'partiallyfulfilled') return PackageCheck;
+  if (key === 'fulfilled') return Truck;
+  if (key === 'invoiced') return DollarSign;
+  if (key === 'cancelled') return XCircle;
+  return Clock;
+}
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -73,7 +88,25 @@ export default function SupplyOrderView() {
   const soId = id ? parseInt(id) : null;
 
   const { data: so, isPending, error, refetch } = useSupplyOrder(soId);
-  const { data: statuses = [] } = useSupplyOrderStatuses();
+  const { data: statuses = [], isPending: statusesLoading } = useSupplyOrderStatuses();
+
+  const sortedStatuses = useMemo(
+    () => [...statuses].sort((a, b) => a.value - b.value),
+    [statuses]
+  );
+
+  const currentStatusIndex = useMemo(
+    () => sortedStatuses.findIndex((s) => so && s.value === so.status),
+    [sortedStatuses, so?.status]
+  );
+
+  const cancelledStatusValue = useMemo(
+    () => sortedStatuses.find((s) => s.code === 'Cancelled')?.value,
+    [sortedStatuses]
+  );
+
+  const isCancelledOrder =
+    so !== undefined && cancelledStatusValue !== undefined && so.status === cancelledStatusValue;
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = React.useState(false);
 
@@ -180,7 +213,7 @@ export default function SupplyOrderView() {
             onClick={() => setIsInvoiceModalOpen(true)}
           >
             <FileType2 className="h-4 w-4" />
-            <span className="font-bold">Invoice</span>
+            <span className="font-bold">Dispatch &amp; invoice</span>
           </Button>
           <Button variant="ghost" size="icon" className="h-11 w-11 rounded-xl hover:bg-slate-100" onClick={() => window.print()}>
             <Save className="h-5 w-5 text-slate-500" />
@@ -197,64 +230,84 @@ export default function SupplyOrderView() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="flex overflow-x-auto no-scrollbar md:grid md:grid-cols-5 lg:grid-cols-5">
-              {statuses.map((status) => {
-                const isCurrent = so.status === status.value;
-                const isCancelled = so.status === 4; // Assuming 4=Cancelled based on pattern
-                const isDone = !isCancelled && so.status > status.value && status.value !== 4;
+            {statusesLoading ? (
+              <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="text-sm font-medium">Loading statuses…</span>
+              </div>
+            ) : sortedStatuses.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                Could not load supply order statuses from the API.
+              </p>
+            ) : (
+              <div
+                className="grid w-full overflow-x-auto"
+                style={{
+                  gridTemplateColumns: `repeat(${sortedStatuses.length}, minmax(4.75rem, 1fr))`,
+                }}
+              >
+                {sortedStatuses.map((status: SupplyOrderStatusOption, idx: number) => {
+                  const Icon = iconForSupplyOrderStatusCode(status.code);
+                  const isCurrent = so.status === status.value;
+                  const isCancelledStep = status.code === 'Cancelled';
+                  const isPast =
+                    !isCancelledOrder &&
+                    currentStatusIndex >= 0 &&
+                    idx < currentStatusIndex;
 
-                const name = status.name.toLowerCase();
-                let Icon = Clock;
-                let colorClass = "text-slate-400";
-                let bgClass = "bg-transparent";
+                  let colorClass = 'text-slate-400';
+                  let bgClass = 'bg-transparent';
 
-                if (name.includes('pending')) Icon = Clock;
-                else if (name.includes('approved')) Icon = CheckCircle2;
-                else if (name.includes('fulfilled')) Icon = Truck;
-                else if (name.includes('cancelled')) Icon = XCircle;
+                  if (isCurrent) {
+                    colorClass = isCancelledStep ? 'text-rose-600' : 'text-primary';
+                    bgClass = isCancelledStep ? 'bg-rose-50/50' : 'bg-primary/5';
+                  } else if (isPast) {
+                    colorClass = 'text-emerald-600';
+                    bgClass = 'bg-emerald-50/30';
+                  }
 
-                if (isCurrent) {
-                  colorClass = status.value === 4 ? "text-rose-600" : "text-primary";
-                  bgClass = status.value === 4 ? "bg-rose-50/50" : "bg-primary/5";
-                } else if (isDone) {
-                  colorClass = "text-emerald-600";
-                  bgClass = "bg-emerald-50/30";
-                }
-
-                return (
-                  <div
-                    key={status.value}
-                    className={cn(
-                      "flex flex-col items-center gap-3 p-5 min-w-[120px] border-r border-slate-100 last:border-0 transition-all relative",
-                      bgClass
-                    )}
-                  >
-                    <div className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border-2 transition-all duration-500 shadow-sm",
-                      isCurrent
-                        ? "bg-white border-current scale-110 z-10 rotate-3 shadow-lg"
-                        : "bg-slate-50/50 border-slate-100"
-                    )}>
-                      <Icon className={cn("h-5 w-5", colorClass)} />
-                    </div>
-                    <div className="flex flex-col items-center text-center">
-                      <span className={cn("text-[9px] font-black uppercase tracking-widest leading-none mb-1", colorClass)}>
-                        {status.name}
-                      </span>
-                    </div>
-                    {isCurrent && (
-                      <motion.div
-                        layoutId="active-indicator"
+                  return (
+                    <div
+                      key={status.value}
+                      className={cn(
+                        'relative flex min-w-[76px] flex-col items-center gap-3 border-r border-slate-100 p-4 transition-all last:border-r-0 md:min-w-0 md:p-5',
+                        bgClass
+                      )}
+                    >
+                      <div
                         className={cn(
-                          "absolute bottom-0 left-0 h-1 w-full",
-                          status.value === 4 ? "bg-rose-600" : "bg-primary"
+                          'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 shadow-sm transition-all duration-500',
+                          isCurrent
+                            ? 'z-10 scale-110 rotate-3 border-current bg-white shadow-lg'
+                            : 'border-slate-100 bg-slate-50/50'
                         )}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      >
+                        <Icon className={cn('h-5 w-5', colorClass)} />
+                      </div>
+                      <div className="flex flex-col items-center text-center">
+                        <span
+                          className={cn(
+                            'mb-1 text-[8px] font-black uppercase leading-none tracking-widest sm:text-[9px]',
+                            colorClass
+                          )}
+                        >
+                          {status.name}
+                        </span>
+                      </div>
+                      {isCurrent && (
+                        <motion.div
+                          layoutId="active-indicator"
+                          className={cn(
+                            'absolute bottom-0 left-0 h-1 w-full',
+                            isCancelledStep ? 'bg-rose-600' : 'bg-primary'
+                          )}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -374,6 +427,8 @@ export default function SupplyOrderView() {
               </CardContent>
             </Card>
           </motion.div>
+
+          <SupplyOrderDocumentsSection supplyOrderId={so.id} />
         </div>
 
         {/* Sidebar */}
@@ -467,24 +522,30 @@ export default function SupplyOrderView() {
         </DialogContent>
       </Dialog>
 
-      {/* Invoice Modal */}
+      {/* Dispatch (delivery challan) → Invoice flow */}
       <Dialog open={isInvoiceModalOpen} onOpenChange={setIsInvoiceModalOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 border-none shadow-2xl">
           <DialogHeader className="p-6 bg-gradient-to-r from-primary/10 via-violet-50 to-purple-50 border-b">
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
               <FileType2 className="h-6 w-6 text-primary" />
-              Create Invoice
+              Dispatch &amp; invoice
             </DialogTitle>
             <DialogDescription>
-              Generate and download invoice from supply order <span className="font-mono font-bold text-foreground">{so.supplyOrderNumber}</span>
+              Create a delivery challan from stock, then generate the invoice for{' '}
+              <span className="font-mono font-bold text-foreground">{so.supplyOrderNumber}</span>.
             </DialogDescription>
           </DialogHeader>
           <div className="p-6">
             {soId && (
-              <InvoiceCreationPanel
+              <SupplyOrderFulfillmentFlow
                 supplyOrderId={soId}
                 supplyOrder={so}
-                onSuccess={() => setIsInvoiceModalOpen(false)}
+                refetchSupplyOrder={refetch}
+                onComplete={() => {
+                  refetch();
+                  setIsInvoiceModalOpen(false);
+                }}
+                onCancel={() => setIsInvoiceModalOpen(false)}
               />
             )}
           </div>

@@ -5,6 +5,7 @@
  */
 
 import { get, post, put, deleteRequest, RequestConfig } from '@/api/requests';
+import type { DeliveryChallan } from '@/types/api/deliveryChallans';
 import {
   SupplyOrder,
   CreateSupplyOrderRequest,
@@ -17,7 +18,16 @@ import {
   GetSupplyOrderStatusesResponse,
   GetSupplyOrdersByStatusResponse,
   SupplyOrderListQueryParams,
+  DeliveryChallanSummary,
+  GetSupplyOrderDeliveryChallansResponse,
+  CreateDeliveryChallanFromSupplyOrderRequest,
+  CreateDeliveryChallanFromSupplyOrderResponse,
+  GetSupplyOrderDispatchSuggestionResponse,
+  SupplyOrderDispatchSuggestion,
+  SupplyOrderStatusOption,
 } from '@/types/api/supplyOrders';
+import type { EnumOption } from '@/types/api/dropdown';
+import type { ApiResponse } from '@/types/api/products';
 import { PaginatedResponse } from '@/types/api/products';
 import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
@@ -96,16 +106,15 @@ export const supplyOrderService = {
   },
 
   /**
-   * Get supply order statuses
+   * Supply order statuses from GET /api/Enums/SupplyOrderStatus (matches SupplyOrderStatus enum)
    */
-  getStatuses: async (): Promise<{ value: number; name: string }[]> => {
-    // Return hardcoded statuses to avoid 400 error from non-existent endpoint
-    return [
-      { value: 1, name: 'Pending' },
-      { value: 2, name: 'Approved' },
-      { value: 3, name: 'Fulfilled' },
-      { value: 4, name: 'Cancelled' },
-    ];
+  getStatuses: async (config?: RequestConfig): Promise<SupplyOrderStatusOption[]> => {
+    const response = await get<ApiResponse<EnumOption[]>>(`/api/Enums/SupplyOrderStatus`, config);
+    return response.data.map((o) => ({
+      value: o.value,
+      name: o.displayName?.trim() ? o.displayName : o.name,
+      code: o.name,
+    }));
   },
 
   /**
@@ -113,6 +122,49 @@ export const supplyOrderService = {
    */
   getSupplyOrdersByStatus: async (status: number, config?: RequestConfig): Promise<SupplyOrder[]> => {
     const response = await get<GetSupplyOrdersByStatusResponse>(`/api/SupplyOrders/by-status/${status}`, config);
+    return response.data;
+  },
+
+  /**
+   * Delivery challans linked to a supply order (for invoicing)
+   */
+  getDeliveryChallansForOrder: async (
+    supplyOrderId: number,
+    config?: RequestConfig
+  ): Promise<DeliveryChallanSummary[]> => {
+    const response = await get<GetSupplyOrderDeliveryChallansResponse>(
+      `/api/SupplyOrders/${supplyOrderId}/delivery-challans`,
+      config
+    );
+    return response.data;
+  },
+
+  /**
+   * Stock-aware dispatch quantities for creating a delivery challan
+   */
+  getDispatchSuggestion: async (
+    supplyOrderId: number,
+    config?: RequestConfig
+  ): Promise<SupplyOrderDispatchSuggestion> => {
+    const response = await get<GetSupplyOrderDispatchSuggestionResponse>(
+      `/api/SupplyOrders/${supplyOrderId}/dispatch-suggestion`,
+      config
+    );
+    return response.data;
+  },
+
+  /**
+   * Create delivery challan (dispatches stock, updates SO fulfillment)
+   */
+  createDeliveryChallanForSupplyOrder: async (
+    supplyOrderId: number,
+    data: CreateDeliveryChallanFromSupplyOrderRequest,
+    config?: RequestConfig
+  ): Promise<DeliveryChallan> => {
+    const response = await post<
+      CreateDeliveryChallanFromSupplyOrderResponse,
+      CreateDeliveryChallanFromSupplyOrderRequest
+    >(`/api/SupplyOrders/${supplyOrderId}/delivery-challans`, data, config);
     return response.data;
   },
 };
@@ -161,7 +213,15 @@ export function useUpdateSupplyOrder(id: number) {
     (data) => supplyOrderService.updateSupplyOrder(id, data),
     {
       onSuccess: (updated) => {
-        queryClient.setQueryData(['supplyOrders', id], updated);
+        queryClient.setQueryData<SupplyOrder>(['supplyOrders', id], (old) => {
+          if (!updated) return old;
+          if (!old) return updated;
+          return {
+            ...old,
+            ...updated,
+            items: updated.items ?? old.items ?? null,
+          };
+        });
         queryClient.invalidateQueries({ queryKey: ['supplyOrders'] });
       },
     }
@@ -183,11 +243,11 @@ export function useDeleteSupplyOrder() {
 }
 
 export function useSupplyOrderStatuses() {
-  return useGetQuery(
-    ['supplyOrders', 'statuses'],
+  return useGetQuery<SupplyOrderStatusOption[]>(
+    ['supplyOrders', 'statuses', 'api'],
     () => supplyOrderService.getStatuses(),
     {
-      staleTime: 24 * 60 * 60 * 1000,
+      staleTime: 60 * 60 * 1000,
     }
   );
 }
@@ -198,6 +258,44 @@ export function useSupplyOrdersByStatus(status: number | null) {
     () => supplyOrderService.getSupplyOrdersByStatus(status!),
     {
       enabled: status !== null,
+    }
+  );
+}
+
+export function useSupplyOrderDeliveryChallans(supplyOrderId: number | null) {
+  return useGetQuery<DeliveryChallanSummary[]>(
+    ['supplyOrders', supplyOrderId, 'delivery-challans'],
+    () => supplyOrderService.getDeliveryChallansForOrder(supplyOrderId!),
+    {
+      enabled: supplyOrderId !== null && supplyOrderId > 0,
+      staleTime: 60 * 1000,
+    }
+  );
+}
+
+export function useSupplyOrderDispatchSuggestion(supplyOrderId: number | null) {
+  return useGetQuery<SupplyOrderDispatchSuggestion>(
+    ['supplyOrders', supplyOrderId, 'dispatch-suggestion'],
+    () => supplyOrderService.getDispatchSuggestion(supplyOrderId!),
+    {
+      enabled: supplyOrderId !== null && supplyOrderId > 0,
+      staleTime: 30 * 1000,
+    }
+  );
+}
+
+export function useCreateDeliveryChallanForSupplyOrder(supplyOrderId: number) {
+  const queryClient = useQueryClient();
+
+  return usePostMutation<DeliveryChallan, CreateDeliveryChallanFromSupplyOrderRequest>(
+    (data) => supplyOrderService.createDeliveryChallanForSupplyOrder(supplyOrderId, data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['supplyOrders', supplyOrderId] });
+        queryClient.invalidateQueries({ queryKey: ['supplyOrders'] });
+        queryClient.invalidateQueries({ queryKey: ['supplyOrders', supplyOrderId, 'delivery-challans'] });
+        queryClient.invalidateQueries({ queryKey: ['supplyOrders', supplyOrderId, 'dispatch-suggestion'] });
+      },
     }
   );
 }

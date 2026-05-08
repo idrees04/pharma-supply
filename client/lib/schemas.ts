@@ -107,7 +107,7 @@ export const supplyOrderItemSchema = z.object({
   supplierId: z.coerce.number().int().min(0, "Supplier is required"),
 });
 
-// Supply Order Schema
+// Supply Order Schema (status optional — create flow hides it; edit flow requires it in UI only)
 export const supplyOrderSchema = z.object({
   hospitalId: z.coerce.number().int().min(1, "Hospital is required"),
   orderDate: z.string().min(1, "Order Date is required"),
@@ -116,6 +116,7 @@ export const supplyOrderSchema = z.object({
   shippingAddress: z.string().min(1, "Shipping Address is required"),
   notes: z.string().optional().default(""),
   items: z.array(supplyOrderItemSchema).min(1, "At least one item is required"),
+  status: z.number().int().min(1).optional(),
 });
 
 export const updateSupplyOrderSchema = z.object({

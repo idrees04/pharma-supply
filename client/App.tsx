@@ -22,6 +22,7 @@ import PurchaseOrderForm from "./pages/orders/PurchaseOrderForm";
 import PurchaseOrderView from "./pages/orders/PurchaseOrderView";
 import DeliveryChallanList from "./pages/delivery/DeliveryChallanList";
 import InvoiceList from "./pages/invoices/InvoiceList";
+import InvoiceDetailPage from "./pages/invoices/InvoiceDetailPage";
 import DailyExpenseList from "./pages/finance/DailyExpenseList";
 import PaymentList from "./pages/finance/PaymentList";
 import BankAccountList from "./pages/finance/BankAccountList";
@@ -254,6 +255,16 @@ const AppRoutes = () => (
         <ProtectedRoute module="deliveryChallans" permission="read">
           <MainLayout>
             <DeliveryChallanList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/invoices/:id"
+      element={
+        <ProtectedRoute module="invoices" permission="read">
+          <MainLayout>
+            <InvoiceDetailPage />
           </MainLayout>
         </ProtectedRoute>
       }

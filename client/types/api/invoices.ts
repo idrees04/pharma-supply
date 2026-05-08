@@ -1,4 +1,5 @@
 import { ApiResponse, PaginatedResponse } from './common';
+import type { PaymentDto } from './payments';
 
 // Enums
 export enum InvoiceStatus {
@@ -113,5 +114,18 @@ export type GetInvoicesResponse = ApiResponse<PaginatedResponse<InvoiceDto>>;
 export type GetInvoiceResponse = ApiResponse<InvoiceDto>;
 export type GetOutstandingInvoicesResponse = ApiResponse<InvoiceDto[]>;
 export type GetOverdueInvoicesResponse = ApiResponse<InvoiceDto[]>;
+export type GetInvoicesBySupplyOrderResponse = ApiResponse<InvoiceDto[]>;
 export type CreateInvoiceResponse = ApiResponse<InvoiceDto>;
 export type CreateInvoiceFromSupplyOrderResponse = ApiResponse<InvoiceDto>;
+
+/** POST /api/Invoices/{id}/payments */
+export interface ProcessInvoicePaymentRequest {
+  accountId: number;
+  amount: number;
+  paymentDate?: string | null;
+  paymentMode: number;
+  referenceNumber?: string | null;
+  notes?: string | null;
+}
+
+export type ProcessInvoicePaymentResponse = ApiResponse<PaymentDto>;

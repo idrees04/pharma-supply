@@ -24,6 +24,7 @@ import DeliveryChallanList from "./pages/delivery/DeliveryChallanList";
 import InvoiceList from "./pages/invoices/InvoiceList";
 import InvoiceDetailPage from "./pages/invoices/InvoiceDetailPage";
 import ExpenseList from "./pages/finance/ExpenseList";
+import IncomeList from "./pages/finance/IncomeList";
 import PaymentList from "./pages/finance/PaymentList";
 import BankAccountList from "./pages/finance/BankAccountList";
 import AccountTransfersList from "./pages/finance/AccountTransfersList";
@@ -42,6 +43,7 @@ import UsersPage from "./pages/users/UsersPage";
 import ProductTypesList from "./pages/settings/ProductTypesList";
 import UnitsList from "./pages/settings/UnitsList";
 import ExpenseCategoriesList from "./pages/settings/ExpenseCategoriesList";
+import IncomeCategoriesList from "./pages/settings/IncomeCategoriesList";
 import TaxConfigurationList from "./pages/settings/TaxConfigurationList";
 import SystemConfigurationPage from "./pages/settings/SystemConfigurationPage";
 import NotFound from "./pages/NotFound";
@@ -290,6 +292,16 @@ const AppRoutes = () => (
       }
     />
     <Route
+      path="/finance/incomes"
+      element={
+        <ProtectedRoute module="incomes" permission="read">
+          <MainLayout>
+            <IncomeList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
       path="/finance/payments"
       element={
         <ProtectedRoute module="payments" permission="read">
@@ -355,6 +367,16 @@ const AppRoutes = () => (
         <ProtectedRoute module="expenses" permission="read">
           <MainLayout>
             <ExpenseCategoriesList />
+          </MainLayout>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/settings/income-categories"
+      element={
+        <ProtectedRoute module="incomeCategories" permission="read">
+          <MainLayout>
+            <IncomeCategoriesList />
           </MainLayout>
         </ProtectedRoute>
       }

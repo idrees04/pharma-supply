@@ -15,7 +15,7 @@
  * Never call these directly in components. Always go through hooks.
  */
 
-import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AxiosHeaders, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { apiClient } from './axios';
 import { ApiError } from './errors';
 
@@ -187,7 +187,16 @@ export async function getBlob(url: string, config?: RequestConfig): Promise<Blob
 
 export async function postMultipart<T>(url: string, formData: FormData, config?: RequestConfig): Promise<T> {
   try {
-    const response = await apiClient.post<T>(url, formData, config);
+    // apiClient defaults to Content-Type: application/json. Axios then runs transformRequest which,
+    // when it sees FormData + JSON content type, serializes the body as JSON instead of multipart
+    // (see axios defaults). ASP.NET [FromForm] IFormFile never binds → "The file field is required."
+    const headers = AxiosHeaders.from(config?.headers ?? {});
+    headers.setContentType(null);
+
+    const response = await apiClient.post<T>(url, formData, {
+      ...config,
+      headers,
+    });
     return response.data;
   } catch (error) {
     if (error instanceof ApiError) {

@@ -1,6 +1,7 @@
 import React from 'react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { InvoiceDto } from '@/types/api/invoices';
+import { getInvoiceStatusClassName, getInvoiceStatusLabel } from '@/lib/invoiceStatusDisplay';
 import { motion } from 'framer-motion';
 
 interface InvoiceTemplateProps {
@@ -59,8 +60,13 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
             </div>
             <div className="text-right">
               <p className="text-sm font-bold text-slate-700 mb-1">Status</p>
-              <div className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
-                {getStatusLabel(invoice.status)}
+              <div
+                className={cn(
+                  'inline-block rounded-full border px-3 py-1 text-xs font-bold',
+                  getInvoiceStatusClassName(invoice.status),
+                )}
+              >
+                {getInvoiceStatusLabel(invoice.status)}
               </div>
             </div>
           </div>
@@ -117,15 +123,25 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
           </div>
           <div>
             <p className="text-xs font-bold text-slate-500 uppercase mb-1">Outstanding (PKR)</p>
-            <p className="font-semibold text-red-600">
+            <p
+              className={cn(
+                'font-semibold',
+                invoice.outstandingAmount <= 0 ? 'text-emerald-600' : 'text-amber-700',
+              )}
+            >
               {formatCurrency(invoice.outstandingAmount)}
             </p>
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-500 uppercase mb-1">Amount due (PKR)</p>
-            <p className="font-bold text-2xl text-primary">
-              {formatCurrency(invoice.totalAmount)}
-            </p>
+            <p className="text-xs font-bold text-slate-500 uppercase mb-1">Invoice total (PKR)</p>
+            <p className="font-bold text-2xl text-primary">{formatCurrency(total)}</p>
+            {invoice.outstandingAmount > 0 ? (
+              <p className="mt-1 text-xs font-semibold text-amber-700">
+                Balance due: {formatCurrency(invoice.outstandingAmount)}
+              </p>
+            ) : (
+              <p className="mt-1 text-xs font-medium text-emerald-600">No balance due</p>
+            )}
           </div>
         </motion.div>
 
@@ -279,17 +295,3 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
 );
 
 InvoiceTemplate.displayName = 'InvoiceTemplate';
-
-function getStatusLabel(status: number): string {
-  const statusMap: Record<number, string> = {
-    1: 'Draft',
-    2: 'Sent',
-    3: 'Partially Paid',
-    4: 'Paid',
-    5: 'Overdue',
-    6: 'Cancelled',
-    7: 'Refunded',
-    8: 'Disputed',
-  };
-  return statusMap[status] || 'Unknown';
-}

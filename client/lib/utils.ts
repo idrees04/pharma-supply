@@ -22,3 +22,16 @@ export const formatRelativeDays = (daysOverdue: number): string => {
     if (daysOverdue <= 0) return 'Due today';
     return `${daysOverdue} day(s) overdue`;
 };
+
+/** Download an Excel (or any) blob as a file attachment. */
+export function downloadExcelBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

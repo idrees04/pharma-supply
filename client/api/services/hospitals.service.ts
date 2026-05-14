@@ -17,7 +17,7 @@
  * - Components use hooks, not this service directly
  */
 
-import { get, post, put, deleteRequest } from "@/api/requests";
+import { get, post, put, deleteRequest, getBlob, postMultipart } from "@/api/requests";
 import {
   Hospital,
   CreateHospitalRequest,
@@ -30,6 +30,9 @@ import {
   DeleteHospitalResponse,
   GetHospitalOrdersResponse,
 } from "@/types/api/hospitals";
+import type { BulkImportResult, BulkImportApiResponse } from "@/types/api/bulkImport";
+import { ApiError, ApiErrorType } from "@/api/errors";
+import { downloadExcelBlob } from "@/lib/utils";
 
 /**
  * Hospital Management Service
@@ -221,6 +224,39 @@ class HospitalService {
 
     const url = `/api/Hospitals/${id}/orders${queryString ? `?${queryString}` : ""}`;
     return get<GetHospitalOrdersResponse>(url);
+  }
+
+  async downloadImportTemplate(): Promise<void> {
+    const blob = await getBlob("/api/Hospitals/import-template");
+    downloadExcelBlob(blob, "hospital-import-template.xlsx");
+  }
+
+  async exportExcel(params?: { searchTerm?: string; status?: number | null }): Promise<void> {
+    const qs = new URLSearchParams();
+    if (params?.searchTerm) qs.set("searchTerm", params.searchTerm);
+    if (params?.status != null && !Number.isNaN(params.status))
+      qs.set("status", String(params.status));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    const blob = await getBlob(`/api/Hospitals/export${suffix}`);
+    downloadExcelBlob(blob, `hospitals-export-${Date.now()}.xlsx`);
+  }
+
+  async bulkImport(
+    file: File,
+    options?: { onUploadProgress?: (percent: number) => void },
+  ): Promise<BulkImportResult> {
+    const form = new FormData();
+    form.append("file", file);
+    const raw = await postMultipart<BulkImportApiResponse>("/api/Hospitals/bulk-import", form, {
+      timeout: 120_000,
+      onUploadProgress: (evt) => {
+        if (!options?.onUploadProgress || !evt.total) return;
+        options.onUploadProgress(Math.round((evt.loaded / evt.total) * 100));
+      },
+    });
+    if (!raw.success)
+      throw new ApiError(raw.message || "Import failed", ApiErrorType.BAD_REQUEST, 400);
+    return raw.data;
   }
 }
 

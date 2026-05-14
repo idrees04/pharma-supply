@@ -10,7 +10,7 @@
  * API Base: https://mds.vtoxi.com/api/Products
  */
 
-import { get, post, put, deleteRequest, RequestConfig } from '@/api/requests';
+import { get, post, put, deleteRequest, getBlob, postMultipart, RequestConfig } from '@/api/requests';
 import {
   Product,
   CreateProductRequest,
@@ -24,6 +24,9 @@ import {
   ProductListQueryParams,
   PaginatedResponse,
 } from '@/types/api/products';
+import type { BulkImportResult, BulkImportApiResponse } from '@/types/api/bulkImport';
+import { ApiError, ApiErrorType } from '@/api/errors';
+import { downloadExcelBlob } from '@/lib/utils';
 import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -112,6 +115,42 @@ export const productService = {
   getLowStockProducts: async (config?: RequestConfig): Promise<Product[]> => {
     const response = await get<GetLowStockProductsResponse>('/api/Products/low-stock', config);
     return response.data;
+  },
+
+  downloadProductImportTemplate: async (config?: RequestConfig): Promise<void> => {
+    const blob = await getBlob('/api/Products/import-template', config);
+    downloadExcelBlob(blob, 'product-import-template.xlsx');
+  },
+
+  exportProductsExcel: async (params?: { searchTerm?: string }, config?: RequestConfig): Promise<void> => {
+    const qs = new URLSearchParams();
+    if (params?.searchTerm) qs.set('searchTerm', params.searchTerm);
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    const blob = await getBlob(`/api/Products/export${suffix}`, config);
+    downloadExcelBlob(blob, `products-export-${Date.now()}.xlsx`);
+  },
+
+  bulkImportProducts: async (
+    file: File,
+    options?: { config?: RequestConfig; onUploadProgress?: (percent: number) => void }
+  ): Promise<BulkImportResult> => {
+    const form = new FormData();
+    form.append('file', file);
+    const raw = await postMultipart<BulkImportApiResponse>(
+      '/api/Products/bulk-import',
+      form,
+      {
+        ...(options?.config ?? {}),
+        timeout: 120_000,
+        onUploadProgress: (evt) => {
+          if (!options?.onUploadProgress || !evt.total) return;
+          options.onUploadProgress(Math.round((evt.loaded / evt.total) * 100));
+        },
+      }
+    );
+    if (!raw.success)
+      throw new ApiError(raw.message || 'Import failed', ApiErrorType.BAD_REQUEST, 400);
+    return raw.data;
   },
 };
 

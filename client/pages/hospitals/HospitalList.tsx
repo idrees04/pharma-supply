@@ -9,12 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, AlertCircle, CheckCircle, TrendingDown, Search, Hospital as HospitalIcon } from 'lucide-react';
+import { Plus, AlertCircle, CheckCircle, TrendingDown, Search, Hospital as HospitalIcon, Download, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import HospitalForm from './HospitalForm';
 import { DataTable, Column } from '@/components/common/DataTable';
-import { Hospital } from '@/api/services/hospitals.service';
+import { Hospital, hospitalService } from '@/api/services/hospitals.service';
 import { useDeleteHospital, useGetHospitals } from '@/hooks/useHospitals';
+import { EntityBulkImportDialog } from '@/components/common/EntityBulkImportDialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
@@ -33,6 +34,7 @@ export default function HospitalList() {
 
   const [hospitalToDelete, setHospitalToDelete] = useState<Hospital | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
@@ -43,6 +45,7 @@ export default function HospitalList() {
   const canCreate = hasPermission('hospitals', 'create');
   const canUpdate = hasPermission('hospitals', 'update');
   const canDelete = hasPermission('hospitals', 'delete');
+  const canReadList = hasPermission('hospitals', 'read');
 
   const { data: hospitalData, isLoading, error: hospitalsError } = useGetHospitals({
     pageSize: 1000,
@@ -198,12 +201,42 @@ export default function HospitalList() {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Hospitals</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Manage hospital customer accounts</p>
         </div>
-        {canCreate && (
-          <Button onClick={handleAddClick} disabled={isLoading} className="gap-2 shadow-md w-full sm:w-auto">
-            <Plus className="w-4 h-4" />
-            Add Hospital
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
+          {canReadList && (
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2 shadow-sm"
+              onClick={() =>
+                toast.promise(
+                  hospitalService.exportExcel({
+                    searchTerm: searchTerm.trim() || undefined,
+                  }),
+                  {
+                    loading: 'Exporting hospitals…',
+                    success: 'Excel file downloaded',
+                    error: (e) => (e as Error)?.message || 'Export failed',
+                  }
+                )
+              }
+            >
+              <Download className="w-4 h-4" />
+              Export Excel
+            </Button>
+          )}
+          {canCreate && (
+            <Button type="button" variant="outline" className="gap-2 shadow-sm" onClick={() => setImportOpen(true)}>
+              <FileSpreadsheet className="w-4 h-4" />
+              Bulk import
+            </Button>
+          )}
+          {canCreate && (
+            <Button onClick={handleAddClick} disabled={isLoading} className="gap-2 shadow-md">
+              <Plus className="w-4 h-4" />
+              Add Hospital
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -251,6 +284,17 @@ export default function HospitalList() {
           <HospitalForm hospital={selectedHospital || undefined} onClose={handleClose} />
         </DialogContent>
       </Dialog>
+
+      <EntityBulkImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Bulk import hospitals"
+        description="Upload an Excel file (.xlsx) that matches the template. Valid rows are saved in one transaction; duplicate names or registration numbers are skipped."
+        fieldLegend="Required: HospitalName. Optional: contact, address, tax, registration, hospital type, credit terms, credit limit, notes, status."
+        onDownloadTemplate={() => hospitalService.downloadImportTemplate()}
+        onImport={(f, opts) => hospitalService.bulkImport(f, opts)}
+        onImported={() => queryClient.invalidateQueries({ queryKey: ['hospitals'] })}
+      />
 
       <ConfirmDialog
         open={isDeleteOpen}

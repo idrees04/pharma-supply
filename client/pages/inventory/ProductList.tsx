@@ -20,6 +20,8 @@ import {
   Search,
   CheckCircle,
   XCircle,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProductForm from './ProductForm';
@@ -27,6 +29,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { DataTable, Column } from '@/components/common/DataTable';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { productService } from '@/api/services/products';
+import { EntityBulkImportDialog } from '@/components/common/EntityBulkImportDialog';
 import { Product } from '@/types/api/products';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
@@ -119,6 +122,7 @@ export default function ProductList() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'inactive'>('all');
+  const [importOpen, setImportOpen] = useState(false);
 
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
@@ -131,6 +135,7 @@ export default function ProductList() {
   const canCreate = hasPermission('products', 'create');
   const canUpdate = hasPermission('products', 'update');
   const canDelete = hasPermission('products', 'delete');
+  const canReadList = hasPermission('products', 'read');
 
   // Fetch products
   const { data: productData, isLoading, error: productsError } = useQuery({
@@ -342,7 +347,35 @@ export default function ProductList() {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Products</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Manage physical inventory and product catalog</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
+          {canReadList && (
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2 shadow-sm"
+              onClick={() =>
+                toast.promise(
+                  productService.exportProductsExcel({
+                    searchTerm: debouncedSearch || undefined,
+                  }),
+                  {
+                    loading: 'Exporting products…',
+                    success: 'Excel file downloaded',
+                    error: (e) => (e as Error)?.message || 'Export failed',
+                  }
+                )
+              }
+            >
+              <Download className="w-4 h-4" />
+              Export Excel
+            </Button>
+          )}
+          {canCreate && (
+            <Button type="button" variant="outline" className="gap-2 shadow-sm" onClick={() => setImportOpen(true)}>
+              <FileSpreadsheet className="w-4 h-4" />
+              Bulk import
+            </Button>
+          )}
           {canCreate && (
             <Button onClick={() => { setSelectedProductId(undefined); setIsDialogOpen(true); }} className="gap-2 shadow-md">
               <Plus className="w-4 h-4" />
@@ -446,6 +479,17 @@ export default function ProductList() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <EntityBulkImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Bulk import products"
+        description="Upload an Excel file (.xlsx) that matches the template. Valid rows create products and zero-quantity inventory; duplicates are skipped by ProductCode."
+        fieldLegend="Required: ProductName, ProductTypeId, UnitId. ProductCode optional (auto-generated from type if blank). Optional: generic name, manufacturer, rates, tax, reorder, HSN, batch flag, description, prescription, storage, notes."
+        onDownloadTemplate={() => productService.downloadProductImportTemplate()}
+        onImport={(f, opts) => productService.bulkImportProducts(f, opts)}
+        onImported={() => queryClient.invalidateQueries({ queryKey: ['products'] })}
+      />
 
       <ConfirmDialog
         open={isDeleteOpen}

@@ -1,16 +1,16 @@
 import { ApiResponse, PaginatedResponse } from './common';
 import type { PaymentDto } from './payments';
 
-// Enums
+/** Must stay in sync with `InvoiceStatus` in `Backend/MDS/MDS.Dal/Entities/Invoice.cs`. */
 export enum InvoiceStatus {
     Draft = 1,
-    Sent = 2,
-    PartiallyPaid = 3,
-    Paid = 4,
-    Overdue = 5,
-    Cancelled = 6,
-    Refunded = 7,
-    Disputed = 8,
+    Generated = 2,
+    Sent = 3,
+    PartiallyPaid = 4,
+    Paid = 5,
+    Overdue = 6,
+    Cancelled = 7,
+    Refunded = 8,
 }
 
 // DTOs

@@ -5,9 +5,12 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { motion } from 'framer-motion';
 import { formatCurrency, formatRelativeDays } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Clock } from 'lucide-react';
 
 const PendingPaymentsTable: React.FC = () => {
     const { data, isLoading, error } = usePendingPaymentAlerts();
+    const navigate = useNavigate();
 
     if (isLoading) return <PendingSkeleton />;
     if (error) return <PendingError />;
@@ -17,59 +20,110 @@ const PendingPaymentsTable: React.FC = () => {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
         >
-            <Card>
-                <CardHeader>
-                    <CardTitle>Pending Payment Alerts</CardTitle>
+            <Card className="h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                    <CardTitle className="text-lg font-bold">Pending Payment Alerts</CardTitle>
+                    <Badge variant="outline" className="font-mono">
+                        {data.length} active
+                    </Badge>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Invoice #</TableHead>
-                                <TableHead>Hospital</TableHead>
-                                <TableHead>Due Date</TableHead>
-                                <TableHead>Outstanding</TableHead>
-                                <TableHead>Net Days</TableHead>
-                                <TableHead>Status</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {data.map((payment, idx) => {
-                                const invoiceNumber = payment.invoiceNumber ?? `N/A-${idx}`;
-                                const hospitalName = payment.hospitalName ?? 'Unknown Hospital';
-                                const key = invoiceNumber || `payment-${idx}`;
-                                const isOverdue = payment.isOverdue;
-                                const netDays = payment.netDays;
-                                const daysOverdue = payment.daysOverdue;
-                                let statusText = '';
-                                let variant: 'destructive' | 'outline' | 'secondary' = 'outline';
-                                if (isOverdue) {
-                                    statusText = `Overdue ${daysOverdue > 0 ? formatRelativeDays(daysOverdue) : ''}`;
-                                    variant = 'destructive';
-                                } else if (netDays <= 7) {
-                                    statusText = 'Due soon';
-                                    variant = 'outline';
-                                } else {
-                                    statusText = 'On track';
-                                    variant = 'secondary';
-                                }
-                                return (
-                                    <TableRow key={key}>
-                                        <TableCell className="font-medium">{invoiceNumber}</TableCell>
-                                        <TableCell>{hospitalName}</TableCell>
-                                        <TableCell>{new Date(payment.dueDate).toLocaleDateString()}</TableCell>
-                                        <TableCell>{formatCurrency(payment.outstandingAmount)}</TableCell>
-                                        <TableCell>{netDays}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={variant}>{statusText}</Badge>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
+                    {/* Desktop View */}
+                    <div className="hidden md:block">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Invoice #</TableHead>
+                                    <TableHead>Hospital</TableHead>
+                                    <TableHead className="text-right">Outstanding</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="w-[50px]"></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {data.map((payment, idx) => {
+                                    const isOverdue = payment.isOverdue;
+                                    const netDays = payment.netDays;
+                                    const daysOverdue = payment.daysOverdue;
+                                    let statusText = '';
+                                    let variant: 'destructive' | 'outline' | 'secondary' = 'outline';
+                                    
+                                    if (isOverdue) {
+                                        statusText = `Overdue ${daysOverdue > 0 ? formatRelativeDays(daysOverdue) : ''}`;
+                                        variant = 'destructive';
+                                    } else if (netDays <= 7) {
+                                        statusText = 'Due soon';
+                                        variant = 'outline';
+                                    } else {
+                                        statusText = 'On track';
+                                        variant = 'secondary';
+                                    }
+
+                                    return (
+                                        <TableRow 
+                                            key={`${payment.invoiceNumber}-${idx}`}
+                                            className="cursor-pointer hover:bg-muted/50 transition-colors group"
+                                            onClick={() => navigate(`/invoices?search=${payment.invoiceNumber}`)}
+                                        >
+                                            <TableCell>
+                                                <div className="font-medium">{payment.invoiceNumber}</div>
+                                                <div className="text-xs text-muted-foreground">{new Date(payment.dueDate).toLocaleDateString()}</div>
+                                            </TableCell>
+                                            <TableCell className="max-w-[150px] truncate">{payment.hospitalName}</TableCell>
+                                            <TableCell className="text-right font-mono font-bold text-foreground">
+                                                {formatCurrency(payment.outstandingAmount)}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant={variant} className="whitespace-nowrap">
+                                                    {statusText}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Mobile View */}
+                    <div className="md:hidden space-y-3">
+                        {data.map((payment, idx) => {
+                            const isOverdue = payment.isOverdue;
+                            const variant: 'destructive' | 'outline' | 'secondary' = isOverdue ? 'destructive' : payment.netDays <= 7 ? 'outline' : 'secondary';
+                            
+                            return (
+                                <div 
+                                    key={`${payment.invoiceNumber}-${idx}`}
+                                    className="p-4 rounded-lg border bg-card hover:border-primary transition-colors cursor-pointer"
+                                    onClick={() => navigate(`/invoices?search=${payment.invoiceNumber}`)}
+                                >
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <div className="font-bold">{payment.invoiceNumber}</div>
+                                            <div className="text-xs text-muted-foreground">{payment.hospitalName}</div>
+                                        </div>
+                                        <Badge variant={variant}>
+                                            {isOverdue ? 'Overdue' : payment.netDays <= 7 ? 'Due Soon' : 'On Track'}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex justify-between items-end pt-2 border-t border-dashed">
+                                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                            <Clock className="w-3 h-3" />
+                                            {new Date(payment.dueDate).toLocaleDateString()}
+                                        </div>
+                                        <div className="font-mono font-bold text-primary">
+                                            {formatCurrency(payment.outstandingAmount)}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </CardContent>
             </Card>
         </motion.div>
@@ -78,11 +132,11 @@ const PendingPaymentsTable: React.FC = () => {
 
 const PendingSkeleton = () => (
     <Card className="animate-pulse">
-        <CardHeader className="h-16 bg-gray-200" />
-        <CardContent>
-            <div className="space-y-2">
+        <CardHeader className="h-16 bg-muted/50 rounded-t-xl" />
+        <CardContent className="p-6">
+            <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-12 bg-gray-100 rounded" />
+                    <div key={i} className="h-16 bg-muted/30 rounded-lg" />
                 ))}
             </div>
         </CardContent>
@@ -99,7 +153,7 @@ const PendingError = () => (
 
 const EmptyState = ({ message }: { message: string }) => (
     <Card>
-        <CardContent className="flex items-center justify-center h-64 text-gray-500">
+        <CardContent className="flex items-center justify-center h-64 text-muted-foreground">
             {message}
         </CardContent>
     </Card>

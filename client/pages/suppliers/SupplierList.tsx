@@ -9,11 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, AlertCircle, Users, CheckCircle, TrendingUp, Search } from 'lucide-react';
+import { Plus, AlertCircle, Users, CheckCircle, TrendingUp, Search, Download, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import SupplierForm from './SupplierForm';
 import { DataTable, Column } from '@/components/common/DataTable';
 import { supplierService, useSupplierList, useSuppliersByStatus } from '@/api/services/suppliers';
+import { EntityBulkImportDialog } from '@/components/common/EntityBulkImportDialog';
 import { Supplier } from '@/types/api/suppliers';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -53,6 +54,7 @@ export default function SupplierList() {
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
@@ -67,6 +69,7 @@ export default function SupplierList() {
   const canCreate = hasPermission('suppliers', 'create');
   const canUpdate = hasPermission('suppliers', 'update');
   const canDelete = hasPermission('suppliers', 'delete');
+  const canReadList = hasPermission('suppliers', 'read');
 
   const {
     data: supplierData,
@@ -252,20 +255,51 @@ export default function SupplierList() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Suppliers</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Manage your pharmaceutical suppliers</p>
         </div>
-        {canCreate && (
-          <Button
-            onClick={() => { setSelectedSupplier(null); setIsDialogOpen(true); }}
-            className="gap-2 shadow-md w-full sm:w-auto"
-          >
-            <Plus className="w-4 h-4" />
-            Add Supplier
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
+          {canReadList && (
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2 shadow-sm"
+              onClick={() =>
+                toast.promise(
+                  supplierService.exportSuppliersExcel({
+                    searchTerm: debouncedSearch || undefined,
+                    status: statusFilter === 'all' ? undefined : statusEnum ?? undefined,
+                  }),
+                  {
+                    loading: 'Exporting suppliers…',
+                    success: 'Excel file downloaded',
+                    error: (e) => (e as Error)?.message || 'Export failed',
+                  }
+                )
+              }
+            >
+              <Download className="w-4 h-4" />
+              Export Excel
+            </Button>
+          )}
+          {canCreate && (
+            <Button type="button" variant="outline" className="gap-2 shadow-sm" onClick={() => setImportOpen(true)}>
+              <FileSpreadsheet className="w-4 h-4" />
+              Bulk import
+            </Button>
+          )}
+          {canCreate && (
+            <Button
+              onClick={() => { setSelectedSupplier(null); setIsDialogOpen(true); }}
+              className="gap-2 shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              Add Supplier
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -350,6 +384,22 @@ export default function SupplierList() {
         isLoading={isDeleting}
         confirmText="Delete"
         variant="destructive"
+      />
+
+      <EntityBulkImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Bulk import suppliers"
+        description="Upload an Excel file (.xlsx) that matches the template. Valid rows are saved in one transaction; duplicates and invalid rows are skipped with an optional error report."
+        fieldLegend={
+          'Required: SupplierName. Optional columns match the template (contact, address, tax, payment terms, credit limit, status, etc.).'
+        }
+        onDownloadTemplate={() => supplierService.downloadSupplierImportTemplate()}
+        onImport={(f, opts) => supplierService.bulkImportSuppliers(f, opts)}
+        onImported={() => {
+          queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+          queryClient.invalidateQueries({ queryKey: ['suppliers', 'by-status'] });
+        }}
       />
     </div>
   );

@@ -7,6 +7,8 @@
  * API Base: https://mds.vtoxi.com/api/Suppliers
  */
 
+import type { BulkImportResult } from '@/types/api/bulkImport';
+
 /**
  * Supplier entity from the API
  * Core data structure for supplier master records
@@ -208,3 +210,6 @@ export type GetActiveSuppliersResponse = ApiResponse<Supplier[]>;
  * GET /api/Suppliers/by-status/:status response (API 10)
  */
 export type GetSuppliersByStatusResponse = ApiResponse<Supplier[]>;
+
+/** POST /api/Suppliers/bulk-import */
+export type BulkImportSuppliersResponse = ApiResponse<BulkImportResult>;

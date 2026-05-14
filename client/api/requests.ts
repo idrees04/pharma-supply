@@ -164,6 +164,44 @@ export async function deleteRequest<T = void>(url: string, config?: RequestConfi
 }
 
 /**
+ * GET binary response (e.g. Excel export). Does not parse JSON.
+ */
+export async function getBlob(url: string, config?: RequestConfig): Promise<Blob> {
+  try {
+    const response = await apiClient.get<Blob>(url, {
+      ...config,
+      responseType: 'blob',
+    });
+    return response.data;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(
+      'An unexpected error occurred during binary download',
+      'UNKNOWN_ERROR' as any,
+      500
+    );
+  }
+}
+
+export async function postMultipart<T>(url: string, formData: FormData, config?: RequestConfig): Promise<T> {
+  try {
+    const response = await apiClient.post<T>(url, formData, config);
+    return response.data;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(
+      'An unexpected error occurred during upload',
+      'UNKNOWN_ERROR' as any,
+      500
+    );
+  }
+}
+
+/**
  * Type-safe request function factory
  *
  * For more complex scenarios where you need additional options,

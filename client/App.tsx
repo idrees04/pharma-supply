@@ -9,7 +9,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { AuthProvider } from "@/context/AuthContext"; 
+import { AuthProvider } from "@/context/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { queryClient } from "@/api/queryClient";
 import { useAuthInitialize } from "@/hooks/useAuth";
@@ -27,6 +27,7 @@ const DeliveryChallanList = lazy(() => import("./pages/delivery/DeliveryChallanL
 const InvoiceList = lazy(() => import("./pages/invoices/InvoiceList"));
 const InvoiceDetailPage = lazy(() => import("./pages/invoices/InvoiceDetailPage"));
 const ExpenseList = lazy(() => import("./pages/finance/ExpenseList"));
+const IncomeList = lazy(() => import("./pages/finance/IncomeList"));
 const PaymentList = lazy(() => import("./pages/finance/PaymentList"));
 const BankAccountList = lazy(() => import("./pages/finance/BankAccountList"));
 const AccountTransfersList = lazy(() => import("./pages/finance/AccountTransfersList"));
@@ -45,6 +46,7 @@ const UsersPage = lazy(() => import("./pages/users/UsersPage"));
 const ProductTypesList = lazy(() => import("./pages/settings/ProductTypesList"));
 const UnitsList = lazy(() => import("./pages/settings/UnitsList"));
 const ExpenseCategoriesList = lazy(() => import("./pages/settings/ExpenseCategoriesList"));
+const IncomeCategoriesList = lazy(() => import("./pages/settings/IncomeCategoriesList"));
 const TaxConfigurationList = lazy(() => import("./pages/settings/TaxConfigurationList"));
 const SystemConfigurationPage = lazy(() => import("./pages/settings/SystemConfigurationPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -299,6 +301,16 @@ const AppRoutes = () => (
         }
       />
       <Route
+        path="/finance/incomes"
+        element={
+          <ProtectedRoute module="incomes" permission="read">
+            <MainLayout>
+              <IncomeList />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/finance/payments"
         element={
           <ProtectedRoute module="payments" permission="read">
@@ -364,6 +376,16 @@ const AppRoutes = () => (
           <ProtectedRoute module="expenses" permission="read">
             <MainLayout>
               <ExpenseCategoriesList />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/income-categories"
+        element={
+          <ProtectedRoute module="incomeCategories" permission="read">
+            <MainLayout>
+              <IncomeCategoriesList />
             </MainLayout>
           </ProtectedRoute>
         }

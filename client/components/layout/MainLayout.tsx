@@ -170,6 +170,12 @@ const menuItems: MenuItemType[] = [
       },
       {
         icon: <DollarSign className="w-4 h-4" />,
+        label: "Income",
+        href: "/finance/incomes",
+        module: "incomes",
+      },
+      {
+        icon: <DollarSign className="w-4 h-4" />,
         label: "Payments",
         href: "/finance/payments",
         module: "payments",
@@ -229,6 +235,12 @@ const menuItems: MenuItemType[] = [
         label: "Expense Categories",
         href: "/settings/expense-categories",
         module: "expenses",
+      },
+      {
+        icon: <Receipt className="w-4 h-4" />,
+        label: "Income Categories",
+        href: "/settings/income-categories",
+        module: "incomeCategories",
       },
       {
         icon: <Shield className="w-4 h-4" />,

@@ -24,6 +24,8 @@ export * from './dashboard';
 export * from './deliveryChallans';
 export * from './expenseCategories';
 export * from './expenses';
+export * from './incomeCategories';
+export * from './incomes';
 export * from './inventory';
 export * from './invoices';
 export * from './notifications';

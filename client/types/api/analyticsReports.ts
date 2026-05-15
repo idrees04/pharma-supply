@@ -1,6 +1,6 @@
 import type { ApiResponse } from './common';
 
-export type ReportModuleId = 'supply-order' | 'inventory' | 'purchase' | 'finance';
+export type ReportModuleId = 'supply-order' | 'inventory' | 'purchase' | 'finance' | 'invoices';
 
 export type AnalyticsReportId =
   | 'pipeline'
@@ -12,7 +12,11 @@ export type AnalyticsReportId =
   | 'receipt-vs-order'
   | 'hospital-ar'
   | 'cash-collections'
-  | 'expenses-summary';
+  | 'expenses-summary'
+  | 'invoice-tax-lines'
+  | 'invoice-late-fees'
+  | 'invoices-outstanding'
+  | 'outstanding-by-hospital';
 
 export interface AnalyticsReportQueryParams {
   dateFrom?: string;
@@ -193,6 +197,80 @@ export interface ExpensesSummaryReportDto {
   grandTotal: number;
 }
 
+// Invoices
+export interface InvoiceTaxLineReportRowDto {
+  invoiceId: number;
+  invoiceNumber: string;
+  invoiceDate: string;
+  hospitalId: number;
+  hospitalName: string;
+  taxTypeName: string;
+  taxPercentage: number;
+  taxableAmount: number;
+  taxCollected: number;
+  invoiceItemId: number;
+}
+
+export interface InvoiceTaxLinesReportDto {
+  rows: InvoiceTaxLineReportRowDto[];
+  grandTotalTaxableAmount: number;
+  grandTotalTaxCollected: number;
+}
+
+export interface InvoiceLateFeeRowDto {
+  invoiceId: number;
+  invoiceNumber: string;
+  hospitalId: number;
+  hospitalName: string;
+  invoiceDate: string;
+  dueDate: string;
+  daysPastDue: number | null;
+  lateFeeAmount: number;
+  totalPayableAmount: number;
+  totalInvoiceAmount: number;
+  outstandingAmount: number;
+}
+
+export interface InvoiceLateFeesReportDto {
+  rows: InvoiceLateFeeRowDto[];
+  grandTotalLateFees: number;
+}
+
+export interface OutstandingInvoiceRowDto {
+  invoiceId: number;
+  invoiceNumber: string;
+  hospitalId: number;
+  hospitalName: string;
+  invoiceDate: string;
+  dueDate: string;
+  invoiceAmount: number;
+  paidAmount: number;
+  remainingBalance: number;
+  status: number;
+  statusName: string;
+}
+
+export interface OutstandingInvoicesReportDto {
+  rows: OutstandingInvoiceRowDto[];
+  totalRemainingBalance: number;
+}
+
+export interface OutstandingBalanceByHospitalRowDto {
+  hospitalId: number;
+  hospitalName: string;
+  unpaidInvoiceCount: number;
+  totalOutstandingAmount: number;
+  overdueOutstandingAmount: number;
+  agingSummary: ArAgingSummaryDto;
+}
+
+export interface OutstandingBalanceByHospitalReportDto {
+  rows: OutstandingBalanceByHospitalRowDto[];
+  totalUnpaidInvoiceCount: number;
+  grandTotalOutstanding: number;
+  grandTotalOverdue: number;
+}
+
 export type SupplyOrderPipelineResponse = ApiResponse<SupplyOrderPipelineReportDto>;
 export type SupplyOrdersByHospitalResponse = ApiResponse<SupplyOrdersByHospitalReportDto>;
 export type SupplyOrderFulfillmentSlaResponse = ApiResponse<SupplyOrderFulfillmentSlaReportDto>;
@@ -203,3 +281,7 @@ export type PurchaseReceiptVsOrderResponse = ApiResponse<PurchaseReceiptVsOrderR
 export type HospitalArResponse = ApiResponse<HospitalInvoicesArReportDto>;
 export type CashCollectionsResponse = ApiResponse<CashCollectionsReportDto>;
 export type ExpensesSummaryResponse = ApiResponse<ExpensesSummaryReportDto>;
+export type InvoiceTaxLinesResponse = ApiResponse<InvoiceTaxLinesReportDto>;
+export type InvoiceLateFeesResponse = ApiResponse<InvoiceLateFeesReportDto>;
+export type OutstandingInvoicesResponse = ApiResponse<OutstandingInvoicesReportDto>;
+export type OutstandingByHospitalResponse = ApiResponse<OutstandingBalanceByHospitalReportDto>;

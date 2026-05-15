@@ -46,6 +46,12 @@ export interface InvoiceDto {
     totalAmount: number;
     paidAmount: number;
     outstandingAmount: number;
+    /** Cumulative hospital / late-delivery deduction; reduces ex-tax collectible. */
+    lateDeliveryDeduction?: number;
+    /** TotalAmount − TaxAmount − LateDeliveryDeduction (supplier cash expectation). */
+    taxExclusiveCollectibleAmount?: number;
+    /** Display-only: Σ (line net ex tax − qty × standard purchase rate). */
+    estimatedContributionMargin?: number | null;
     paymentReceivedDate: string | null; // ISO date-time
     supplyOrderId: number | null;
     deliveryChallanId: number | null;
@@ -85,8 +91,10 @@ export interface CreateInvoiceFromSupplyOrderRequest {
     dueDate: string; // ISO date-time
     shippingCharges?: number;
     adjustmentAmount?: number;
-    notes?: string | null;
-    termsAndConditions?: string | null;
+    /** API model requires non-empty notes */
+    notes: string;
+    /** API model requires non-empty terms */
+    termsAndConditions: string;
     lines?: CreateInvoiceLineItem[];
     salesTaxConfigurationId?: number | null;
 }
@@ -122,6 +130,8 @@ export type CreateInvoiceFromSupplyOrderResponse = ApiResponse<InvoiceDto>;
 export interface ProcessInvoicePaymentRequest {
   accountId: number;
   amount: number;
+  /** Cumulative deduction on the invoice; optional — omit to leave unchanged. */
+  lateDeliveryDeduction?: number | null;
   paymentDate?: string | null;
   paymentMode: number;
   referenceNumber?: string | null;

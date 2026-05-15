@@ -42,15 +42,26 @@ const invoiceLineRowSchema = z.object({
   include: z.boolean(),
 });
 
-const invoiceFromSupplyOrderFormSchema = z
+function defaultInvoiceNotesForSupplyOrder(so: SupplyOrder): string {
+  const ref = so.supplyOrderNumber?.trim() || `SO #${so.id}`;
+  return `Invoice for supply order ${ref}.`;
+}
+
+const invoiceFromSupplyOrderFormBaseSchema = z
   .object({
     deliveryChallanId: z.coerce.number().int().min(0).optional(),
     invoiceDate: z.string().min(1, 'Invoice date is required'),
     dueDate: z.string().min(1, 'Due date is required'),
     shippingCharges: z.coerce.number().min(0),
     adjustmentAmount: z.coerce.number(),
-    notes: z.string().optional(),
-    termsAndConditions: z.string().optional(),
+    notes: z
+      .string()
+      .refine((val) => val.trim().length > 0, { message: 'Notes are required.' }),
+    termsAndConditions: z
+      .string()
+      .refine((val) => val.trim().length > 0, {
+        message: 'Terms and conditions are required.',
+      }),
     salesTaxConfigurationId: z.coerce.number().int().min(0).optional(),
     lines: z.array(invoiceLineRowSchema),
   })
@@ -59,7 +70,20 @@ const invoiceFromSupplyOrderFormSchema = z
     path: ['lines'],
   });
 
-type InvoiceFromSupplyOrderFormValues = z.infer<typeof invoiceFromSupplyOrderFormSchema>;
+function invoiceFromSupplyOrderFormSchema(requireDeliveryChallan: boolean) {
+  if (!requireDeliveryChallan) return invoiceFromSupplyOrderFormBaseSchema;
+  return invoiceFromSupplyOrderFormBaseSchema.superRefine((data, ctx) => {
+    if (!data.deliveryChallanId || data.deliveryChallanId <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Select a delivery challan before creating the invoice.',
+        path: ['deliveryChallanId'],
+      });
+    }
+  });
+}
+
+type InvoiceFromSupplyOrderFormValues = z.infer<typeof invoiceFromSupplyOrderFormBaseSchema>;
 
 interface InvoiceCreationPanelProps {
   supplyOrderId: number;
@@ -68,6 +92,8 @@ interface InvoiceCreationPanelProps {
   initialDeliveryChallanId?: number;
   /** When true, user cannot clear or change the linked delivery challan */
   lockDeliveryChallanSelection?: boolean;
+  /** When true, a delivery challan must be chosen (no “none”); use from supply order after DC exists */
+  requireDeliveryChallan?: boolean;
   onSuccess?: () => void;
   onClose?: () => void;
 }
@@ -83,6 +109,7 @@ export function InvoiceCreationPanel({
   supplyOrder,
   initialDeliveryChallanId,
   lockDeliveryChallanSelection = false,
+  requireDeliveryChallan = false,
   onSuccess,
   onClose,
 }: InvoiceCreationPanelProps) {
@@ -111,8 +138,13 @@ export function InvoiceCreationPanel({
       }));
   }, [supplyOrder.items]);
 
+  const formSchema = useMemo(
+    () => invoiceFromSupplyOrderFormSchema(requireDeliveryChallan),
+    [requireDeliveryChallan]
+  );
+
   const form = useForm<InvoiceFromSupplyOrderFormValues>({
-    resolver: zodResolver(invoiceFromSupplyOrderFormSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       deliveryChallanId:
         initialDeliveryChallanId && initialDeliveryChallanId > 0 ? initialDeliveryChallanId : 0,
@@ -120,7 +152,7 @@ export function InvoiceCreationPanel({
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       shippingCharges: 0,
       adjustmentAmount: 0,
-      notes: '',
+      notes: defaultInvoiceNotesForSupplyOrder(supplyOrder),
       termsAndConditions:
         'Payment terms: Net 30 days. Please remit payment to the specified account.',
       salesTaxConfigurationId: 0,
@@ -142,20 +174,37 @@ export function InvoiceCreationPanel({
         include: true,
       }));
 
+    let deliveryChallanId = 0;
+    if (requireDeliveryChallan && deliveryChallans.length > 0) {
+      deliveryChallanId =
+        initialDeliveryChallanId && deliveryChallans.some((c) => c.id === initialDeliveryChallanId)
+          ? initialDeliveryChallanId
+          : deliveryChallans[0].id;
+    } else if (initialDeliveryChallanId && initialDeliveryChallanId > 0) {
+      deliveryChallanId = initialDeliveryChallanId;
+    }
+
     form.reset({
-      deliveryChallanId:
-        initialDeliveryChallanId && initialDeliveryChallanId > 0 ? initialDeliveryChallanId : 0,
+      deliveryChallanId,
       invoiceDate: new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       shippingCharges: 0,
       adjustmentAmount: 0,
-      notes: '',
+      notes: defaultInvoiceNotesForSupplyOrder(supplyOrder),
       termsAndConditions:
         'Payment terms: Net 30 days. Please remit payment to the specified account.',
       salesTaxConfigurationId: 0,
       lines,
     });
-  }, [supplyOrder.id, supplyOrder.items, form, initialDeliveryChallanId]);
+  }, [
+    supplyOrder.id,
+    supplyOrder.supplyOrderNumber,
+    supplyOrder.items,
+    form,
+    initialDeliveryChallanId,
+    requireDeliveryChallan,
+    deliveryChallans,
+  ]);
 
   const itemBySoLineId = useMemo(() => {
     const map = new Map<number, SupplyOrderItem>();
@@ -164,14 +213,13 @@ export function InvoiceCreationPanel({
   }, [supplyOrder.items]);
 
   const deliveryChallanSelectItems = useMemo(() => {
-    return [
-      { value: 0, label: 'None (optional)' },
-      ...deliveryChallans.map((c) => ({
-        value: c.id,
-        label: `${c.challanNumber} · ${new Date(c.dispatchDate).toLocaleDateString()}`,
-      })),
-    ];
-  }, [deliveryChallans]);
+    const rows = deliveryChallans.map((c) => ({
+      value: c.id,
+      label: `${c.challanNumber} · ${new Date(c.dispatchDate).toLocaleDateString()}`,
+    }));
+    if (requireDeliveryChallan) return rows;
+    return [{ value: 0, label: 'None (optional)' }, ...rows];
+  }, [deliveryChallans, requireDeliveryChallan]);
 
   const lockedChallanLabel = useMemo(() => {
     if (!initialDeliveryChallanId) return '';
@@ -227,8 +275,8 @@ export function InvoiceCreationPanel({
       dueDate: formatDateToISO(data.dueDate),
       shippingCharges: data.shippingCharges ?? 0,
       adjustmentAmount: data.adjustmentAmount ?? 0,
-      notes: data.notes?.trim() ? data.notes : null,
-      termsAndConditions: data.termsAndConditions?.trim() ? data.termsAndConditions : null,
+      notes: data.notes.trim(),
+      termsAndConditions: data.termsAndConditions.trim(),
       salesTaxConfigurationId:
         data.salesTaxConfigurationId && data.salesTaxConfigurationId > 0
           ? data.salesTaxConfigurationId
@@ -314,6 +362,13 @@ export function InvoiceCreationPanel({
           </div>
         )}
 
+        {requireDeliveryChallan && !loadingChallans && deliveryChallans.length === 0 && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            No delivery challans exist for this order. Create a delivery challan first, then create the
+            invoice.
+          </div>
+        )}
+
         <Form {...form}>
           <form onSubmit={handleCreateInvoice} className="space-y-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -322,7 +377,9 @@ export function InvoiceCreationPanel({
                 name="deliveryChallanId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-semibold text-slate-700">Delivery challan</FormLabel>
+                    <FormLabel className="font-semibold text-slate-700">
+                      Delivery challan{requireDeliveryChallan ? ' *' : ''}
+                    </FormLabel>
                     {lockDeliveryChallanSelection && initialDeliveryChallanId ? (
                       <>
                         <input type="hidden" {...field} />
@@ -342,13 +399,17 @@ export function InvoiceCreationPanel({
                             items={deliveryChallanSelectItems}
                             value={field.value ?? 0}
                             onValueChange={(v) => field.onChange(Number(v))}
-                            placeholder="Link to challan (optional)"
+                            placeholder={
+                              requireDeliveryChallan ? 'Select delivery challan' : 'Link to challan (optional)'
+                            }
                             isLoading={loadingChallans}
                             className="h-11 w-full"
                           />
                         </FormControl>
                         <p className="text-xs text-muted-foreground">
-                          If set, must belong to this supply order. Line items may link to challan lines.
+                          {requireDeliveryChallan
+                            ? 'Required: choose the delivery challan this invoice applies to.'
+                            : 'If set, must belong to this supply order. Line items may link to challan lines.'}
                         </p>
                       </>
                     )}
@@ -453,10 +514,10 @@ export function InvoiceCreationPanel({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="font-semibold text-slate-700">Notes</FormLabel>
+                  <FormLabel className="font-semibold text-slate-700">Notes *</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Invoice notes"
+                      placeholder="Required — reference, billing context, or internal memo"
                       className="min-h-[88px] rounded-xl border-slate-200"
                       {...field}
                     />
@@ -471,7 +532,7 @@ export function InvoiceCreationPanel({
               name="termsAndConditions"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="font-semibold text-slate-700">Terms &amp; conditions</FormLabel>
+                  <FormLabel className="font-semibold text-slate-700">Terms &amp; conditions *</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Payment terms"

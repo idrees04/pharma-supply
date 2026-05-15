@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatCurrency, cn } from '@/lib/utils';
+import { taxExclusiveCollectible, outstandingExTaxForInvoice } from '@/lib/invoiceReceivable';
 import { InvoiceDto } from '@/types/api/invoices';
 import { getInvoiceStatusClassName, getInvoiceStatusLabel } from '@/lib/invoiceStatusDisplay';
 import { motion } from 'framer-motion';
@@ -16,6 +17,11 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
     const shipping = invoice.shippingCharges;
     const adjustment = invoice.adjustmentAmount;
     const total = invoice.totalAmount;
+    const lateDed = invoice.lateDeliveryDeduction ?? 0;
+    const collectibleExTax =
+      invoice.taxExclusiveCollectibleAmount ??
+      taxExclusiveCollectible(total, tax, lateDed);
+    const outstandingExTax = outstandingExTaxForInvoice(invoice);
 
     const containerVariants = {
       hidden: { opacity: 0 },
@@ -122,26 +128,30 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
             </p>
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-500 uppercase mb-1">Outstanding (PKR)</p>
+            <p className="text-xs font-bold text-slate-500 uppercase mb-1">Outstanding (ex. tax, PKR)</p>
             <p
               className={cn(
                 'font-semibold',
-                invoice.outstandingAmount <= 0 ? 'text-emerald-600' : 'text-amber-700',
+                outstandingExTax <= 0 ? 'text-emerald-600' : 'text-amber-700',
               )}
             >
-              {formatCurrency(invoice.outstandingAmount)}
+              {formatCurrency(outstandingExTax)}
             </p>
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-500 uppercase mb-1">Invoice total (PKR)</p>
+            <p className="text-xs font-bold text-slate-500 uppercase mb-1">Invoice total (incl. tax, PKR)</p>
             <p className="font-bold text-2xl text-primary">{formatCurrency(total)}</p>
-            {invoice.outstandingAmount > 0 ? (
+            {outstandingExTax > 0 ? (
               <p className="mt-1 text-xs font-semibold text-amber-700">
-                Balance due: {formatCurrency(invoice.outstandingAmount)}
+                Balance due (ex. tax): {formatCurrency(outstandingExTax)}
               </p>
             ) : (
-              <p className="mt-1 text-xs font-medium text-emerald-600">No balance due</p>
+              <p className="mt-1 text-xs font-medium text-emerald-600">No balance due (ex. tax)</p>
             )}
+            <p className="mt-2 text-[10px] leading-snug text-slate-500">
+              Sales tax is shown for compliance; supplier collections are tracked excluding tax (collectible
+              ex. tax {formatCurrency(collectibleExTax)}).
+            </p>
           </div>
         </motion.div>
 
@@ -221,6 +231,12 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
                 <span className="text-blue-600 font-bold">{formatCurrency(tax)}</span>
               </div>
             )}
+            {lateDed > 0 && (
+              <div className="flex justify-between py-2 border-b border-slate-200">
+                <span className="text-slate-600 font-semibold">Hospital / late delivery deduction (PKR)</span>
+                <span className="text-red-600 font-bold">−{formatCurrency(lateDed)}</span>
+              </div>
+            )}
             {discount > 0 && (
               <div className="flex justify-between py-2 border-b border-slate-200">
                 <span className="text-slate-600 font-semibold">Discount (PKR)</span>
@@ -242,7 +258,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
               </div>
             )}
             <div className="flex justify-between py-3 bg-primary/10 px-3 rounded-lg mt-4">
-              <span className="font-black text-slate-900 uppercase text-sm">Total amount (PKR)</span>
+              <span className="font-black text-slate-900 uppercase text-sm">Total (incl. tax, PKR)</span>
               <span className="font-black text-primary text-lg">{formatCurrency(total)}</span>
             </div>
           </div>

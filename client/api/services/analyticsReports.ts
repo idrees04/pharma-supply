@@ -6,6 +6,10 @@ import type {
   HospitalInvoicesArReportDto,
   InventoryBatchExpiryReportDto,
   InventoryStockPositionReportDto,
+  InvoiceLateFeesReportDto,
+  InvoiceTaxLinesReportDto,
+  OutstandingBalanceByHospitalReportDto,
+  OutstandingInvoicesReportDto,
   PurchaseOrderPayablesReportDto,
   PurchaseReceiptVsOrderReportDto,
   SupplyOrderFulfillmentSlaReportDto,
@@ -16,6 +20,10 @@ import type {
   HospitalArResponse,
   InventoryBatchExpiryResponse,
   InventoryStockPositionResponse,
+  InvoiceLateFeesResponse,
+  InvoiceTaxLinesResponse,
+  OutstandingByHospitalResponse,
+  OutstandingInvoicesResponse,
   PurchasePayablesResponse,
   PurchaseReceiptVsOrderResponse,
   SupplyOrderFulfillmentSlaResponse,
@@ -140,6 +148,50 @@ export const analyticsReportService = {
     appendReportParams(qs, params);
     const url = `/api/reports/finance/expenses-summary${qs.toString() ? `?${qs}` : ''}`;
     const res = await get<ExpensesSummaryResponse>(url, config);
+    return res.data;
+  },
+
+  getInvoiceTaxLines: async (
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<InvoiceTaxLinesReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const url = `/api/reports/finance/invoice-tax-lines${qs.toString() ? `?${qs}` : ''}`;
+    const res = await get<InvoiceTaxLinesResponse>(url, config);
+    return res.data;
+  },
+
+  getInvoiceLateFees: async (
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<InvoiceLateFeesReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const url = `/api/reports/finance/invoice-late-fees${qs.toString() ? `?${qs}` : ''}`;
+    const res = await get<InvoiceLateFeesResponse>(url, config);
+    return res.data;
+  },
+
+  getInvoicesOutstanding: async (
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<OutstandingInvoicesReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const url = `/api/reports/finance/invoices-outstanding${qs.toString() ? `?${qs}` : ''}`;
+    const res = await get<OutstandingInvoicesResponse>(url, config);
+    return res.data;
+  },
+
+  getOutstandingByHospital: async (
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<OutstandingBalanceByHospitalReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const url = `/api/reports/finance/outstanding-by-hospital${qs.toString() ? `?${qs}` : ''}`;
+    const res = await get<OutstandingByHospitalResponse>(url, config);
     return res.data;
   },
 };

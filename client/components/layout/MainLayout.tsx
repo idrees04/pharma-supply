@@ -211,6 +211,12 @@ const menuItems: MenuItemType[] = [
         href: "/reports?module=finance",
         module: "reports",
       },
+      {
+        icon: <Receipt className="w-4 h-4" />,
+        label: "Invoices",
+        href: "/reports?module=invoices",
+        module: "reports",
+      },
     ],
   },
   {

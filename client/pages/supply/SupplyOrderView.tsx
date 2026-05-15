@@ -45,9 +45,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import SupplyOrderForm from './SupplyOrderForm';
-import { SupplyOrderFulfillmentFlow } from './SupplyOrderFulfillmentFlow';
+import { DeliveryChallanFromSupplyOrderPanel } from './DeliveryChallanFromSupplyOrderPanel';
+import { InvoiceCreationPanel } from './InvoiceCreationPanel';
 import { SupplyOrderDocumentsSection } from './SupplyOrderDocumentsSection';
+import { useSupplyOrderDeliveryChallans } from '@/api/services/supplyOrders.service';
 import type { SupplyOrderStatusOption } from '@/types/api/supplyOrders';
 import type { LucideIcon } from 'lucide-react';
 
@@ -107,8 +110,43 @@ export default function SupplyOrderView() {
 
   const isCancelledOrder =
     so !== undefined && cancelledStatusValue !== undefined && so.status === cancelledStatusValue;
+  const { data: deliveryChallans = [], isPending: deliveryChallansLoading } = useSupplyOrderDeliveryChallans(
+    soId
+  );
+  const hasDeliveryChallans = deliveryChallans.length > 0;
+
+  const [fulfillmentDialogOpen, setFulfillmentDialogOpen] = React.useState(false);
+  const [fulfillmentMode, setFulfillmentMode] = React.useState<'dispatch' | 'invoice'>('dispatch');
+  const [preselectDeliveryChallanId, setPreselectDeliveryChallanId] = React.useState<number | undefined>(
+    undefined
+  );
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
-  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = React.useState(false);
+
+  const openDispatchDialog = () => {
+    setFulfillmentMode('dispatch');
+    setPreselectDeliveryChallanId(undefined);
+    setFulfillmentDialogOpen(true);
+  };
+
+  const openInvoiceDialog = () => {
+    setFulfillmentMode('invoice');
+    setPreselectDeliveryChallanId(undefined);
+    setFulfillmentDialogOpen(true);
+  };
+
+  const handleFulfillmentDialogOpenChange = (open: boolean) => {
+    setFulfillmentDialogOpen(open);
+    if (!open) {
+      setPreselectDeliveryChallanId(undefined);
+      setFulfillmentMode('dispatch');
+    }
+  };
+
+  const handleDeliveryChallanCreated = async (dcId: number) => {
+    await refetch();
+    setPreselectDeliveryChallanId(dcId);
+    setFulfillmentMode('invoice');
+  };
 
   if (isPending) {
     return (
@@ -210,11 +248,47 @@ export default function SupplyOrderView() {
           <Button
             variant="default"
             className="gap-2 h-11 px-5 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
-            onClick={() => setIsInvoiceModalOpen(true)}
+            onClick={openDispatchDialog}
           >
-            <FileType2 className="h-4 w-4" />
-            <span className="font-bold">Dispatch &amp; invoice</span>
+            <Truck className="h-4 w-4" />
+            <span className="font-bold">Create delivery challan</span>
           </Button>
+          {deliveryChallansLoading ? (
+            <Button type="button" variant="secondary" className="gap-2 h-11 px-5" disabled>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="font-bold">Checking challans…</span>
+            </Button>
+          ) : !hasDeliveryChallans ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="gap-2 h-11 px-5"
+                    disabled
+                  >
+                    <FileType2 className="h-4 w-4" />
+                    <span className="font-bold">Create invoice</span>
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs text-left">
+                Create a delivery challan first. Invoicing is only available after at least one challan exists
+                for this order.
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              className="gap-2 h-11 px-5 border border-slate-200 shadow-sm transition-all hover:scale-[1.02] active:scale-95"
+              onClick={openInvoiceDialog}
+            >
+              <FileType2 className="h-4 w-4" />
+              <span className="font-bold">Create invoice</span>
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="h-11 w-11 rounded-xl hover:bg-slate-100" onClick={() => window.print()}>
             <Save className="h-5 w-5 text-slate-500" />
           </Button>
@@ -522,30 +596,60 @@ export default function SupplyOrderView() {
         </DialogContent>
       </Dialog>
 
-      {/* Dispatch (delivery challan) → Invoice flow */}
-      <Dialog open={isInvoiceModalOpen} onOpenChange={setIsInvoiceModalOpen}>
+      {/* Delivery challan or invoice (invoice only after at least one challan exists) */}
+      <Dialog open={fulfillmentDialogOpen} onOpenChange={handleFulfillmentDialogOpenChange}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 border-none shadow-2xl">
           <DialogHeader className="p-6 bg-gradient-to-r from-primary/10 via-violet-50 to-purple-50 border-b">
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-              <FileType2 className="h-6 w-6 text-primary" />
-              Dispatch &amp; invoice
+              {fulfillmentMode === 'dispatch' ? (
+                <>
+                  <Truck className="h-6 w-6 text-primary" />
+                  Create delivery challan
+                </>
+              ) : (
+                <>
+                  <FileType2 className="h-6 w-6 text-primary" />
+                  Create invoice
+                </>
+              )}
             </DialogTitle>
             <DialogDescription>
-              Create a delivery challan from stock, then generate the invoice for{' '}
-              <span className="font-mono font-bold text-foreground">{so.supplyOrderNumber}</span>.
+              {fulfillmentMode === 'dispatch' ? (
+                <>
+                  Dispatch stock from inventory and create a delivery challan for{' '}
+                  <span className="font-mono font-bold text-foreground">{so.supplyOrderNumber}</span>. After
+                  this succeeds, use <span className="font-semibold">Create invoice</span> to bill the hospital.
+                </>
+              ) : (
+                <>
+                  Generate an invoice for{' '}
+                  <span className="font-mono font-bold text-foreground">{so.supplyOrderNumber}</span> linked to
+                  an existing delivery challan.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
-          <div className="p-6">
-            {soId && (
-              <SupplyOrderFulfillmentFlow
+          <div className="p-6" key={`${fulfillmentMode}-${preselectDeliveryChallanId ?? 0}`}>
+            {soId && fulfillmentMode === 'dispatch' && (
+              <DeliveryChallanFromSupplyOrderPanel
                 supplyOrderId={soId}
                 supplyOrder={so}
-                refetchSupplyOrder={refetch}
-                onComplete={() => {
+                onCreated={handleDeliveryChallanCreated}
+                onCancel={() => handleFulfillmentDialogOpenChange(false)}
+              />
+            )}
+            {soId && fulfillmentMode === 'invoice' && (
+              <InvoiceCreationPanel
+                supplyOrderId={soId}
+                supplyOrder={so}
+                initialDeliveryChallanId={preselectDeliveryChallanId}
+                lockDeliveryChallanSelection={false}
+                requireDeliveryChallan
+                onSuccess={() => {
                   refetch();
-                  setIsInvoiceModalOpen(false);
+                  handleFulfillmentDialogOpenChange(false);
                 }}
-                onCancel={() => setIsInvoiceModalOpen(false)}
+                onClose={() => handleFulfillmentDialogOpenChange(false)}
               />
             )}
           </div>

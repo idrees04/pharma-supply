@@ -39,6 +39,7 @@ const MODULE_OPTIONS: { id: ReportModuleId; label: string }[] = [
   { id: 'inventory', label: 'Inventory' },
   { id: 'purchase', label: 'Purchase' },
   { id: 'finance', label: 'Finance' },
+  { id: 'invoices', label: 'Invoices' },
 ];
 
 const REPORTS_BY_MODULE: Record<ReportModuleId, { id: AnalyticsReportId; label: string }[]> = {
@@ -60,10 +61,22 @@ const REPORTS_BY_MODULE: Record<ReportModuleId, { id: AnalyticsReportId; label: 
     { id: 'cash-collections', label: 'Cash collections (receipts)' },
     { id: 'expenses-summary', label: 'Expenses by category' },
   ],
+  invoices: [
+    { id: 'invoice-tax-lines', label: 'Tax on invoices' },
+    { id: 'invoice-late-fees', label: 'Late delivery / fee charges' },
+    { id: 'invoices-outstanding', label: 'Outstanding invoices' },
+    { id: 'outstanding-by-hospital', label: 'Outstanding by hospital' },
+  ],
 };
 
 function isModule(s: string | null): s is ReportModuleId {
-  return s === 'supply-order' || s === 'inventory' || s === 'purchase' || s === 'finance';
+  return (
+    s === 'supply-order' ||
+    s === 'inventory' ||
+    s === 'purchase' ||
+    s === 'finance' ||
+    s === 'invoices'
+  );
 }
 
 function defaultReportForModule(m: ReportModuleId): AnalyticsReportId {
@@ -162,6 +175,14 @@ export default function Reports() {
         return analyticsReportService.getCashCollections(apiParams);
       case 'expenses-summary':
         return analyticsReportService.getExpensesSummary(apiParams);
+      case 'invoice-tax-lines':
+        return analyticsReportService.getInvoiceTaxLines(apiParams);
+      case 'invoice-late-fees':
+        return analyticsReportService.getInvoiceLateFees(apiParams);
+      case 'invoices-outstanding':
+        return analyticsReportService.getInvoicesOutstanding(apiParams);
+      case 'outstanding-by-hospital':
+        return analyticsReportService.getOutstandingByHospital(apiParams);
       default:
         throw new Error('Unknown report');
     }
@@ -183,7 +204,11 @@ export default function Reports() {
     reportId === 'by-hospital' ||
     reportId === 'fulfillment-sla' ||
     reportId === 'hospital-ar' ||
-    reportId === 'cash-collections';
+    reportId === 'cash-collections' ||
+    reportId === 'invoice-tax-lines' ||
+    reportId === 'invoice-late-fees' ||
+    reportId === 'invoices-outstanding' ||
+    reportId === 'outstanding-by-hospital';
   const showSupplier = reportId === 'payables' || reportId === 'receipt-vs-order';
   const showProduct =
     reportId === 'stock-position' || reportId === 'batch-expiry' || reportId === 'receipt-vs-order';
@@ -560,6 +585,124 @@ function ReportResults({
           <DataCardTable
             headers={['Category', 'Count', 'Amount (PKR)']}
             rows={d.rows.map((r) => [r.categoryName, String(r.expenseCount), formatCurrency(r.totalAmount)])}
+          />
+        </div>
+      );
+    }
+    case 'invoice-tax-lines': {
+      const d = data as import('@/types/api/analyticsReports').InvoiceTaxLinesReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip
+            items={[
+              { label: 'Taxable (PKR)', value: formatCurrency(d.grandTotalTaxableAmount) },
+              { label: 'Tax collected (PKR)', value: formatCurrency(d.grandTotalTaxCollected) },
+            ]}
+          />
+          <DataCardTable
+            headers={['Invoice', 'Date', 'Hospital', 'Tax type', 'Rate %', 'Taxable (PKR)', 'Tax (PKR)']}
+            rows={d.rows.map((r) => [
+              r.invoiceNumber,
+              fmtDate(r.invoiceDate),
+              r.hospitalName,
+              r.taxTypeName,
+              String(r.taxPercentage),
+              formatCurrency(r.taxableAmount),
+              formatCurrency(r.taxCollected),
+            ])}
+          />
+        </div>
+      );
+    }
+    case 'invoice-late-fees': {
+      const d = data as import('@/types/api/analyticsReports').InvoiceLateFeesReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip items={[{ label: 'Total late delivery / fees (PKR)', value: formatCurrency(d.grandTotalLateFees) }]} />
+          <DataCardTable
+            headers={[
+              'Invoice',
+              'Hospital',
+              'Invoice date',
+              'Due',
+              'Days past due',
+              'Late fee (PKR)',
+              'Payable excl. tax (PKR)',
+              'Invoice total (PKR)',
+              'Outstanding (PKR)',
+            ]}
+            rows={d.rows.map((r) => [
+              r.invoiceNumber,
+              r.hospitalName,
+              fmtDate(r.invoiceDate),
+              fmtDate(r.dueDate),
+              r.daysPastDue == null ? '—' : String(r.daysPastDue),
+              formatCurrency(r.lateFeeAmount),
+              formatCurrency(r.totalPayableAmount),
+              formatCurrency(r.totalInvoiceAmount),
+              formatCurrency(r.outstandingAmount),
+            ])}
+          />
+        </div>
+      );
+    }
+    case 'invoices-outstanding': {
+      const d = data as import('@/types/api/analyticsReports').OutstandingInvoicesReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip items={[{ label: 'Remaining balance (PKR)', value: formatCurrency(d.totalRemainingBalance) }]} />
+          <DataCardTable
+            headers={['Invoice', 'Hospital', 'Due', 'Invoice (PKR)', 'Paid (PKR)', 'Balance (PKR)', 'Status']}
+            rows={d.rows.map((r) => [
+              r.invoiceNumber,
+              r.hospitalName,
+              fmtDate(r.dueDate),
+              formatCurrency(r.invoiceAmount),
+              formatCurrency(r.paidAmount),
+              formatCurrency(r.remainingBalance),
+              r.statusName,
+            ])}
+          />
+        </div>
+      );
+    }
+    case 'outstanding-by-hospital': {
+      const d = data as import('@/types/api/analyticsReports').OutstandingBalanceByHospitalReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip
+            items={[
+              { label: 'Unpaid invoices', value: String(d.totalUnpaidInvoiceCount) },
+              { label: 'Outstanding (PKR)', value: formatCurrency(d.grandTotalOutstanding) },
+              { label: 'Overdue (PKR)', value: formatCurrency(d.grandTotalOverdue) },
+            ]}
+          />
+          <DataCardTable
+            headers={[
+              'Hospital',
+              'Invoices',
+              'Outstanding (PKR)',
+              'Overdue (PKR)',
+              'Current',
+              '1–30',
+              '31–60',
+              '61–90',
+              '90+',
+            ]}
+            rows={d.rows.map((r) => {
+              const a = r.agingSummary;
+              return [
+                r.hospitalName,
+                String(r.unpaidInvoiceCount),
+                formatCurrency(r.totalOutstandingAmount),
+                formatCurrency(r.overdueOutstandingAmount),
+                formatCurrency(a.current),
+                formatCurrency(a.days1To30),
+                formatCurrency(a.days31To60),
+                formatCurrency(a.days61To90),
+                formatCurrency(a.daysOver90),
+              ];
+            })}
           />
         </div>
       );

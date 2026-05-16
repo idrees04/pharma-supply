@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Loader2, RefreshCw } from 'lucide-react';
+import { BarChart3, FileDown, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ import { useGetHospitals } from '@/hooks/useHospitals';
 import { useSupplierList } from '@/api/services/suppliers';
 import { useProductList } from '@/api/services/products';
 import { ApiError } from '@/api/errors';
+import { downloadAnalyticsReportPdf } from '@/lib/reportsPdfExport';
 
 const MODULE_OPTIONS: { id: ReportModuleId; label: string }[] = [
   { id: 'supply-order', label: 'Supply orders' },
@@ -215,6 +216,62 @@ export default function Reports() {
 
   const reportLabel = REPORTS_BY_MODULE[module].find((x) => x.id === reportId)?.label ?? reportId;
 
+  const hospitalFilterLabel = useMemo(() => {
+    if (!hospitalId) return 'All hospitals';
+    const h = hospitals.find((x) => String(x.id) === hospitalId);
+    return h?.hospitalName ?? `Hospital ID ${hospitalId}`;
+  }, [hospitalId, hospitals]);
+
+  const supplierFilterLabel = useMemo(() => {
+    if (!supplierId) return 'All suppliers';
+    const s = suppliers.find((x) => String(x.id) === supplierId);
+    return s?.supplierName ?? `Supplier ID ${supplierId}`;
+  }, [supplierId, suppliers]);
+
+  const productFilterLabel = useMemo(() => {
+    if (!productId) return 'All products';
+    const p = products.find((x) => String(x.id) === productId);
+    return p ? `${p.productCode} — ${p.productName}` : `Product ID ${productId}`;
+  }, [productId, products]);
+
+  const moduleLabel = useMemo(
+    () => `${MODULE_OPTIONS.find((o) => o.id === module)?.label ?? module} — analytics reports`,
+    [module],
+  );
+
+  const canExportPdf = Boolean(data) && !error && !isPending && !isFetching;
+
+  const handleExportPdf = useCallback(() => {
+    if (!data) return;
+    try {
+      downloadAnalyticsReportPdf({
+        reportId,
+        reportTitle: reportLabel,
+        moduleLabel,
+        dateFrom,
+        dateTo,
+        hospitalLabel: hospitalFilterLabel,
+        supplierLabel: supplierFilterLabel,
+        productLabel: productFilterLabel,
+        data,
+      });
+      toast.success('PDF downloaded');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Export failed';
+      toast.error(msg);
+    }
+  }, [
+    data,
+    reportId,
+    reportLabel,
+    moduleLabel,
+    dateFrom,
+    dateTo,
+    hospitalFilterLabel,
+    supplierFilterLabel,
+    productFilterLabel,
+  ]);
+
   return (
     <div className="space-y-6 animate-slide-up">
       <div>
@@ -354,6 +411,12 @@ export default function Reports() {
             {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Refresh report
           </Button>
+          {canExportPdf ? (
+            <Button type="button" variant="outline" className="gap-2" onClick={handleExportPdf}>
+              <FileDown className="h-4 w-4" />
+              Export PDF
+            </Button>
+          ) : null}
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             <BarChart3 className="h-4 w-4 shrink-0" />
             <span className="font-medium text-foreground">{reportLabel}</span>

@@ -7,6 +7,7 @@ import { Plus, Trash2, Loader2, Save, ShoppingCart, Calculator, Calendar, MapPin
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { QuantityInput } from '@/components/ui/quantity-input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import {
   Form,
@@ -31,7 +32,7 @@ import { useProductSuppliersByProduct } from '@/api/services/productSuppliers';
 import { useGetHospitals } from '@/hooks/useHospitals';
 import { useProductList } from '@/api/services/products';
 import { formatCurrency, cn } from '@/lib/utils';
-import { CreateSupplyOrderRequest, UpdateSupplyOrderRequest } from '@/types/api/supplyOrders';
+import { CreateSupplyOrderRequest, UpdateSupplyOrderRequest, SupplyOrderStatus } from '@/types/api/supplyOrders';
 import { Product } from '@/types/api/products';
 
 interface SupplyOrderFormProps {
@@ -46,7 +47,8 @@ type SupplyOrderFormValues = SupplyOrderFormData & {
 
 interface OrderItemRowProps {
   index: number;
-  isEditMode: boolean;
+  itemsEditable: boolean;
+  showRemoveColumn: boolean;
   form: UseFormReturn<SupplyOrderFormValues>;
   products: Product[];
   isLoadingProducts: boolean;
@@ -59,7 +61,8 @@ interface OrderItemRowProps {
 
 function OrderItemRow({
   index,
-  isEditMode,
+  itemsEditable,
+  showRemoveColumn,
   form,
   products,
   isLoadingProducts,
@@ -108,7 +111,7 @@ function OrderItemRow({
                   placeholder="Find Product..."
                   isLoading={isLoadingProducts}
                   className="w-full font-semibold h-9"
-                  disabled={isEditMode}
+                  disabled={!itemsEditable}
                 />
               </FormControl>
               <FormMessage className="text-[10px] mt-0.5" />
@@ -117,19 +120,21 @@ function OrderItemRow({
         />
       </TableCell>
 
-      <TableCell className="px-2 py-2">
+      <TableCell className="px-2 py-2 min-w-[7.5rem]">
         <FormField
           control={form.control}
           name={`items.${index}.orderedQuantity`}
           render={({ field }) => (
             <FormItem className="space-y-0">
               <FormControl>
-                <Input
-                  type="number"
-                  min="1"
-                  {...field}
-                  disabled={isEditMode}
-                  className="text-center font-black h-9 tabular-nums bg-white border-slate-200 focus:border-primary"
+                <QuantityInput
+                  name={field.name}
+                  ref={field.ref}
+                  value={Number(field.value) || 0}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  disabled={!itemsEditable}
+                  className="h-9 bg-white border-slate-200 focus:border-primary"
                 />
               </FormControl>
               <FormMessage className="text-[10px] mt-0.5" />
@@ -149,7 +154,7 @@ function OrderItemRow({
                   type="number"
                   step="0.01"
                   {...field}
-                  disabled={isEditMode}
+                  disabled={!itemsEditable}
                   className="text-right font-semibold h-9 tabular-nums bg-white border-slate-200 focus:border-primary"
                 />
               </FormControl>
@@ -170,7 +175,7 @@ function OrderItemRow({
                   type="number"
                   step="0.1"
                   {...field}
-                  disabled={isEditMode}
+                  disabled={!itemsEditable}
                   className="text-center font-medium h-9 tabular-nums bg-white border-slate-200 focus:border-primary px-1"
                 />
               </FormControl>
@@ -191,7 +196,7 @@ function OrderItemRow({
                   type="number"
                   step="0.1"
                   {...field}
-                  disabled={isEditMode}
+                  disabled={!itemsEditable}
                   className="text-center font-medium h-9 tabular-nums bg-white border-slate-200 focus:border-primary px-1"
                 />
               </FormControl>
@@ -212,7 +217,7 @@ function OrderItemRow({
                   items={fulfillmentSourceOptions}
                   value={field.value}
                   onValueChange={field.onChange}
-                  disabled={isEditMode}
+                  disabled={!itemsEditable}
                   placeholder="Select source"
                   searchPlaceholder="Search sources..."
                   className="h-9"
@@ -238,7 +243,7 @@ function OrderItemRow({
                   placeholder="Supplier (Optional)"
                   isLoading={isLoadingSuppliers}
                   className="w-full font-semibold h-9"
-                  disabled={isEditMode || !productId}
+                  disabled={!itemsEditable || !productId}
                 />
               </FormControl>
               <FormMessage className="text-[10px] mt-0.5" />
@@ -253,7 +258,7 @@ function OrderItemRow({
         </span>
       </TableCell>
 
-      {!isEditMode && (
+      {showRemoveColumn && (
         <TableCell className="text-center py-2">
           <Button
             type="button"
@@ -275,6 +280,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
   const navigate = useNavigate();
   const supplyOrderId = propSupplyOrderId || (id ? Number(id) : undefined);
   const isEditMode = !!supplyOrderId;
+  const isModalMode = !!propSupplyOrderId;
 
   const handleSuccess = () => {
     if (onSuccess) {
@@ -309,6 +315,18 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
   const sortedProducts = useMemo(() => {
     return [...products].sort((a, b) => b.id - a.id);
   }, [products]);
+
+  const isDraftOrder = existingSO?.status === SupplyOrderStatus.Draft;
+  const itemsEditable = !isEditMode || isDraftOrder;
+  const showRemoveColumn = itemsEditable;
+
+  const updateStatusOptions = useMemo(
+    () =>
+      (supplyOrderStatusOptions ?? []).filter(
+        (option) => option.value !== SupplyOrderStatus.Draft && option.name !== 'Draft',
+      ),
+    [supplyOrderStatusOptions],
+  );
 
   // 2. Form Setup
   const form = useForm<SupplyOrderFormValues>({
@@ -373,7 +391,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
         notes: data.notes || '',
         status: data.status ?? existingSO?.status ?? 1,
         items:
-          data.items?.length > 0
+          isDraftOrder && data.items?.length > 0
             ? data.items.map((item) => ({
                 productId: item.productId,
                 orderedQuantity: item.orderedQuantity,
@@ -489,9 +507,9 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
             </Button>
           </div>
         )}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className={cn('grid gap-6', isModalMode ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-4')}>
           {/* Left Column: Basic Info & Items */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className={cn('space-y-6', !isModalMode && 'lg:col-span-3')}>
             <Card className="border-t-4 border-t-primary shadow-sm overflow-hidden">
               <CardHeader className="bg-muted/30 pb-4">
                 <div className="flex items-center gap-2">
@@ -612,13 +630,18 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Status</FormLabel>
+                        {isDraftOrder && (
+                          <p className="text-xs text-muted-foreground mb-1">
+                            Current status is <span className="font-semibold text-foreground">Draft</span>. Select a new status to advance this order.
+                          </p>
+                        )}
                         <FormControl>
                           <EnumSelect
-                            items={supplyOrderStatusOptions}
+                            items={updateStatusOptions}
                             value={field.value}
                             onValueChange={field.onChange}
                             isLoading={isLoadingSupplyOrderStatuses}
-                            placeholder="Select status"
+                            placeholder={isDraftOrder ? 'Select new status…' : 'Select status'}
                             searchPlaceholder="Search statuses..."
                           />
                         </FormControl>
@@ -663,9 +686,13 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                       </span>
                     )}
                   </CardTitle>
-                  <CardDescription>Add products and fulfillment details</CardDescription>
+                  <CardDescription>
+                    {itemsEditable
+                      ? 'Add products and fulfillment details'
+                      : 'Line items are read-only after this order leaves Draft'}
+                  </CardDescription>
                 </div>
-                {!isEditMode && (
+                {itemsEditable && (
                   <Button
                     type="button"
                     variant="secondary"
@@ -687,20 +714,24 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                 )}
               </CardHeader>
               <CardContent className="p-0 border-t">
-                <div className="overflow-x-auto">
-                  <Table className="min-w-[1000px]">
+                <div className={cn(isModalMode ? 'overflow-x-hidden' : 'overflow-x-auto')}>
+                  <Table
+                    className={cn(
+                      isModalMode ? 'w-full table-fixed' : 'min-w-[1000px]',
+                    )}
+                  >
                     <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                       <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
-                        <TableHead className="w-[52px] text-center font-black text-slate-500 border-r border-slate-200 text-xs uppercase tracking-wider">#</TableHead>
-                        <TableHead className="min-w-[200px] pl-4 font-black text-slate-700 text-xs uppercase tracking-wider">Product</TableHead>
-                        <TableHead className="w-[80px] font-black text-slate-700 text-center text-xs uppercase tracking-wider">Qty</TableHead>
-                        <TableHead className="w-[110px] font-black text-slate-700 text-xs uppercase tracking-wider text-right">Price (PKR)</TableHead>
-                        <TableHead className="w-[80px] font-black text-slate-700 text-center text-xs uppercase tracking-wider">Tax %</TableHead>
-                        <TableHead className="w-[80px] font-black text-slate-700 text-center text-xs uppercase tracking-wider">Disc %</TableHead>
-                        <TableHead className="w-[120px] font-black text-slate-700 text-xs uppercase tracking-wider">Source</TableHead>
-                        <TableHead className="w-[150px] font-black text-slate-700 text-xs uppercase tracking-wider">Supplier</TableHead>
-                        <TableHead className="w-[130px] font-black text-primary text-right pr-5 text-xs uppercase tracking-wider bg-primary/5">Total (PKR)</TableHead>
-                        {!isEditMode && <TableHead className="w-[52px]" />}
+                        <TableHead className="w-[40px] text-center font-black text-slate-500 border-r border-slate-200 text-xs uppercase tracking-wider">#</TableHead>
+                        <TableHead className={cn('pl-2 font-black text-slate-700 text-xs uppercase tracking-wider', isModalMode ? 'w-[22%]' : 'min-w-[200px]')}>Product</TableHead>
+                        <TableHead className={cn('font-black text-slate-700 text-center text-xs uppercase tracking-wider', isModalMode ? 'w-[9%]' : 'min-w-[7.5rem] w-[7.5rem]')}>Qty</TableHead>
+                        <TableHead className={cn('font-black text-slate-700 text-xs uppercase tracking-wider text-right', isModalMode ? 'w-[11%]' : 'w-[110px]')}>Price (PKR)</TableHead>
+                        <TableHead className={cn('font-black text-slate-700 text-center text-xs uppercase tracking-wider', isModalMode ? 'w-[8%]' : 'w-[80px]')}>Tax %</TableHead>
+                        <TableHead className={cn('font-black text-slate-700 text-center text-xs uppercase tracking-wider', isModalMode ? 'w-[8%]' : 'w-[80px]')}>Disc %</TableHead>
+                        <TableHead className={cn('font-black text-slate-700 text-xs uppercase tracking-wider', isModalMode ? 'w-[12%]' : 'w-[120px]')}>Source</TableHead>
+                        <TableHead className={cn('font-black text-slate-700 text-xs uppercase tracking-wider', isModalMode ? 'w-[14%]' : 'w-[150px]')}>Supplier</TableHead>
+                        <TableHead className={cn('font-black text-primary text-right pr-2 text-xs uppercase tracking-wider bg-primary/5', isModalMode ? 'w-[12%]' : 'w-[130px]')}>Total (PKR)</TableHead>
+                        {showRemoveColumn && <TableHead className="w-[40px]" />}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -709,7 +740,8 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                           key={field.id}
                           index={index}
                           form={form}
-                          isEditMode={isEditMode}
+                          itemsEditable={itemsEditable}
+                          showRemoveColumn={showRemoveColumn}
                           products={sortedProducts}
                           isLoadingProducts={isLoadingProducts}
                           onRemove={remove}
@@ -730,7 +762,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                                 {formatCurrency(calculations.grandSubtotal)}
                               </span>
                             </TableCell>
-                            {!isEditMode && <TableCell />}
+                            {showRemoveColumn && <TableCell />}
                           </TableRow>
                           <TableRow className="bg-primary/5 font-black border-t border-slate-200">
                             <TableCell colSpan={8} className="text-right py-3 text-primary uppercase text-[12px] tracking-widest pr-4">
@@ -741,7 +773,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                                 {formatCurrency(calculations.grandTotal)}
                               </span>
                             </TableCell>
-                            {!isEditMode && <TableCell />}
+                            {showRemoveColumn && <TableCell />}
                           </TableRow>
                         </>
                       )}
@@ -751,7 +783,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                             <div className="flex flex-col items-center gap-2">
                               <Package className="h-8 w-8 opacity-20" />
                               <p className="italic">No items added to this supply order.</p>
-                              {!isEditMode && (
+                              {itemsEditable && (
                                 <Button type="button" variant="link" size="sm" onClick={() => append({ productId: 0, orderedQuantity: 1, unitPrice: 0, taxPercentage: 0, discountPercentage: 0, fulfillmentSource: 1, supplierId: 0 })}>
                                   Click here to add the first item
                                 </Button>
@@ -769,7 +801,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
 
           {/* Right Column: Summary Box */}
           <div className="space-y-6">
-            <Card className="sticky top-6 shadow-lg border-primary/20 overflow-hidden">
+            <Card className={cn('shadow-lg border-primary/20 overflow-hidden', !isModalMode && 'sticky top-6')}>
               <div className="h-2 bg-primary" />
               <CardHeader className="bg-muted/20 border-b">
                 <div className="flex items-center gap-2">

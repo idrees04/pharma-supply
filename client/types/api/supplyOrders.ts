@@ -7,6 +7,17 @@
 import { ApiResponse, PaginatedResponse } from './products';
 import type { DeliveryChallan } from './deliveryChallans';
 
+/** Matches backend SupplyOrderStatus enum */
+export enum SupplyOrderStatus {
+  Draft = 1,
+  Pending = 2,
+  Approved = 3,
+  PartiallyFulfilled = 4,
+  Fulfilled = 5,
+  Invoiced = 6,
+  Cancelled = 7,
+}
+
 /**
  * Supply Order Item entity
  */

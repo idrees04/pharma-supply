@@ -4,17 +4,19 @@ import { ApiResponse } from './common';
 
 /**
  * Account type enum matching the API's integer-based codes.
- * API returns `accountType: 1` (Cash), `2` (Bank), etc.
+ * API returns `accountType: 1` (Cash), `2` (Bank), `3` (Credit Card).
  */
 export enum AccountType {
     Cash = 1,
     Bank = 2,
+    CreditCard = 3,
 }
 
 /** Human-readable labels for AccountType */
 export const AccountTypeLabels: Record<AccountType, string> = {
     [AccountType.Cash]: 'Cash',
     [AccountType.Bank]: 'Bank',
+    [AccountType.CreditCard]: 'Credit Card',
 };
 
 // ─── DTOs ────────────────────────────────────────────────────────────────────

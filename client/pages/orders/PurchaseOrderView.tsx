@@ -608,14 +608,16 @@ export default function PurchaseOrderView() {
               </div>
             </SheetHeader>
             <div className="flex-1 overflow-y-auto p-6 bg-muted/5">
-              <ReceiveItemsForm
-                purchaseOrder={po}
-                onSuccess={() => {
-                  setIsReceiveSheetOpen(false);
-                  refetch();
-                }}
-                onCancel={() => setIsReceiveSheetOpen(false)}
-              />
+              {isReceiveSheetOpen && (
+                <ReceiveItemsForm
+                  purchaseOrder={po}
+                  onSuccess={() => {
+                    setIsReceiveSheetOpen(false);
+                    refetch();
+                  }}
+                  onCancel={() => setIsReceiveSheetOpen(false)}
+                />
+              )}
             </div>
           </div>
         </SheetContent>

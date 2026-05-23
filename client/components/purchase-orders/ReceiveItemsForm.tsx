@@ -12,6 +12,7 @@ import {
     User2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { addMonths, format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,23 +66,29 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
     const receiveItemsMutation = useReceiveItems();
     const [searchQuery, setSearchQuery] = useState('');
 
+    const mfgDateDefault = format(new Date(), 'yyyy-MM-dd');
+    const expDateDefault = format(addMonths(new Date(), 3), 'yyyy-MM-dd');
+
     const form = useForm<ReceiveItemsFormData>({
         resolver: zodResolver(receiveItemsSchema),
         mode: 'onChange',
         defaultValues: {
             purchaseOrderId: purchaseOrder.id,
             actualDeliveryDate: new Date().toISOString().split('T')[0],
-            items: purchaseOrder.items.map(item => ({
-                purchaseOrderItemId: item.id,
-                productName: item.productName,
-                orderedQuantity: item.orderedQuantity,
-                previouslyReceived: item.receivedQuantity,
-                receivedQuantity: 0,
-                batchNumber: '',
-                manufactureDate: '',
-                expiryDate: '',
-                notes: ''
-            }))
+            items: purchaseOrder.items.map(item => {
+                const remaining = Math.max(0, item.remainingQuantity);
+                return {
+                    purchaseOrderItemId: item.id,
+                    productName: item.productName,
+                    orderedQuantity: item.orderedQuantity,
+                    previouslyReceived: item.receivedQuantity,
+                    receivedQuantity: remaining,
+                    batchNumber: '',
+                    manufactureDate: remaining > 0 ? mfgDateDefault : '',
+                    expiryDate: remaining > 0 ? expDateDefault : '',
+                    notes: ''
+                };
+            })
         }
     });
 

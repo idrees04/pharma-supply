@@ -51,7 +51,7 @@ import { DeliveryChallanFromSupplyOrderPanel } from './DeliveryChallanFromSupply
 import { InvoiceCreationPanel } from './InvoiceCreationPanel';
 import { SupplyOrderDocumentsSection } from './SupplyOrderDocumentsSection';
 import { useSupplyOrderDeliveryChallans } from '@/api/services/supplyOrders.service';
-import type { SupplyOrderStatusOption } from '@/types/api/supplyOrders';
+import { SupplyOrderStatus, type SupplyOrderStatusOption } from '@/types/api/supplyOrders';
 import type { LucideIcon } from 'lucide-react';
 
 function iconForSupplyOrderStatusCode(code: string): LucideIcon {
@@ -573,17 +573,27 @@ export default function SupplyOrderView() {
 
       {/* Edit Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-none shadow-2xl">
-          <DialogHeader className="p-6 bg-muted/20 border-b">
+        <DialogContent className="flex max-h-[90vh] w-[min(96vw,72rem)] max-w-[72rem] flex-col overflow-hidden p-0 border-none shadow-2xl">
+          <DialogHeader className="shrink-0 border-b bg-muted/20 p-6">
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
               <Package className="h-6 w-6 text-primary" />
               Update Supply Order
             </DialogTitle>
             <DialogDescription>
-              Modify status and fulfillment details for SO <span className="font-mono font-bold text-foreground">{so.supplyOrderNumber}</span>
+              {so.status === SupplyOrderStatus.Draft ? (
+                <>
+                  Edit line items, pricing, and fulfillment for draft SO{' '}
+                  <span className="font-mono font-bold text-foreground">{so.supplyOrderNumber}</span>
+                </>
+              ) : (
+                <>
+                  Modify status and fulfillment details for SO{' '}
+                  <span className="font-mono font-bold text-foreground">{so.supplyOrderNumber}</span>
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
-          <div className="p-6">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-6">
             <SupplyOrderForm
               supplyOrderId={so.id}
               onSuccess={() => {

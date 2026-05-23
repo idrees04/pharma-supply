@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -57,13 +57,20 @@ export function EntityBulkImportDialog({
   const [file, setFile] = useState<File | null>(null);
   const [uploadPct, setUploadPct] = useState(0);
   const [result, setResult] = useState<BulkImportResult | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const clearFileInput = useCallback(() => {
+    setFile(null);
+    const el = fileInputRef.current;
+    if (el) el.value = '';
+  }, []);
 
   const reset = useCallback(() => {
     setPhase('idle');
-    setFile(null);
+    clearFileInput();
     setUploadPct(0);
     setResult(null);
-  }, []);
+  }, [clearFileInput]);
 
   const handleOpenChange = (next: boolean) => {
     if (!next && phase === 'uploading') return;
@@ -94,6 +101,8 @@ export function EntityBulkImportDialog({
       setResult(data);
       setPhase('done');
       setUploadPct(100);
+      // Avoid accidental re-import of the same file (would duplicate rows / re-hit API).
+      clearFileInput();
       if (data.importedCount > 0) onImported();
       toast.success(
         `Import finished: ${data.importedCount} saved, ${data.skippedDuplicateCount} duplicates skipped, ${data.failedValidationCount} failed.`
@@ -129,6 +138,7 @@ export function EntityBulkImportDialog({
           <div className="rounded-lg border border-dashed p-4 space-y-2">
             <label className="text-sm font-medium cursor-pointer flex items-center gap-2">
               <input
+                ref={fileInputRef}
                 type="file"
                 accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 className="sr-only"
@@ -146,6 +156,11 @@ export function EntityBulkImportDialog({
               </span>
             </label>
             <p className="text-xs text-muted-foreground">{fieldLegend}</p>
+            {phase === 'done' && !file && (
+              <p className="text-xs text-amber-800 dark:text-amber-200">
+                Choose an .xlsx file again to run another import (the previous file was cleared so the same sheet is not uploaded twice by mistake).
+              </p>
+            )}
           </div>
 
           {phase === 'uploading' && (
@@ -229,7 +244,7 @@ export function EntityBulkImportDialog({
               {phase === 'done' ? 'Close' : 'Cancel'}
             </Button>
             {phase !== 'uploading' && (
-              <Button type="button" onClick={handleImport} disabled={!file}>
+              <Button type="button" onClick={handleImport} disabled={!file || phase === 'done'}>
                 Import
               </Button>
             )}

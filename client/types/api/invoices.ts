@@ -46,6 +46,10 @@ export interface InvoiceDto {
     totalAmount: number;
     paidAmount: number;
     outstandingAmount: number;
+    /** Hospital AR before this invoice's remaining ex-tax due. */
+    previousBalance?: number;
+    /** Current total hospital outstanding (ex-tax receivable). */
+    hospitalOutstandingBalance?: number;
     /** Cumulative hospital / late-delivery deduction; reduces ex-tax collectible. */
     lateDeliveryDeduction?: number;
     /** TotalAmount − TaxAmount − LateDeliveryDeduction (supplier cash expectation). */

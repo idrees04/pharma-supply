@@ -153,6 +153,7 @@ export default function UnitsList() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-16">ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead className="w-24">Quantity</TableHead>
                 <TableHead className="w-28 text-center">Status</TableHead>
@@ -162,6 +163,9 @@ export default function UnitsList() {
             <TableBody>
               {units.map((unit) => (
                 <TableRow key={unit.id}>
+                  <TableCell className="tabular-nums text-muted-foreground font-mono text-sm">
+                    {unit.id}
+                  </TableCell>
                   <TableCell className="font-medium">{unit.name}</TableCell>
                   <TableCell>{unit.quantity}</TableCell>
                   <TableCell className="text-center">

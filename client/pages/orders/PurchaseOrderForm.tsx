@@ -7,6 +7,7 @@ import { Plus, Trash2, ArrowLeft, Loader2, Save, ShoppingCart, Calculator, Calen
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { QuantityInput } from '@/components/ui/quantity-input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import {
   Form,
@@ -455,12 +456,12 @@ export default function PurchaseOrderForm() {
                 </CardHeader>
                 <CardContent className="p-0 border-t">
                   <div className="overflow-x-auto">
-                    <Table className="min-w-[860px]">
+                    <Table className="min-w-[900px]">
                       <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                         <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
                           <TableHead className="w-[52px] text-center font-black text-slate-500 border-r border-slate-200 text-xs uppercase tracking-wider">#</TableHead>
                           <TableHead className="min-w-[260px] pl-4 font-black text-slate-700 text-xs uppercase tracking-wider">Product / Description</TableHead>
-                          <TableHead className="w-[110px] font-black text-slate-700 text-center text-xs uppercase tracking-wider">Qty</TableHead>
+                          <TableHead className="min-w-[7.5rem] w-[7.5rem] font-black text-slate-700 text-center text-xs uppercase tracking-wider">Qty</TableHead>
                           <TableHead className="w-[150px] font-black text-slate-700 text-xs uppercase tracking-wider">Unit Price (PKR)</TableHead>
                           <TableHead className="w-[100px] font-black text-blue-700 text-center text-xs uppercase tracking-wider bg-blue-50/60">Tax %</TableHead>
                           <TableHead className="w-[100px] font-black text-rose-700 text-center text-xs uppercase tracking-wider bg-rose-50/60">Disc %</TableHead>
@@ -515,21 +516,23 @@ export default function PurchaseOrderForm() {
                             </TableCell>
 
                             {/* Quantity */}
-                            <TableCell className="px-2 py-2">
+                            <TableCell className="px-2 py-2 min-w-[7.5rem]">
                               <FormField
                                 control={form.control}
                                 name={`items.${index}.orderedQuantity`}
                                 render={({ field }) => (
                                   <FormItem className="space-y-0">
                                     <FormControl>
-                                      <Input
-                                        type="number"
-                                        min="1"
-                                        {...field}
+                                      <QuantityInput
+                                        name={field.name}
+                                        ref={field.ref}
+                                        value={Number(field.value) || 0}
+                                        onChange={field.onChange}
+                                        onBlur={field.onBlur}
                                         disabled={isReadOnly}
                                         className={cn(
-                                          "text-center font-black h-9 tabular-nums bg-white border-slate-200 focus:border-primary focus:bg-white",
-                                          isReadOnly && "border-none bg-transparent text-center"
+                                          "h-9 bg-white border-slate-200 focus:border-primary focus:bg-white",
+                                          isReadOnly && "border-none bg-transparent"
                                         )}
                                       />
                                     </FormControl>

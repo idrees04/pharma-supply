@@ -304,6 +304,13 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
           <p className="text-[10px] text-slate-400">
             Thank you for your business. Please remit payment by the due date.
           </p>
+          <p className="text-xs text-amber-800/90 font-medium pt-2">
+            Previous balance (PKR):{' '}
+            <span className="font-bold tabular-nums">{formatCurrency(invoice.previousBalance ?? 0)}</span>
+            <span className="block text-[10px] font-normal text-slate-500 mt-0.5">
+              Amount owed before this invoice (ex. tax) — for your records only.
+            </span>
+          </p>
         </motion.div>
       </motion.div>
     );

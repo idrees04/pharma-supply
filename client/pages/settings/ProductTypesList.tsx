@@ -164,6 +164,7 @@ export default function ProductTypesList() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-16">ID</TableHead>
                 <TableHead>Type Name</TableHead>
                 <TableHead>Type Code</TableHead>
                 <TableHead>Description</TableHead>
@@ -175,6 +176,9 @@ export default function ProductTypesList() {
             <TableBody>
               {productTypes.map((productType) => (
                 <TableRow key={productType.id}>
+                  <TableCell className="tabular-nums text-muted-foreground font-mono text-sm">
+                    {productType.id}
+                  </TableCell>
                   <TableCell className="font-medium">
                     {productType.typeName}
                   </TableCell>

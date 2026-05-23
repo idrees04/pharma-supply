@@ -135,6 +135,8 @@ export default function BankAccountList() {
         <div className="flex items-center gap-2">
           {account.accountType === AccountType.Cash ? (
             <Wallet className="w-3.5 h-3.5 text-orange-500" />
+          ) : account.accountType === AccountType.CreditCard ? (
+            <CreditCard className="w-3.5 h-3.5 text-violet-500" />
           ) : (
             <Building2 className="w-3.5 h-3.5 text-blue-500" />
           )}

@@ -14,6 +14,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import {
   Dialog,
@@ -92,9 +94,20 @@ export default function InventoryList() {
     }));
   }, [debouncedSearch]);
 
-  const { data, isLoading } = useInventoryStocks(listParams);
-  const { data: lowStockProducts } = useLowStockProducts();
-  const { data: expiringBatches } = useExpiringBatches();
+  const {
+    data,
+    isLoading,
+    isFetching: isStocksFetching,
+    refetch: refetchStocks,
+  } = useInventoryStocks(listParams);
+  const { refetch: refetchLowStock, isFetching: isLowStockFetching } = useLowStockProducts();
+  const { refetch: refetchExpiring, isFetching: isExpiringFetching } = useExpiringBatches();
+
+  const isRefreshing = isStocksFetching || isLowStockFetching || isExpiringFetching;
+
+  const handleRefresh = () => {
+    void Promise.all([refetchStocks(), refetchLowStock(), refetchExpiring()]);
+  };
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryStockDto | null>(null);
@@ -249,6 +262,21 @@ export default function InventoryList() {
             ).
           </p>
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="w-fit shrink-0 gap-2"
+        >
+          {isRefreshing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          {isRefreshing ? 'Refreshing…' : 'Refresh'}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

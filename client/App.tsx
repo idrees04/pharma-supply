@@ -23,6 +23,7 @@ const LoginPage = lazy(() => import("./pages/Login"));
 const PurchaseOrderList = lazy(() => import("./pages/orders/PurchaseOrderList"));
 const PurchaseOrderForm = lazy(() => import("./pages/orders/PurchaseOrderForm"));
 const PurchaseOrderView = lazy(() => import("./pages/orders/PurchaseOrderView"));
+const PurchaseOrderPrintPage = lazy(() => import("./pages/orders/PurchaseOrderPrintPage"));
 const DeliveryChallanList = lazy(() => import("./pages/delivery/DeliveryChallanList"));
 const InvoiceList = lazy(() => import("./pages/invoices/InvoiceList"));
 const InvoiceDetailPage = lazy(() => import("./pages/invoices/InvoiceDetailPage"));
@@ -32,8 +33,11 @@ const PaymentList = lazy(() => import("./pages/finance/PaymentList"));
 const BankAccountList = lazy(() => import("./pages/finance/BankAccountList"));
 const AccountTransfersList = lazy(() => import("./pages/finance/AccountTransfersList"));
 const Reports = lazy(() => import("./pages/reports/Reports"));
+const VendorLedgerReport = lazy(() => import("./pages/reports/VendorLedgerReport"));
+const HospitalLedgerReport = lazy(() => import("./pages/reports/HospitalLedgerReport"));
 const ProductList = lazy(() => import("./pages/inventory/ProductList"));
 const InventoryList = lazy(() => import("./pages/inventory/InventoryList"));
+const StockLedgerPage = lazy(() => import("./pages/inventory/StockLedgerPage"));
 const SupplierList = lazy(() => import("./pages/suppliers/SupplierList"));
 const SupplierDetails = lazy(() => import("./pages/suppliers/SupplierDetails"));
 const HospitalList = lazy(() => import("./pages/hospitals/HospitalList"));
@@ -105,6 +109,16 @@ const AppRoutes = () => (
             <ProtectedRoute module="inventory" permission="read">
               <MainLayout>
                 <InventoryList />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="stock-ledger/:productId"
+          element={
+            <ProtectedRoute module="inventory" permission="read">
+              <MainLayout>
+                <StockLedgerPage />
               </MainLayout>
             </ProtectedRoute>
           }
@@ -240,6 +254,16 @@ const AppRoutes = () => (
           }
         />
         <Route
+          path="view/:id/print"
+          element={
+            <ProtectedRoute module="purchaseOrders" permission="read">
+              <MainLayout>
+                <PurchaseOrderPrintPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="view/:id"
           element={
             <ProtectedRoute module="purchaseOrders" permission="read">
@@ -336,6 +360,26 @@ const AppRoutes = () => (
           <ProtectedRoute module="transfers" permission="read">
             <MainLayout>
               <AccountTransfersList />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports/vendor-ledger"
+        element={
+          <ProtectedRoute module="reports" permission="read">
+            <MainLayout>
+              <VendorLedgerReport />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports/hospital-ledger"
+        element={
+          <ProtectedRoute module="reports" permission="read">
+            <MainLayout>
+              <HospitalLedgerReport />
             </MainLayout>
           </ProtectedRoute>
         }

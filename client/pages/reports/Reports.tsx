@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart3, FileDown, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -32,6 +32,7 @@ import type {
 import { useGetHospitals } from '@/hooks/useHospitals';
 import { useSupplierList } from '@/api/services/suppliers';
 import { useProductList } from '@/api/services/products';
+import { useAccountList } from '@/api/services/accounts';
 import { ApiError } from '@/api/errors';
 import { downloadAnalyticsReportPdf } from '@/lib/reportsPdfExport';
 
@@ -56,11 +57,17 @@ const REPORTS_BY_MODULE: Record<ReportModuleId, { id: AnalyticsReportId; label: 
   purchase: [
     { id: 'payables', label: 'PO payables by supplier' },
     { id: 'receipt-vs-order', label: 'Receipt vs order (lines)' },
+    { id: 'vendor-ledger', label: 'Vendor ledger' },
   ],
   finance: [
     { id: 'hospital-ar', label: 'Hospital AR / aging' },
     { id: 'cash-collections', label: 'Cash collections (receipts)' },
     { id: 'expenses-summary', label: 'Expenses by category' },
+    { id: 'profit-by-product', label: 'Profit by product' },
+    { id: 'profit-by-hospital', label: 'Profit by hospital' },
+    { id: 'payments-by-account', label: 'Payments by account' },
+    { id: 'balance-sheet', label: 'Balance sheet snapshot' },
+    { id: 'hospital-ledger', label: 'Hospital ledger' },
   ],
   invoices: [
     { id: 'invoice-tax-lines', label: 'Tax on invoices' },
@@ -115,14 +122,18 @@ export default function Reports() {
   const [hospitalId, setHospitalId] = useState<string>('');
   const [supplierId, setSupplierId] = useState<string>('');
   const [productId, setProductId] = useState<string>('');
+  const [accountId, setAccountId] = useState<string>('');
+  const [asOfDate, setAsOfDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   const { data: hospitalsData } = useGetHospitals({ pageNumber: 1, pageSize: 500 });
   const { data: suppliersData } = useSupplierList({ pageNumber: 1, pageSize: 500 });
   const { data: productsData } = useProductList({ pageNumber: 1, pageSize: 500 });
+  const { data: accountsData } = useAccountList();
 
   const hospitals = hospitalsData?.data?.items ?? [];
   const suppliers = suppliersData?.items ?? [];
   const products = productsData?.items ?? [];
+  const accounts = accountsData ?? [];
 
   const syncUrl = useCallback(
     (m: ReportModuleId, r: AnalyticsReportId) => {
@@ -151,8 +162,11 @@ export default function Reports() {
     if (hid && hid > 0) p.hospitalId = hid;
     if (sid && sid > 0) p.supplierId = sid;
     if (pid && pid > 0) p.productId = pid;
+    const aid = accountId ? Number(accountId) : undefined;
+    if (aid && aid > 0) p.accountId = aid;
+    if (reportId === 'balance-sheet') p.asOfDate = asOfDate;
     return p;
-  }, [dateFrom, dateTo, hospitalId, supplierId, productId]);
+  }, [dateFrom, dateTo, hospitalId, supplierId, productId, accountId, asOfDate, reportId]);
 
   const queryFn = useCallback(async () => {
     switch (reportId) {
@@ -184,14 +198,28 @@ export default function Reports() {
         return analyticsReportService.getInvoicesOutstanding(apiParams);
       case 'outstanding-by-hospital':
         return analyticsReportService.getOutstandingByHospital(apiParams);
+      case 'profit-by-product':
+        return analyticsReportService.getProfitByProduct(apiParams);
+      case 'profit-by-hospital':
+        return analyticsReportService.getProfitByHospital(apiParams);
+      case 'payments-by-account':
+        return analyticsReportService.getPaymentsByAccount(apiParams);
+      case 'balance-sheet':
+        return analyticsReportService.getBalanceSheet(apiParams);
+      case 'vendor-ledger':
+      case 'hospital-ledger':
+        return Promise.resolve(null);
       default:
         throw new Error('Unknown report');
     }
   }, [reportId, apiParams]);
 
+  const isLedgerRedirect = reportId === 'vendor-ledger' || reportId === 'hospital-ledger';
+
   const { data, isPending, error, refetch, isFetching } = useQuery({
     queryKey: ['analytics-report', reportId, apiParams],
     queryFn,
+    enabled: !isLedgerRedirect,
     staleTime: 60 * 1000,
   });
 
@@ -209,10 +237,20 @@ export default function Reports() {
     reportId === 'invoice-tax-lines' ||
     reportId === 'invoice-late-fees' ||
     reportId === 'invoices-outstanding' ||
-    reportId === 'outstanding-by-hospital';
-  const showSupplier = reportId === 'payables' || reportId === 'receipt-vs-order';
+    reportId === 'outstanding-by-hospital' ||
+    reportId === 'profit-by-hospital' ||
+    reportId === 'hospital-ledger';
+  const showSupplier =
+    reportId === 'payables' ||
+    reportId === 'receipt-vs-order' ||
+    reportId === 'vendor-ledger';
   const showProduct =
-    reportId === 'stock-position' || reportId === 'batch-expiry' || reportId === 'receipt-vs-order';
+    reportId === 'stock-position' ||
+    reportId === 'batch-expiry' ||
+    reportId === 'receipt-vs-order' ||
+    reportId === 'profit-by-product';
+  const showAccount = reportId === 'payments-by-account';
+  const showAsOfDate = reportId === 'balance-sheet';
 
   const reportLabel = REPORTS_BY_MODULE[module].find((x) => x.id === reportId)?.label ?? reportId;
 
@@ -404,6 +442,36 @@ export default function Reports() {
               </Select>
             </div>
           ) : null}
+
+          {showAccount ? (
+            <div className="space-y-2">
+              <Label>Account</Label>
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Select account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((a) => (
+                    <SelectItem key={a.id} value={String(a.id)}>
+                      {a.accountName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+
+          {showAsOfDate ? (
+            <div className="space-y-2">
+              <Label>As of date</Label>
+              <input
+                type="date"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={asOfDate}
+                onChange={(e) => setAsOfDate(e.target.value)}
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -425,7 +493,26 @@ export default function Reports() {
         </div>
       </Card>
 
-      <ReportResults reportId={reportId} data={data} isPending={isPending} error={error} />
+      {isLedgerRedirect ? (
+        <Card className="p-6 space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Open the dedicated ledger page with payment-wise and product-wise views.
+          </p>
+          <Button asChild>
+            <Link
+              to={
+                reportId === 'vendor-ledger'
+                  ? `/reports/vendor-ledger${supplierId ? `?supplierId=${supplierId}` : ''}`
+                  : `/reports/hospital-ledger${hospitalId ? `?hospitalId=${hospitalId}` : ''}`
+              }
+            >
+              Open {reportId === 'vendor-ledger' ? 'vendor' : 'hospital'} ledger
+            </Link>
+          </Button>
+        </Card>
+      ) : (
+        <ReportResults reportId={reportId} data={data} isPending={isPending} error={error} />
+      )}
     </div>
   );
 }
@@ -766,6 +853,76 @@ function ReportResults({
                 formatCurrency(a.daysOver90),
               ];
             })}
+          />
+        </div>
+      );
+    }
+    case 'profit-by-product':
+    case 'profit-by-hospital': {
+      const d = data as import('@/types/api/analyticsReports').ProfitReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip
+            items={[
+              { label: 'Revenue (PKR)', value: formatCurrency(d.totalRevenue) },
+              { label: 'Cost (PKR)', value: formatCurrency(d.totalCost) },
+              { label: 'Profit (PKR)', value: formatCurrency(d.totalProfit) },
+            ]}
+          />
+          <DataCardTable
+            headers={['Name', 'Code', 'Revenue', 'Cost', 'Profit', 'Margin %', 'Lines']}
+            rows={d.rows.map((r) => [
+              r.entityName,
+              r.entityCode ?? '—',
+              formatCurrency(r.revenue),
+              formatCurrency(r.cost),
+              formatCurrency(r.profit),
+              r.marginPercent == null ? '—' : `${r.marginPercent}%`,
+              String(r.lineCount),
+            ])}
+          />
+        </div>
+      );
+    }
+    case 'payments-by-account': {
+      const d = data as import('@/types/api/analyticsReports').PaymentsByAccountReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip
+            items={[
+              { label: 'Account', value: d.accountName },
+              { label: 'Closing balance (PKR)', value: formatCurrency(d.closingBalance) },
+            ]}
+          />
+          <DataCardTable
+            headers={['Date', 'Type', 'Reference', 'Debit', 'Credit', 'Balance', 'Description']}
+            rows={d.rows.map((r) => [
+              fmtDate(r.transactionDate),
+              r.transactionType,
+              r.referenceNumber,
+              formatCurrency(r.debit),
+              formatCurrency(r.credit),
+              formatCurrency(r.runningBalance),
+              r.description ?? '—',
+            ])}
+          />
+        </div>
+      );
+    }
+    case 'balance-sheet': {
+      const d = data as import('@/types/api/analyticsReports').BalanceSheetReportDto;
+      return (
+        <div className="space-y-4">
+          <SummaryStrip
+            items={[
+              { label: 'Total assets (PKR)', value: formatCurrency(d.totalAssets) },
+              { label: 'Total liabilities (PKR)', value: formatCurrency(d.totalLiabilities) },
+              { label: 'Equity proxy (PKR)', value: formatCurrency(d.equityProxy) },
+            ]}
+          />
+          <DataCardTable
+            headers={['Section', 'Line item', 'Amount (PKR)']}
+            rows={d.lines.map((l) => [l.section, l.label, formatCurrency(l.amount)])}
           />
         </div>
       );

@@ -29,6 +29,14 @@ import type {
   SupplyOrderFulfillmentSlaResponse,
   SupplyOrderPipelineResponse,
   SupplyOrdersByHospitalResponse,
+  ProfitReportDto,
+  ProfitReportResponse,
+  LedgerReportDto,
+  LedgerReportResponse,
+  PaymentsByAccountReportDto,
+  PaymentsByAccountResponse,
+  BalanceSheetReportDto,
+  BalanceSheetResponse,
 } from '@/types/api/analyticsReports';
 
 function appendReportParams(qs: URLSearchParams, p?: AnalyticsReportQueryParams) {
@@ -38,6 +46,9 @@ function appendReportParams(qs: URLSearchParams, p?: AnalyticsReportQueryParams)
   if (p.hospitalId != null) qs.append('hospitalId', String(p.hospitalId));
   if (p.supplierId != null) qs.append('supplierId', String(p.supplierId));
   if (p.productId != null) qs.append('productId', String(p.productId));
+  if (p.accountId != null) qs.append('accountId', String(p.accountId));
+  if (p.asOfDate) qs.append('asOfDate', p.asOfDate);
+  if (p.view) qs.append('view', p.view);
 }
 
 export const analyticsReportService = {
@@ -192,6 +203,74 @@ export const analyticsReportService = {
     appendReportParams(qs, params);
     const url = `/api/reports/finance/outstanding-by-hospital${qs.toString() ? `?${qs}` : ''}`;
     const res = await get<OutstandingByHospitalResponse>(url, config);
+    return res.data;
+  },
+
+  getProfitByProduct: async (
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<ProfitReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const res = await get<ProfitReportResponse>(`/api/reports/finance/profit-by-product?${qs}`, config);
+    return res.data;
+  },
+
+  getProfitByHospital: async (
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<ProfitReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const res = await get<ProfitReportResponse>(`/api/reports/finance/profit-by-hospital?${qs}`, config);
+    return res.data;
+  },
+
+  getVendorLedger: async (
+    supplierId: number,
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<LedgerReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const res = await get<LedgerReportResponse>(
+      `/api/reports/purchase/vendor-ledger/${supplierId}?${qs}`,
+      config
+    );
+    return res.data;
+  },
+
+  getHospitalLedger: async (
+    hospitalId: number,
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<LedgerReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const res = await get<LedgerReportResponse>(
+      `/api/reports/finance/hospital-ledger/${hospitalId}?${qs}`,
+      config
+    );
+    return res.data;
+  },
+
+  getPaymentsByAccount: async (
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<PaymentsByAccountReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const res = await get<PaymentsByAccountResponse>(`/api/reports/finance/payments-by-account?${qs}`, config);
+    return res.data;
+  },
+
+  getBalanceSheet: async (
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<BalanceSheetReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const res = await get<BalanceSheetResponse>(`/api/reports/finance/balance-sheet?${qs}`, config);
     return res.data;
   },
 };

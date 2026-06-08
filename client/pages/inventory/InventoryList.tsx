@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -74,6 +74,7 @@ const SORT_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export default function InventoryList() {
+  const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebouncedValue(searchInput, 350);
@@ -100,8 +101,16 @@ export default function InventoryList() {
     isFetching: isStocksFetching,
     refetch: refetchStocks,
   } = useInventoryStocks(listParams);
-  const { refetch: refetchLowStock, isFetching: isLowStockFetching } = useLowStockProducts();
-  const { refetch: refetchExpiring, isFetching: isExpiringFetching } = useExpiringBatches();
+  const {
+    data: lowStockProducts,
+    refetch: refetchLowStock,
+    isFetching: isLowStockFetching,
+  } = useLowStockProducts();
+  const {
+    data: expiringBatches,
+    refetch: refetchExpiring,
+    isFetching: isExpiringFetching,
+  } = useExpiringBatches();
 
   const isRefreshing = isStocksFetching || isLowStockFetching || isExpiringFetching;
 
@@ -393,6 +402,7 @@ export default function InventoryList() {
             <DataTable
               columns={columns}
               data={inventoryItems}
+              onRowClick={(row) => navigate(`/inventory/stock-ledger/${row.productId}`)}
               onEdit={canUpdate ? handleAdjustment : undefined}
               itemsPerPage={Math.max(inventoryItems.length, 1)}
               emptyMessage="No inventory items"

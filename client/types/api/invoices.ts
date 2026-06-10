@@ -35,6 +35,9 @@ export interface InvoiceDto {
     invoiceNumber: string | null;
     hospitalId: number;
     hospitalName: string | null;
+    hospitalRegistrationNumber?: string | null;
+    hospitalAddress?: string | null;
+    hospitalPhone?: string | null;
     invoiceDate: string; // ISO date-time
     dueDate: string; // ISO date-time
     status: InvoiceStatus;

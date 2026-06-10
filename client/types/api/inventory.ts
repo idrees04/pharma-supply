@@ -74,3 +74,29 @@ export type GetInventoryBatchesResponse = ApiResponse<PaginatedResponse<ProductB
 export type GetExpiringBatchesResponse = ApiResponse<ProductBatchDto[]>;
 export type CreateProductBatchResponse = ApiResponse<ProductBatchDto>;
 export type UpdateInventoryStockResponse = ApiResponse<InventoryStockDto>;
+
+export interface InventoryStockLedgerDto {
+    stock: InventoryStockDto;
+    batches: ProductBatchDto[];
+    movements: InventoryStockMovementDto[];
+}
+
+export type GetInventoryStockLedgerResponse = ApiResponse<InventoryStockLedgerDto>;
+
+export enum InventoryMovementType {
+    Receipt = 1,
+    Dispatch = 2,
+    Adjustment = 3,
+}
+
+export interface InventoryStockMovementDto {
+    movementDate: string;
+    type: InventoryMovementType;
+    quantityIn: number;
+    quantityOut: number;
+    purchaseOrderId: number | null;
+    deliveryChallanId: number | null;
+    productBatchId: number | null;
+    batchNumber: string | null;
+    notes: string | null;
+}

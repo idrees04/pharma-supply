@@ -20,6 +20,7 @@ import {
   Truck,
   Mail,
   Save,
+  Printer,
   TrendingUp,
   PackageCheck,
   CreditCard
@@ -289,9 +290,14 @@ export default function PurchaseOrderView() {
               )}
             </Tooltip>
           </TooltipProvider>
-          {/* <Button variant="ghost" size="icon" className="h-11 w-11 rounded-xl hover:bg-slate-100" onClick={() => window.print()}>
-            <Save className="h-5 w-5 text-slate-500" />
-          </Button> */}
+          <Button
+            variant="outline"
+            className="gap-2 h-12 px-5 text-base border-slate-200 hover:bg-slate-50 shadow-sm"
+            onClick={() => navigate(`/orders/purchase/view/${poId}/print`)}
+          >
+            <Printer className="h-5 w-5 text-primary shrink-0" />
+            <span className="font-semibold text-slate-700">Preview / Print</span>
+          </Button>
         </div>
       </motion.div>
 

@@ -3,6 +3,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { taxExclusiveCollectible, outstandingExTaxForInvoice } from '@/lib/invoiceReceivable';
 import { InvoiceDto } from '@/types/api/invoices';
 import { getInvoiceStatusClassName, getInvoiceStatusLabel } from '@/lib/invoiceStatusDisplay';
+import { PrintSignatureBlock } from '@/components/print/PrintSignatureBlock';
 import { motion } from 'framer-motion';
 
 interface InvoiceTemplateProps {
@@ -97,10 +98,23 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
               Bill To
             </p>
             <div className="space-y-1">
-              <p className="font-bold text-slate-900 text-sm">{invoice.hospitalName}</p>
-              <p className="text-xs text-slate-600">Hospital ID: #{invoice.hospitalId}</p>
-              <p className="text-xs text-slate-600">Supply Order ID: {invoice.supplyOrderId}</p>
-              <p className="text-xs text-slate-600">Contact the hospital directly</p>
+              <p className="font-bold text-slate-900 text-sm">{invoice.hospitalName ?? '—'}</p>
+              {invoice.hospitalRegistrationNumber ? (
+                <p className="text-xs text-slate-600">
+                  Hospital No: <span className="font-mono">{invoice.hospitalRegistrationNumber}</span>
+                </p>
+              ) : (
+                <p className="text-xs text-slate-600">Hospital ID: #{invoice.hospitalId}</p>
+              )}
+              {invoice.hospitalAddress ? (
+                <p className="text-xs text-slate-600">{invoice.hospitalAddress}</p>
+              ) : null}
+              {invoice.hospitalPhone ? (
+                <p className="text-xs text-slate-600">Tel: {invoice.hospitalPhone}</p>
+              ) : null}
+              {invoice.supplyOrderId ? (
+                <p className="text-xs text-slate-600">Supply Order ID: {invoice.supplyOrderId}</p>
+              ) : null}
             </div>
           </div>
         </motion.div>
@@ -265,30 +279,28 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
         </motion.div>
 
         {/* Notes & Terms */}
-        {(invoice.notes || invoice.termsAndConditions) && (
-          <motion.div variants={itemVariants} className="mb-6 space-y-4">
-            {invoice.notes && (
-              <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
-                  Notes
-                </p>
-                <p className="text-sm text-slate-700 leading-relaxed italic">
-                  {invoice.notes}
-                </p>
-              </div>
-            )}
-            {invoice.termsAndConditions && (
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
-                  Terms & Conditions
-                </p>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {invoice.termsAndConditions}
-                </p>
-              </div>
-            )}
-          </motion.div>
-        )}
+        <motion.div variants={itemVariants} className="mb-6 space-y-4">
+          <div>
+            <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
+              Notes
+            </p>
+            <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+              {invoice.notes?.trim() ? invoice.notes : '—'}
+            </p>
+          </div>
+          {invoice.termsAndConditions ? (
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
+                Terms & Conditions
+              </p>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {invoice.termsAndConditions}
+              </p>
+            </div>
+          ) : null}
+        </motion.div>
+
+        <PrintSignatureBlock />
 
         {/* Footer */}
         <motion.div

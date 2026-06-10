@@ -170,6 +170,14 @@ export default function SupplierDetails() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        className="gap-2 h-11 px-5 border-slate-200 hover:bg-slate-50 shadow-sm transition-all hover:scale-[1.02]"
+                        onClick={() => navigate(`/reports/vendor-ledger?supplierId=${supplier.id}`)}
+                    >
+                        <FileText className="w-4 h-4 text-emerald-600" />
+                        <span className="font-bold text-slate-700">Vendor ledger</span>
+                    </Button>
                     {canUpdate && (
                         <Button
                             variant="outline"

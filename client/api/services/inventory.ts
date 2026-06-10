@@ -8,12 +8,16 @@ import {
     GetInventoryStocksResponse,
     GetInventoryBatchesResponse,
     GetExpiringBatchesResponse,
+    GetInventoryStockLedgerResponse,
     CreateProductBatchResponse,
     UpdateInventoryStockResponse,
 } from '@/types/api/inventory';
 import { PaginatedResponse } from '@/types/api/common';
 import { useGetQuery, usePostMutation, usePutMutation } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
+import { resolveStockLedgerMovements } from '@/lib/inventory/stockLedgerMovements';
+import { enrichDispatchMovementsWithDeliveryChallans } from '@/lib/inventory/enrichStockLedgerMovements';
+import type { InventoryStockLedgerDto } from '@/types/api/inventory';
 
 export const inventoryService = {
     /**
@@ -98,6 +102,29 @@ export const inventoryService = {
         );
         return response.data;
     },
+
+    getStockLedger: async (productId: number, config?: RequestConfig): Promise<InventoryStockLedgerDto> => {
+        const response = await get<GetInventoryStockLedgerResponse>(
+            `/api/Inventory/stocks/${productId}/ledger`,
+            config
+        );
+        const ledger = response.data;
+        const apiMovements = ledger.movements ?? [];
+        const movements = resolveStockLedgerMovements(ledger);
+        const enrichedMovements =
+            apiMovements.length === 0
+                ? await enrichDispatchMovementsWithDeliveryChallans(
+                      productId,
+                      movements,
+                      ledger.batches ?? [],
+                  )
+                : movements;
+
+        return {
+            ...ledger,
+            movements: enrichedMovements,
+        };
+    },
 };
 
 /**
@@ -156,5 +183,13 @@ export function useAdjustStock(productId: number) {
                 queryClient.invalidateQueries({ queryKey: ['products', 'low-stock'] });
             },
         }
+    );
+}
+
+export function useInventoryStockLedger(productId: number | null) {
+    return useGetQuery(
+        ['inventory', 'stocks', productId, 'ledger'],
+        () => inventoryService.getStockLedger(productId as number),
+        { enabled: !!productId }
     );
 }

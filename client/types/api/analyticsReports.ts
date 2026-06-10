@@ -16,7 +16,13 @@ export type AnalyticsReportId =
   | 'invoice-tax-lines'
   | 'invoice-late-fees'
   | 'invoices-outstanding'
-  | 'outstanding-by-hospital';
+  | 'outstanding-by-hospital'
+  | 'profit-by-product'
+  | 'profit-by-hospital'
+  | 'vendor-ledger'
+  | 'hospital-ledger'
+  | 'payments-by-account'
+  | 'balance-sheet';
 
 export interface AnalyticsReportQueryParams {
   dateFrom?: string;
@@ -24,6 +30,9 @@ export interface AnalyticsReportQueryParams {
   hospitalId?: number;
   supplierId?: number;
   productId?: number;
+  accountId?: number;
+  asOfDate?: string;
+  view?: 'payment' | 'product';
 }
 
 // Supply order
@@ -285,3 +294,79 @@ export type InvoiceTaxLinesResponse = ApiResponse<InvoiceTaxLinesReportDto>;
 export type InvoiceLateFeesResponse = ApiResponse<InvoiceLateFeesReportDto>;
 export type OutstandingInvoicesResponse = ApiResponse<OutstandingInvoicesReportDto>;
 export type OutstandingByHospitalResponse = ApiResponse<OutstandingBalanceByHospitalReportDto>;
+
+export interface ProfitReportRowDto {
+  entityId: number;
+  entityName: string;
+  entityCode?: string | null;
+  revenue: number;
+  cost: number;
+  profit: number;
+  marginPercent?: number | null;
+  lineCount: number;
+}
+
+export interface ProfitReportDto {
+  rows: ProfitReportRowDto[];
+  totalRevenue: number;
+  totalCost: number;
+  totalProfit: number;
+}
+
+export interface LedgerEntryRowDto {
+  entryDate: string;
+  entryType: string;
+  referenceNumber: string;
+  productId?: number | null;
+  productName?: string | null;
+  quantity?: number | null;
+  debit: number;
+  credit: number;
+  runningBalance: number;
+  notes?: string | null;
+}
+
+export interface LedgerReportDto {
+  entityId: number;
+  entityName: string;
+  view: string;
+  rows: LedgerEntryRowDto[];
+  closingBalance: number;
+}
+
+export interface PaymentsByAccountRowDto {
+  transactionDate: string;
+  transactionType: string;
+  referenceNumber: string;
+  partyName?: string | null;
+  debit: number;
+  credit: number;
+  runningBalance: number;
+  description?: string | null;
+}
+
+export interface PaymentsByAccountReportDto {
+  accountId: number;
+  accountName: string;
+  rows: PaymentsByAccountRowDto[];
+  closingBalance: number;
+}
+
+export interface BalanceSheetLineDto {
+  section: string;
+  label: string;
+  amount: number;
+}
+
+export interface BalanceSheetReportDto {
+  asOfDate: string;
+  lines: BalanceSheetLineDto[];
+  totalAssets: number;
+  totalLiabilities: number;
+  equityProxy: number;
+}
+
+export type ProfitReportResponse = ApiResponse<ProfitReportDto>;
+export type LedgerReportResponse = ApiResponse<LedgerReportDto>;
+export type PaymentsByAccountResponse = ApiResponse<PaymentsByAccountReportDto>;
+export type BalanceSheetResponse = ApiResponse<BalanceSheetReportDto>;

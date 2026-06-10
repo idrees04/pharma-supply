@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import type { CreateIncomeRequest, UpdateIncomeRequest } from '@/types/api/incom
 import { IncomeStatus } from '@/types/api/incomes';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
+import { VoucherPreviewPanel } from '@/components/finance/VoucherPreviewPanel';
 
 const createSchema = z.object({
   incomeCategoryId: z.coerce.number().min(1, 'Select a category'),
@@ -108,6 +109,8 @@ export default function IncomeForm({ incomeId, onSuccess, onCancel }: IncomeForm
     });
   }, [income, isEdit, editForm]);
 
+  const createWatch = useWatch({ control: createForm.control });
+
   const onCreate = (v: CreateValues) => {
     const payload: CreateIncomeRequest = {
       incomeDate: new Date(v.incomeDate).toISOString(),
@@ -169,9 +172,13 @@ export default function IncomeForm({ incomeId, onSuccess, onCancel }: IncomeForm
   }
 
   if (!isEdit) {
+    const selectedCategory = categories?.find((c) => c.id === Number(createWatch.incomeCategoryId));
+    const selectedAccount = accounts?.find((a) => a.id === Number(createWatch.accountId));
+
     return (
-      <Form {...createForm}>
-        <form onSubmit={createForm.handleSubmit(onCreate)} className="space-y-4" noValidate>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Form {...createForm}>
+          <form onSubmit={createForm.handleSubmit(onCreate)} className="space-y-4" noValidate>
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField
               control={createForm.control}
@@ -305,7 +312,22 @@ export default function IncomeForm({ incomeId, onSuccess, onCancel }: IncomeForm
             </Button>
           </div>
         </form>
-      </Form>
+        </Form>
+        <VoucherPreviewPanel
+          data={{
+            title: 'Income voucher preview',
+            date: createWatch.incomeDate ?? new Date().toISOString().split('T')[0],
+            categoryName: selectedCategory?.categoryName,
+            accountName: selectedAccount?.accountName,
+            accountBalance: selectedAccount?.currentBalance,
+            payeeOrSource: createWatch.referenceNumber,
+            amount: Number(createWatch.amount) || 0,
+            description: createWatch.description,
+            referenceNumber: createWatch.referenceNumber,
+            notes: createWatch.notes,
+          }}
+        />
+      </div>
     );
   }
 

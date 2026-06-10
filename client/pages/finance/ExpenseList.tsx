@@ -42,6 +42,8 @@ import type { ExpenseDto, ExpenseListQueryParams } from '@/types/api/expenses';
 import { ExpenseStatus } from '@/types/api/expenses';
 import { useExpenseStatusOptions } from '@/hooks/dropdown';
 import ExpenseForm from './ExpenseForm';
+import BulkExpenseForm from './BulkExpenseForm';
+import { VoucherPreviewPanel } from '@/components/finance/VoucherPreviewPanel';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 const ITEMS_PER_PAGE_TABLE = 100;
@@ -85,6 +87,7 @@ export default function ExpenseList() {
   const { data: issuedList = [], isPending: loadingIssued } = useIssuedVoucherExpenses();
 
   const [formOpen, setFormOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editId, setEditId] = useState<number | undefined>(undefined);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [issueFor, setIssueFor] = useState<ExpenseDto | null>(null);
@@ -258,16 +261,25 @@ export default function ExpenseList() {
           </p>
         </div>
         {canCreate ? (
-          <Button
-            className="gap-2 shadow-md"
-            onClick={() => {
-              setEditId(undefined);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            Record expense
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setBulkOpen(true)}
+            >
+              Bulk entry
+            </Button>
+            <Button
+              className="gap-2 shadow-md"
+              onClick={() => {
+                setEditId(undefined);
+                setFormOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Record expense
+            </Button>
+          </div>
         ) : null}
       </div>
 
@@ -455,6 +467,22 @@ export default function ExpenseList() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bulk expense entry</DialogTitle>
+            <DialogDescription>Add multiple expense lines with shared date and account.</DialogDescription>
+          </DialogHeader>
+          <BulkExpenseForm
+            onSuccess={() => {
+              setBulkOpen(false);
+              setRefreshTrigger((n) => n + 1);
+            }}
+            onCancel={() => setBulkOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
       <ConfirmDialog
         open={deleteId !== null}
         onOpenChange={(o) => !o && setDeleteId(null)}
@@ -504,7 +532,7 @@ export default function ExpenseList() {
       </Dialog>
 
       <Dialog open={printForId !== null} onOpenChange={(o) => !o && setPrintForId(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Voucher preview</DialogTitle>
             <DialogDescription>Print-friendly voucher details for this expense.</DialogDescription>
@@ -528,25 +556,25 @@ function VoucherPrintBody({ expenseId }: { expenseId: number }) {
     );
 
   return (
-    <div className="space-y-3 rounded-xl border bg-muted/30 p-4 text-sm">
-      <div className="flex justify-between gap-4">
-        <span className="text-muted-foreground">Voucher #</span>
-        <span className="font-mono font-semibold">{v.voucherNumber}</span>
-      </div>
-      <div className="flex justify-between gap-4">
-        <span className="text-muted-foreground">Expense #</span>
-        <span className="font-mono">{v.expenseNumber}</span>
-      </div>
-      <div className="flex justify-between gap-4">
-        <span className="text-muted-foreground">Payee</span>
-        <span>{v.payeeName || '—'}</span>
-      </div>
-      <div className="flex justify-between gap-4">
-        <span className="text-muted-foreground">Amount (PKR)</span>
-        <span className="font-bold tabular-nums">{formatCurrency(v.amount)}</span>
-      </div>
-      <div className="rounded-lg bg-background p-3 text-xs italic text-muted-foreground">{v.amountInWords}</div>
-      <div className="flex justify-end pt-2">
+    <div className="space-y-4">
+      <VoucherPreviewPanel
+        data={{
+          title: 'Expense voucher',
+          number: v.voucherNumber ?? v.expenseNumber,
+          date: v.expenseDate,
+          categoryName: v.categoryName,
+          accountName: v.accountName,
+          payeeOrSource: v.payeeName,
+          amount: v.amount,
+          description: v.description,
+          referenceNumber: v.referenceNumber,
+          notes: v.notes,
+        }}
+      />
+      {v.amountInWords ? (
+        <div className="rounded-lg border bg-muted/30 p-3 text-xs italic text-muted-foreground">{v.amountInWords}</div>
+      ) : null}
+      <div className="flex justify-end">
         <Button type="button" variant="outline" className="gap-2" onClick={() => window.print()}>
           <Printer className="h-4 w-4" />
           Print

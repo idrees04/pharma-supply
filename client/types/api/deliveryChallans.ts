@@ -40,6 +40,11 @@ export interface DeliveryChallan {
   dispatchDate: string; // ISO date-time
   status: DeliveryChallanStatus;
   notes: string | null;
+  hospitalName?: string | null;
+  hospitalRegistrationNumber?: string | null;
+  hospitalAddress?: string | null;
+  hospitalPhone?: string | null;
+  shippingAddress?: string | null;
   items: DeliveryChallanItem[];
 }
 

@@ -59,7 +59,7 @@
   }
 
   .dark {
-    --background: 222.2 47.4% 2.5%;
+    /* --background: 222.2 47.4% 2.5%;
     --foreground: 210 40% 98%;
 
     --card: 222.2 47.4% 5.5%;
@@ -94,7 +94,51 @@
     --sidebar-accent: 172 66% 50%;
     --sidebar-accent-foreground: 222.2 47.4% 2.5%;
     --sidebar-border: 217.2 32.6% 12.5%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 217.2 91.2% 59.8%; */
+
+        --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Primary: Professional medical blue */
+    --primary: 212 100% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary: Complementary teal */
+    --secondary: 168 85% 42%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted: Subtle grays */
+    --muted: 210 15% 89%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Accent: Success green */
+    --accent: 142 76% 36%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 212 100% 42%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar: Clean professional look */
+    --sidebar-background: 210 14% 97%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 212 100% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 168 85% 42%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 212 100% 42%;
   }
 }
 

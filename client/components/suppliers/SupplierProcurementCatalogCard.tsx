@@ -29,8 +29,7 @@ export function SupplierProcurementCatalogCard({ supplierId }: SupplierProcureme
           <div>
             <CardTitle className="text-lg">Procurement catalogue</CardTitle>
             <CardDescription>
-              Contract rates and last purchase —{' '}
-              <code className="rounded bg-muted px-1 text-xs">GET /api/Suppliers/&#123;id&#125;/products</code>
+              Contract rates and last purchase
             </CardDescription>
           </div>
         </div>

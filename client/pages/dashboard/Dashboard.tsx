@@ -30,10 +30,6 @@ const DashboardPage: React.FC = () => {
       {/* Dashboard Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-primary mb-1">
-            <LayoutDashboard className="w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-wider">Operational Overview</span>
-          </div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         </div>
         <Button 

@@ -54,7 +54,7 @@ export function SupplierPurchaseOrdersSection({ supplierId }: SupplierPurchaseOr
             <div>
               <CardTitle className="text-lg">Purchase orders</CardTitle>
               <CardDescription>
-                From <code className="rounded bg-muted px-1 text-xs">GET /api/Suppliers/&#123;id&#125;/purchase-orders</code>
+                From Purchase order Summary 
               </CardDescription>
             </div>
           </div>

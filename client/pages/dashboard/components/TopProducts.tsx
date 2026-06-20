@@ -14,6 +14,9 @@ const TopProducts: React.FC = () => {
     if (error) return <TopProductsError />;
     if (!data || data.length === 0) return <EmptyState message="No product sales data." />;
 
+    // Show scroll only if more than 6 items
+    const shouldScroll = data.length > 6;
+
     return (
         <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -22,12 +25,17 @@ const TopProducts: React.FC = () => {
             className="h-full"
         >
             <Card className="h-full flex flex-col">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 shrink-0">
                     <CardTitle className="text-lg font-bold">Top Selling Products</CardTitle>
                     <Trophy className="w-5 h-5 text-amber-500" />
                 </CardHeader>
-                <CardContent className="flex-1">
-                    <div className="space-y-4">
+                <CardContent 
+                    className={`flex-1 min-h-0 ${shouldScroll ? 'overflow-y-auto' : ''}`}
+                    style={{ 
+                        maxHeight: shouldScroll ? '400px' : 'auto',
+                    }}
+                >
+                    <div className="space-y-2">
                         {data.map((product, idx) => {
                             const productName = product.productName ?? 'Unknown Product';
                             const productCode = product.productCode ?? `N/A-${idx}`;
@@ -57,6 +65,11 @@ const TopProducts: React.FC = () => {
                             );
                         })}
                     </div>
+                    {shouldScroll && data.length > 6 && (
+                        <div className="text-xs text-muted-foreground text-center pt-2 border-t mt-2">
+                            Showing {data.length} products
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </motion.div>
@@ -64,10 +77,10 @@ const TopProducts: React.FC = () => {
 };
 
 const TopProductsSkeleton = () => (
-    <Card className="h-full animate-pulse">
-        <CardHeader className="h-16 bg-muted/50 rounded-t-xl" />
-        <CardContent className="p-6 space-y-4">
-            {[...Array(5)].map((_, i) => (
+    <Card className="h-full animate-pulse flex flex-col">
+        <CardHeader className="h-16 bg-muted/50 rounded-t-xl shrink-0" />
+        <CardContent className="flex-1 p-6 space-y-3">
+            {[...Array(6)].map((_, i) => (
                 <div key={i} className="flex justify-between items-center h-12 bg-muted/30 rounded-lg px-4" />
             ))}
         </CardContent>

@@ -16,24 +16,33 @@ const PendingPaymentsTable: React.FC = () => {
     if (error) return <PendingError />;
     if (!data || data.length === 0) return <EmptyState message="No pending payments." />;
 
+    // Show scroll only if more than 6 items
+    const shouldScroll = data.length > 6;
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.4 }}
+            className="h-full"
         >
-            <Card className="h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <Card className="h-full flex flex-col">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 shrink-0">
                     <CardTitle className="text-lg font-bold">Pending Payment Alerts</CardTitle>
                     <Badge variant="outline" className="font-mono">
                         {data.length} active
                     </Badge>
                 </CardHeader>
-                <CardContent>
+                <CardContent
+                    className={`flex-1 min-h-0 p-0 ${shouldScroll ? 'overflow-y-auto' : ''}`}
+                    style={{
+                        maxHeight: shouldScroll ? '450px' : 'auto',
+                    }}
+                >
                     {/* Desktop View */}
                     <div className="hidden md:block">
                         <Table>
-                            <TableHeader>
+                            <TableHeader className={`${shouldScroll ? 'sticky top-0 bg-card z-10' : ''}`}>
                                 <TableRow>
                                     <TableHead>Invoice #</TableHead>
                                     <TableHead>Hospital</TableHead>
@@ -49,7 +58,7 @@ const PendingPaymentsTable: React.FC = () => {
                                     const daysOverdue = payment.daysOverdue;
                                     let statusText = '';
                                     let variant: 'destructive' | 'outline' | 'secondary' = 'outline';
-                                    
+
                                     if (isOverdue) {
                                         statusText = `Overdue ${daysOverdue > 0 ? formatRelativeDays(daysOverdue) : ''}`;
                                         variant = 'destructive';
@@ -62,7 +71,7 @@ const PendingPaymentsTable: React.FC = () => {
                                     }
 
                                     return (
-                                        <TableRow 
+                                        <TableRow
                                             key={`${payment.invoiceNumber}-${idx}`}
                                             className="cursor-pointer hover:bg-muted/50 transition-colors group"
                                             onClick={() => navigate(`/invoices?search=${payment.invoiceNumber}`)}
@@ -91,13 +100,13 @@ const PendingPaymentsTable: React.FC = () => {
                     </div>
 
                     {/* Mobile View */}
-                    <div className="md:hidden space-y-3">
+                    <div className="md:hidden p-4 space-y-3">
                         {data.map((payment, idx) => {
                             const isOverdue = payment.isOverdue;
                             const variant: 'destructive' | 'outline' | 'secondary' = isOverdue ? 'destructive' : payment.netDays <= 7 ? 'outline' : 'secondary';
-                            
+
                             return (
-                                <div 
+                                <div
                                     key={`${payment.invoiceNumber}-${idx}`}
                                     className="p-4 rounded-lg border bg-card hover:border-primary transition-colors cursor-pointer"
                                     onClick={() => navigate(`/invoices?search=${payment.invoiceNumber}`)}
@@ -124,6 +133,11 @@ const PendingPaymentsTable: React.FC = () => {
                             );
                         })}
                     </div>
+                    {shouldScroll && data.length > 6 && (
+                        <div className="text-xs text-muted-foreground text-center py-2 border-t">
+                            Showing {data.length} payments
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </motion.div>
@@ -131,11 +145,11 @@ const PendingPaymentsTable: React.FC = () => {
 };
 
 const PendingSkeleton = () => (
-    <Card className="animate-pulse">
-        <CardHeader className="h-16 bg-muted/50 rounded-t-xl" />
-        <CardContent className="p-6">
+    <Card className="h-full animate-pulse flex flex-col">
+        <CardHeader className="h-16 bg-muted/50 rounded-t-xl shrink-0" />
+        <CardContent className="flex-1 p-6">
             <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
+                {[...Array(6)].map((_, i) => (
                     <div key={i} className="h-16 bg-muted/30 rounded-lg" />
                 ))}
             </div>
@@ -144,16 +158,16 @@ const PendingSkeleton = () => (
 );
 
 const PendingError = () => (
-    <Card>
-        <CardContent className="flex items-center justify-center h-64 text-red-500">
+    <Card className="h-full">
+        <CardContent className="flex items-center justify-center h-full min-h-[300px] text-red-500">
             Failed to load pending payments.
         </CardContent>
     </Card>
 );
 
 const EmptyState = ({ message }: { message: string }) => (
-    <Card>
-        <CardContent className="flex items-center justify-center h-64 text-muted-foreground">
+    <Card className="h-full">
+        <CardContent className="flex items-center justify-center h-full min-h-[300px] text-muted-foreground">
             {message}
         </CardContent>
     </Card>

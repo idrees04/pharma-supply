@@ -25,12 +25,30 @@ const DashboardPage: React.FC = () => {
     setIsRefreshing(false);
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="max-w-[1600px] mx-auto space-y-8 pb-8">
+    <motion.div 
+      className="max-w-[1600px] mx-auto space-y-8 pb-8 pr-2"
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+    >
       {/* Dashboard Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">Dashboard</h1>
         </div>
         <Button 
           variant="outline" 
@@ -42,33 +60,43 @@ const DashboardPage: React.FC = () => {
           <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
           {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
         </Button>
-      </div>
+      </motion.div>
 
       {/* Zone 1: Vital Stats & Risks (Liquidity + Top Exceptions) */}
-      <LiquidityRiskSection />
+      <motion.div variants={itemVariants}>
+        <LiquidityRiskSection />
+      </motion.div>
 
       {/* Zone 2: Operational Pipeline */}
-      <OperationsPipelineSection />
+      <motion.div variants={itemVariants}>
+        <OperationsPipelineSection />
+      </motion.div>
 
-      {/* Zone 3: Market & Performance */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      {/* Zone 3: Market & Performance - Equal heights with flex */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 min-h-[400px] hover:shadow-lg transition-shadow duration-300 rounded-xl">
           <MonthlySalesChart />
         </div>
-        <div className="h-full">
+        <div className="min-h-[400px] hover:shadow-lg transition-shadow duration-300 rounded-xl">
           <TopProducts />
         </div>
-      </div>
+      </motion.div>
 
-      {/* Zone 4: Exception Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <LowStockTable />
-        <PendingPaymentsTable />
-      </div>
+      {/* Zone 4: Exception Details - Equal heights with flex */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="min-h-[400px] hover:shadow-lg transition-shadow duration-300 rounded-xl">
+          <LowStockTable />
+        </div>
+        <div className="min-h-[400px] hover:shadow-lg transition-shadow duration-300 rounded-xl">
+          <PendingPaymentsTable />
+        </div>
+      </motion.div>
 
       {/* Zone 5: Master Data Snapshot */}
-      <NetworkSnapshotSection />
-    </div>
+      <motion.div variants={itemVariants}>
+        <NetworkSnapshotSection />
+      </motion.div>
+    </motion.div>
   );
 };
 

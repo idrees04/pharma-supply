@@ -9,7 +9,6 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
-    Cell,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { motion } from 'framer-motion';
@@ -35,9 +34,10 @@ const MonthlySalesChart: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="h-full"
         >
-            <Card className="overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between">
+            <Card className="overflow-hidden h-full flex flex-col">
+                <CardHeader className="flex flex-row items-center justify-between shrink-0 pb-2">
                     <div>
                         <CardTitle className="text-lg font-bold">Sales vs Purchases</CardTitle>
                         <CardDescription>Monthly trend comparison</CardDescription>
@@ -50,8 +50,8 @@ const MonthlySalesChart: React.FC = () => {
                         <BarChart3 className="w-5 h-5" />
                     </div>
                 </CardHeader>
-                <CardContent className="pt-0">
-                    <div className="h-[350px] md:h-[400px] w-full">
+                <CardContent className="flex-1 min-h-0 pt-0">
+                    <div className="h-full w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart 
                                 data={chartData} 
@@ -136,9 +136,9 @@ const MonthlySalesChart: React.FC = () => {
 };
 
 const ChartSkeleton = () => (
-    <Card className="animate-pulse">
-        <CardHeader className="h-20 bg-muted/50 rounded-t-xl" />
-        <CardContent className="h-[400px] p-6">
+    <Card className="h-full animate-pulse flex flex-col">
+        <CardHeader className="h-16 bg-muted/50 rounded-t-xl shrink-0" />
+        <CardContent className="flex-1 p-6 min-h-0">
             <div className="h-full w-full bg-muted/20 rounded-lg flex items-end gap-4 p-4">
                 {[...Array(6)].map((_, i) => (
                     <div key={i} className="flex-1 bg-muted/30 rounded-t" style={{ height: `${20 + Math.random() * 60}%` }} />
@@ -149,8 +149,8 @@ const ChartSkeleton = () => (
 );
 
 const ChartError = () => (
-    <Card>
-        <CardContent className="flex flex-col items-center justify-center h-[450px] text-red-500 gap-2">
+    <Card className="h-full">
+        <CardContent className="flex flex-col items-center justify-center h-full min-h-[300px] text-red-500 gap-2">
             <TrendingUp className="w-8 h-8 opacity-20" />
             <p>Failed to load monthly data.</p>
         </CardContent>
@@ -158,8 +158,8 @@ const ChartError = () => (
 );
 
 const EmptyState = () => (
-    <Card>
-        <CardContent className="flex items-center justify-center h-[450px] text-muted-foreground">
+    <Card className="h-full">
+        <CardContent className="flex items-center justify-center h-full min-h-[300px] text-muted-foreground">
             No monthly data available.
         </CardContent>
     </Card>

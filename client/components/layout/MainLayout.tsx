@@ -254,12 +254,12 @@ const menuItems: MenuItemType[] = [
         href: "/settings/tax-configuration",
         module: "products",
       },
-      {
-        icon: <Settings className="w-4 h-4" />,
-        label: "System Configuration",
-        href: "/settings/system-configuration",
-        module: "systemConfiguration",
-      },
+      // {
+      //   icon: <Settings className="w-4 h-4" />,
+      //   label: "System Configuration",
+      //   href: "/settings/system-configuration",
+      //   module: "systemConfiguration",
+      // },
     ],
   },
 ];
@@ -334,9 +334,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
           {/* User Nav - Visible on all screens */}
           <div className="flex items-center gap-2 md:gap-4">
-            <div className="hidden">
-              <ThemeToggle />
-            </div>
+            <ThemeToggle />
             <UserNav />
             {/* Mobile Menu Trigger */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>

@@ -1,6 +1,6 @@
 import "./global.css";
 import React, { Suspense, lazy, StrictMode } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
@@ -79,382 +79,316 @@ const AppRoutes = () => (
       />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Protected Routes - Require Authentication + Permissions */}
+
       <Route
-        path="/"
         element={
           <ProtectedRoute>
             <MainLayout>
-              <Dashboard />
+              <Suspense fallback={<PageLoader />}>
+                <Outlet />
+              </Suspense>
             </MainLayout>
           </ProtectedRoute>
         }
-      />
-      <Route path="/dashboard" element={<Navigate to="/" replace />} />
+      >
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
-      <Route
-        path="/users"
-        element={
-          <ProtectedRoute module="users" permission="read">
-            <MainLayout>
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute module="users" permission="read">
               <UsersPage />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route path="/inventory">
-        <Route
-          index
-          element={
-            <ProtectedRoute module="inventory" permission="read">
-              <MainLayout>
-                <InventoryList />
-              </MainLayout>
             </ProtectedRoute>
           }
         />
-        <Route
-          path="stock-ledger/:productId"
-          element={
-            <ProtectedRoute module="inventory" permission="read">
-              <MainLayout>
-                <StockLedgerPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route path="products">
+        <Route path="/inventory">
           <Route
             index
             element={
-              <ProtectedRoute module="products" permission="read">
-                <MainLayout>
+              <ProtectedRoute module="inventory" permission="read">
+                <InventoryList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="stock-ledger/:productId"
+            element={
+              <ProtectedRoute module="inventory" permission="read">
+                <StockLedgerPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="products">
+            <Route
+              index
+              element={
+                <ProtectedRoute module="products" permission="read">
                   <ProductList />
-                </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path=":id"
+              element={
+                <ProtectedRoute module="products" permission="read">
+                  <ProductDetails />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
+        </Route>
+        <Route path="/suppliers">
+          <Route
+            index
+            element={
+              <ProtectedRoute module="suppliers" permission="read">
+                <SupplierList />
               </ProtectedRoute>
             }
           />
           <Route
             path=":id"
             element={
-              <ProtectedRoute module="products" permission="read">
-                <MainLayout>
-                  <ProductDetails />
-                </MainLayout>
+              <ProtectedRoute module="suppliers" permission="read">
+                <SupplierDetails />
               </ProtectedRoute>
             }
           />
         </Route>
-      </Route>
-      <Route path="/suppliers">
-        <Route
-          index
-          element={
-            <ProtectedRoute module="suppliers" permission="read">
-              <MainLayout>
-                <SupplierList />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path=":id"
-          element={
-            <ProtectedRoute module="suppliers" permission="read">
-              <MainLayout>
-                <SupplierDetails />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-      </Route>
-      <Route path="/hospitals">
-        <Route
-          index
-          element={
-            <ProtectedRoute module="hospitals" permission="read">
-              <MainLayout>
+        <Route path="/hospitals">
+          <Route
+            index
+            element={
+              <ProtectedRoute module="hospitals" permission="read">
                 <HospitalList />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path=":id"
-          element={
-            <ProtectedRoute module="hospitals" permission="read">
-              <MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path=":id"
+            element={
+              <ProtectedRoute module="hospitals" permission="read">
                 <HospitalDetails />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-      </Route>
-      <Route path="/supply-orders">
-        <Route
-          index
-          element={
-            <ProtectedRoute module="supplyOrders" permission="read">
-              <MainLayout>
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+        <Route path="/supply-orders">
+          <Route
+            index
+            element={
+              <ProtectedRoute module="supplyOrders" permission="read">
                 <SupplyOrderList />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="create"
-          element={
-            <ProtectedRoute module="supplyOrders" permission="create">
-              <MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="create"
+            element={
+              <ProtectedRoute module="supplyOrders" permission="create">
                 <SupplyOrderForm />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="view/:id"
-          element={
-            <ProtectedRoute module="supplyOrders" permission="read">
-              <MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="view/:id"
+            element={
+              <ProtectedRoute module="supplyOrders" permission="read">
                 <SupplyOrderView />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="edit/:id"
-          element={
-            <ProtectedRoute module="supplyOrders" permission="update">
-              <MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="edit/:id"
+            element={
+              <ProtectedRoute module="supplyOrders" permission="update">
                 <SupplyOrderForm />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-      </Route>
-      <Route path="/orders/purchase">
-        <Route
-          index
-          element={
-            <ProtectedRoute module="purchaseOrders" permission="read">
-              <MainLayout>
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+        <Route path="/orders/purchase">
+          <Route
+            index
+            element={
+              <ProtectedRoute module="purchaseOrders" permission="read">
                 <PurchaseOrderList />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="create"
-          element={
-            <ProtectedRoute module="purchaseOrders" permission="create">
-              <MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="create"
+            element={
+              <ProtectedRoute module="purchaseOrders" permission="create">
                 <PurchaseOrderForm />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="view/:id/print"
-          element={
-            <ProtectedRoute module="purchaseOrders" permission="read">
-              <MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="view/:id/print"
+            element={
+              <ProtectedRoute module="purchaseOrders" permission="read">
                 <PurchaseOrderPrintPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="view/:id"
-          element={
-            <ProtectedRoute module="purchaseOrders" permission="read">
-              <MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="view/:id"
+            element={
+              <ProtectedRoute module="purchaseOrders" permission="read">
                 <PurchaseOrderView />
-              </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="edit/:id"
+            element={
+              <ProtectedRoute module="purchaseOrders" permission="update">
+                <PurchaseOrderForm />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+        <Route
+          path="/delivery"
+          element={
+            <ProtectedRoute module="deliveryChallans" permission="read">
+              <DeliveryChallanList />
             </ProtectedRoute>
           }
         />
         <Route
-          path="edit/:id"
+          path="/invoices/:id"
           element={
-            <ProtectedRoute module="purchaseOrders" permission="update">
-              <MainLayout>
-                <PurchaseOrderForm />
-              </MainLayout>
+            <ProtectedRoute module="invoices" permission="read">
+              <InvoiceDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/invoices"
+          element={
+            <ProtectedRoute module="invoices" permission="read">
+              <InvoiceList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/expenses"
+          element={
+            <ProtectedRoute module="expenses" permission="read">
+              <ExpenseList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/incomes"
+          element={
+            <ProtectedRoute module="incomes" permission="read">
+              <IncomeList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/payments"
+          element={
+            <ProtectedRoute module="payments" permission="read">
+              <PaymentList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/accounts"
+          element={
+            <ProtectedRoute module="bankAccounts" permission="read">
+              <BankAccountList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/transfers"
+          element={
+            <ProtectedRoute module="transfers" permission="read">
+              <AccountTransfersList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports/vendor-ledger"
+          element={
+            <ProtectedRoute module="reports" permission="read">
+              <VendorLedgerReport />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports/hospital-ledger"
+          element={
+            <ProtectedRoute module="reports" permission="read">
+              <HospitalLedgerReport />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute module="reports" permission="read">
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/product-types"
+          element={
+            <ProtectedRoute module="products" permission="read">
+              <ProductTypesList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/units"
+          element={
+            <ProtectedRoute module="products" permission="read">
+              <UnitsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/expense-categories"
+          element={
+            <ProtectedRoute module="expenses" permission="read">
+              <ExpenseCategoriesList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/income-categories"
+          element={
+            <ProtectedRoute module="incomeCategories" permission="read">
+              <IncomeCategoriesList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/tax-configuration"
+          element={
+            <ProtectedRoute module="products" permission="read">
+              <TaxConfigurationList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/system-configuration"
+          element={
+            <ProtectedRoute module="systemConfiguration" permission="read">
+              <SystemConfigurationPage />
             </ProtectedRoute>
           }
         />
       </Route>
-      <Route
-        path="/delivery"
-        element={
-          <ProtectedRoute module="deliveryChallans" permission="read">
-            <MainLayout>
-              <DeliveryChallanList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/invoices/:id"
-        element={
-          <ProtectedRoute module="invoices" permission="read">
-            <MainLayout>
-              <InvoiceDetailPage />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/invoices"
-        element={
-          <ProtectedRoute module="invoices" permission="read">
-            <MainLayout>
-              <InvoiceList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/finance/expenses"
-        element={
-          <ProtectedRoute module="expenses" permission="read">
-            <MainLayout>
-              <ExpenseList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/finance/incomes"
-        element={
-          <ProtectedRoute module="incomes" permission="read">
-            <MainLayout>
-              <IncomeList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/finance/payments"
-        element={
-          <ProtectedRoute module="payments" permission="read">
-            <MainLayout>
-              <PaymentList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/finance/accounts"
-        element={
-          <ProtectedRoute module="bankAccounts" permission="read">
-            <MainLayout>
-              <BankAccountList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/finance/transfers"
-        element={
-          <ProtectedRoute module="transfers" permission="read">
-            <MainLayout>
-              <AccountTransfersList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/reports/vendor-ledger"
-        element={
-          <ProtectedRoute module="reports" permission="read">
-            <MainLayout>
-              <VendorLedgerReport />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/reports/hospital-ledger"
-        element={
-          <ProtectedRoute module="reports" permission="read">
-            <MainLayout>
-              <HospitalLedgerReport />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/reports"
-        element={
-          <ProtectedRoute module="reports" permission="read">
-            <MainLayout>
-              <Reports />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/product-types"
-        element={
-          <ProtectedRoute module="products" permission="read">
-            <MainLayout>
-              <ProductTypesList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/units"
-        element={
-          <ProtectedRoute module="products" permission="read">
-            <MainLayout>
-              <UnitsList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/expense-categories"
-        element={
-          <ProtectedRoute module="expenses" permission="read">
-            <MainLayout>
-              <ExpenseCategoriesList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/income-categories"
-        element={
-          <ProtectedRoute module="incomeCategories" permission="read">
-            <MainLayout>
-              <IncomeCategoriesList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/tax-configuration"
-        element={
-          <ProtectedRoute module="products" permission="read">
-            <MainLayout>
-              <TaxConfigurationList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/system-configuration"
-        element={
-          <ProtectedRoute module="systemConfiguration" permission="read">
-            <MainLayout>
-              <SystemConfigurationPage />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      {/* Catch-all route */}
+
+      {/* Catch-all route - intentionally outside the layout, matching prior behavior */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   </Suspense>
@@ -481,7 +415,7 @@ const App = () => (
     }}
   >
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <TooltipProvider>
           <ClickSpark />
           <AuthProvider>

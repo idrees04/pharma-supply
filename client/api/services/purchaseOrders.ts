@@ -22,7 +22,9 @@ import {
   PartialOrderRequest,
   PartialOrderResponse,
   PurchaseOrderListQueryParams,
-  PurchaseOrderStatus,
+  PurchaseOrderStatusOption,
+  PurchaseOrderTimelineEvent,
+  GetPurchaseOrderTimelineResponse,
 } from '@/types/api/purchaseOrders';
 import {
   SuggestedPaymentResponse,
@@ -110,7 +112,7 @@ export const purchaseOrderService = {
    * Get purchase order statuses
    * Returns the list of possible status values and names
    */
-  getStatuses: async (): Promise<PurchaseOrderStatus[]> => {
+  getStatuses: async (): Promise<PurchaseOrderStatusOption[]> => {
     const response = await get<GetPurchaseOrderStatusesResponse>('/api/PurchaseOrders/statuses');
     return response.data;
   },
@@ -174,6 +176,23 @@ export const purchaseOrderService = {
     const response = await post<ProcessPaymentApiResponse, ProcessPaymentRequest>(
       `/api/PurchaseOrders/${id}/pay`,
       data,
+      config
+    );
+    return response.data;
+  },
+
+  cancelPurchaseOrder: async (id: number, config?: RequestConfig): Promise<PurchaseOrder> => {
+    const response = await post<GetPurchaseOrderResponse, undefined>(
+      `/api/PurchaseOrders/${id}/cancel`,
+      undefined,
+      config
+    );
+    return response.data;
+  },
+
+  getTimeline: async (id: number, config?: RequestConfig): Promise<PurchaseOrderTimelineEvent[]> => {
+    const response = await get<GetPurchaseOrderTimelineResponse>(
+      `/api/PurchaseOrders/${id}/timeline`,
       config
     );
     return response.data;
@@ -287,6 +306,7 @@ export function useReceiveItems() {
           queryClient.setQueryData(['purchaseOrders', updated.id], updated);
         }
         queryClient.invalidateQueries({ queryKey: ['purchaseOrders', variables.purchaseOrderId] });
+        queryClient.invalidateQueries({ queryKey: ['purchaseOrders', variables.purchaseOrderId, 'timeline'] });
         queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
       },
     }
@@ -353,6 +373,32 @@ export function useSuggestedPayment(purchaseOrderId: number | null) {
  *
  * @param purchaseOrderId - The purchase order ID to process payment for
  */
+export function usePurchaseOrderTimeline(purchaseOrderId: number | null) {
+  return useGetQuery(
+    ['purchaseOrders', purchaseOrderId, 'timeline'],
+    () => purchaseOrderService.getTimeline(purchaseOrderId!),
+    {
+      enabled: purchaseOrderId !== null,
+      staleTime: 60 * 1000,
+    }
+  );
+}
+
+export function useCancelPurchaseOrder(id: number) {
+  const queryClient = useQueryClient();
+
+  return usePostMutation<PurchaseOrder, void>(
+    () => purchaseOrderService.cancelPurchaseOrder(id),
+    {
+      onSuccess: (updated) => {
+        queryClient.setQueryData(['purchaseOrders', id], updated);
+        queryClient.invalidateQueries({ queryKey: ['purchaseOrders', id, 'timeline'] });
+        queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+      },
+    }
+  );
+}
+
 export function useProcessPayment(purchaseOrderId: number) {
   const queryClient = useQueryClient();
 
@@ -366,6 +412,9 @@ export function useProcessPayment(purchaseOrderId: number) {
         });
         queryClient.invalidateQueries({
           queryKey: ['purchaseOrders', purchaseOrderId, 'suggested-payment'],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['purchaseOrders', purchaseOrderId, 'timeline'],
         });
         queryClient.invalidateQueries({
           queryKey: ['purchaseOrders'],

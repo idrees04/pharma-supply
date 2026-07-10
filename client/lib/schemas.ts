@@ -203,7 +203,6 @@ export const purchaseOrderSchema = z.object({
 
 export const updatePurchaseOrderSchema = z.object({
   expectedDeliveryDate: z.string().min(1, "Expected Delivery Date is required"),
-  status: z.coerce.number().int().min(1, "Status is required"),
   deliveryAddress: z.string().min(1, "Delivery Address is required"),
   notes: z.string().optional().default(""),
 });

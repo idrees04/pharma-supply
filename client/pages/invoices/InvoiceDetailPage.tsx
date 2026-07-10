@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
 import { ArrowLeft, Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -128,12 +128,27 @@ function RecordPaymentCard({
     },
   });
 
-  const exTaxDue = outstandingTaxExclusive(
+  const watchedDeduction = useWatch({ control: form.control, name: 'lateDeliveryDeduction' });
+  const liveDeduction = Number(watchedDeduction) || 0;
+  const liveExTaxDue = outstandingTaxExclusive(
     invoice.totalAmount,
     invoice.taxAmount,
-    defaultsLate,
+    liveDeduction,
     invoice.paidAmount
   );
+
+  const syncCashReceivedFromDeduction = (deduction: number) => {
+    form.setValue(
+      'amount',
+      outstandingTaxExclusive(
+        invoice.totalAmount,
+        invoice.taxAmount,
+        deduction,
+        invoice.paidAmount
+      ),
+      { shouldValidate: true }
+    );
+  };
 
   return (
     <Card>
@@ -142,7 +157,7 @@ function RecordPaymentCard({
         <CardDescription>
           <span className="block">
             Amount due (ex. sales tax, PKR):{' '}
-            <span className="font-medium text-foreground">{formatCurrency(exTaxDue)}</span>
+            <span className="font-medium text-foreground">{formatCurrency(liveExTaxDue)}</span>
           </span>
           <span className="mt-1 block text-xs">
             Legal invoice total and PDF remain inclusive of tax; only supplier collections use ex-tax
@@ -225,7 +240,20 @@ function RecordPaymentCard({
                 <FormItem>
                   <FormLabel>Late delivery / hospital deduction (PKR)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" min={0} {...field} />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      value={field.value}
+                      onChange={(e) => {
+                        const deduction = Number(e.target.value) || 0;
+                        field.onChange(e.target.value);
+                        syncCashReceivedFromDeduction(deduction);
+                      }}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
                   </FormControl>
                   <p className="text-xs text-muted-foreground">
                     Cumulative total withheld by the hospital (max{' '}

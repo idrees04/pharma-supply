@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { getPurchaseOrderStatusLabel } from '@/lib/purchaseOrderStatusDisplay';
 import type { PurchaseOrder } from '@/types/api/purchaseOrders';
 import { PrintSignatureBlock } from '@/components/print/PrintSignatureBlock';
 
@@ -50,7 +51,7 @@ export const PurchaseOrderTemplate = React.forwardRef<HTMLDivElement, PurchaseOr
           </div>
         </div>
 
-        <div className="mb-8 grid grid-cols-3 gap-4 rounded-lg bg-slate-50 p-4 text-sm">
+        <div className="mb-8 grid grid-cols-4 gap-4 rounded-lg bg-slate-50 p-4 text-sm">
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Order date</p>
             <p className="font-semibold">
@@ -66,6 +67,10 @@ export const PurchaseOrderTemplate = React.forwardRef<HTMLDivElement, PurchaseOr
                 ? new Date(purchaseOrder.expectedDeliveryDate).toLocaleDateString()
                 : '—'}
             </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Status</p>
+            <p className="font-semibold">{getPurchaseOrderStatusLabel(purchaseOrder.status)}</p>
           </div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Delivery address</p>

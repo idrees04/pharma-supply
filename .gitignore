@@ -25,3 +25,6 @@ dist-ssr
 
 .config/
 !.env
+.deploy.env
+scripts/deploy/.deploy.env
+publish/

@@ -37,6 +37,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFederationBranding } from "@/hooks/useFederationBranding";
+import { FALLBACK_FAVICON, FALLBACK_LOGO, resolveMediaUrl } from "@/lib/federationBranding";
 
 /**
  * Login Form Data
@@ -66,6 +68,9 @@ export default function LoginPage() {
   const isAuthenticated = useCheckAuth();
   const { login: storeLogin } = useAuthActions();
   const { mutate: login, isPending, error } = useLogin();
+  const { branding } = useFederationBranding();
+  const logoSrc = resolveMediaUrl(branding?.logoUrl, FALLBACK_LOGO);
+  const federationName = branding?.federationName ?? "Ideal Distributor";
 
   // Form state
   const [formData, setFormData] = useState<LoginFormData>({
@@ -203,8 +208,8 @@ export default function LoginPage() {
             {/* Inner Circle Wrapper */}
             <div className="relative bg-white p-4 rounded-full shadow-xl transition-all duration-300 group-hover:shadow-2xl overflow-hidden flex items-center justify-center h-40 w-40 border border-muted/20">
               <img
-                src="/ideal-distributor-favicon.png"
-                alt="Ideal Distributor Logo"
+                src={logoSrc}
+                alt={`${federationName} Logo`}
                 className="h-full w-full object-contain"
               />
             </div>

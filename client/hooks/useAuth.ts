@@ -24,6 +24,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useStore, AuthUser } from "./useStore";
 import { UserDTO, LoginResponseDTO } from "@/types/api/users";
 import { UserRole, getRoleKey, RoleKey } from "@/types/enums";
+import { brandingFromLoginResponse, clearFederationBranding, saveFederationBranding } from "@/lib/federationBranding";
 
 /**
  * Auth State returned by useAuth hook
@@ -213,6 +214,8 @@ export function useAuthActions() {
       // Store user data in localStorage
       localStorage.setItem("currentUser", JSON.stringify(user));
 
+      saveFederationBranding(brandingFromLoginResponse(loginResponse));
+
       // Update Zustand store
       setCurrentUser(user);
     },
@@ -223,6 +226,7 @@ export function useAuthActions() {
     // Clear stored credentials
     localStorage.removeItem("authToken");
     localStorage.removeItem("currentUser");
+    clearFederationBranding();
     sessionStorage.removeItem("redirectAfterLogin");
 
     // Clear Zustand store

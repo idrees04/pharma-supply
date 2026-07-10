@@ -18,9 +18,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-import { PurchaseOrder } from '@/types/api/purchaseOrders';
+import { PurchaseOrder, PurchaseOrderStatus } from '@/types/api/purchaseOrders';
 import { purchaseOrderService, usePurchaseOrderStatuses, useDeletePurchaseOrder, usePurchaseOrderList } from '@/api/services/purchaseOrders';
 import { formatCurrency } from '@/lib/utils';
+import { getPurchaseOrderStatusClassName, getPurchaseOrderStatusLabel } from '@/lib/purchaseOrderStatusDisplay';
 const ITEMS_PER_PAGE = 10;
 
 export default function PurchaseOrderList() {
@@ -59,8 +60,8 @@ export default function PurchaseOrderList() {
       amount: 0,
       cash: 0,
       credit: 0,
-      pending: 0,
-      confirmed: 0,
+      sent: 0,
+      active: 0,
       completed: 0,
       cancelled: 0,
       receivedAmount: 0,
@@ -72,10 +73,10 @@ export default function PurchaseOrderList() {
       if (po.paymentMethod === 'Cash') totals.cash++;
       else totals.credit++;
 
-      if (po.status === 1) totals.pending++;
-      else if (po.status === 2) totals.confirmed++;
-      else if (po.status === 3) totals.completed++;
-      else if (po.status === 4) totals.cancelled++;
+      if (po.status === PurchaseOrderStatus.Sent) totals.sent++;
+      else if (po.status === PurchaseOrderStatus.Active) totals.active++;
+      else if (po.status === PurchaseOrderStatus.Completed) totals.completed++;
+      else if (po.status === PurchaseOrderStatus.Cancelled) totals.cancelled++;
 
       po.items?.forEach((item) => {
         totals.receivedAmount += (item.receivedQuantity || 0) * (item.unitPrice || 0);
@@ -138,14 +139,13 @@ export default function PurchaseOrderList() {
     {
       header: 'Status',
       accessor: (row) => {
-        const statusName = statuses.find(s => s.value === row.status)?.name || `Status ${row.status}`;
+        const statusName = getPurchaseOrderStatusLabel(row.status);
 
-        let variant: 'default' | 'secondary' | 'outline' | 'destructive' = 'outline';
-        if (row.status === 1) variant = 'secondary';
-        if (row.status === 2) variant = 'default';
-        if (row.status === 3) variant = 'outline';
-
-        return <Badge variant={variant}>{statusName}</Badge>;
+        return (
+          <Badge variant="outline" className={getPurchaseOrderStatusClassName(row.status)}>
+            {statusName}
+          </Badge>
+        );
       },
     },
   ], [statuses]);
@@ -168,7 +168,7 @@ export default function PurchaseOrderList() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <KPIBox label="Total POs" value={stats.count} icon={<FileText className="w-5 h-5" />} color="bg-blue-500" />
         <KPIBox label="Total amount (PKR)" value={formatCurrency(stats.amount)} icon={<DollarSign className="w-5 h-5" />} color="bg-green-500" />
-        <KPIBox label="Pending / Confirmed" value={`${stats.pending} / ${stats.confirmed}`} icon={<Clock className="w-5 h-5" />} color="bg-amber-500" />
+        <KPIBox label="Sent / Active" value={`${stats.sent} / ${stats.active}`} icon={<Clock className="w-5 h-5" />} color="bg-amber-500" />
         <KPIBox label="Completed" value={stats.completed} icon={<CheckCircle className="w-5 h-5" />} color="bg-emerald-500" />
         <KPIBox label="Cancelled" value={stats.cancelled} icon={<XCircle className="w-5 h-5" />} color="bg-red-500" />
       </div>

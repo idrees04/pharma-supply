@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { usePurchaseOrder, usePurchaseOrderStatuses, useSuggestedPayment } from '@/api/services/purchaseOrders';
+import { usePurchaseOrder, usePurchaseOrderStatuses, useSuggestedPayment, usePurchaseOrderTimeline } from '@/api/services/purchaseOrders';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import {
@@ -14,12 +14,7 @@ import {
   User,
   StickyNote,
   DollarSign,
-  CheckCircle2,
-  Clock,
-  XCircle,
   Truck,
-  Mail,
-  Save,
   Printer,
   TrendingUp,
   PackageCheck,
@@ -55,7 +50,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { PurchaseOrderLifecycleStepper } from '@/components/purchase-orders/PurchaseOrderLifecycleStepper';
+import { PurchaseOrderProgressSummary } from '@/components/purchase-orders/PurchaseOrderProgressSummary';
+import { PurchaseOrderTimeline } from '@/components/purchase-orders/PurchaseOrderTimeline';
 import { unwrapSuggestedPayment } from '@/lib/purchaseOrderPayment';
+import {
+  canPayPurchaseOrder,
+  canReceivePurchaseOrder,
+  getFinancialSummaryLabel,
+  getPurchaseOrderStatusClassName,
+  getPurchaseOrderStatusLabel,
+  getRecommendedAction,
+  isPurchaseOrderCancelled,
+} from '@/lib/purchaseOrderStatusDisplay';
+import { PurchaseOrderStatus } from '@/types/api/purchaseOrders';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -82,46 +90,48 @@ export default function PurchaseOrderView() {
   const poId = id ? parseInt(id) : null;
 
   const { data: po, isPending, error, refetch } = usePurchaseOrder(poId);
-  const { data: statuses = [] } = usePurchaseOrderStatuses();
-  const poCancelled = po?.status === 8;
+  const { data: statuses = [], isPending: statusesLoading } = usePurchaseOrderStatuses();
+  const poCancelled = po ? isPurchaseOrderCancelled(po.status) : false;
   const { data: paySuggestionRaw, isPending: paySuggestionLoading, error: paySuggestionError } =
     useSuggestedPayment(po && !poCancelled ? po.id : null);
+  const { data: timeline = [], isPending: timelineLoading } = usePurchaseOrderTimeline(po?.id ?? null);
   const paySuggestion = useMemo(() => unwrapSuggestedPayment(paySuggestionRaw), [paySuggestionRaw]);
-  const maxPayableNow = paySuggestion?.suggestedPayableAmount ?? 0;
+  const totalOutstanding = Number(
+    paySuggestion?.totalOutstanding ?? po?.outstandingAmount ?? 0
+  );
+  const maxPayableNow =
+    paySuggestion?.suggestedPayableAmount ?? paySuggestion?.totalOutstanding ?? 0;
 
   const payDisabled =
+    !po ||
     poCancelled ||
     paySuggestionLoading ||
-    (!paySuggestionError && maxPayableNow <= 0);
+    (!paySuggestionError && !canPayPurchaseOrder({ ...po, outstandingAmount: totalOutstanding }));
 
   const payDisabledReason = poCancelled
     ? 'This purchase order is cancelled. Payments are not allowed.'
     : paySuggestionLoading
-      ? 'Checking how much you can pay against received goods…'
-      : !paySuggestionError && maxPayableNow <= 0
-        ? 'Nothing to pay yet: receive goods for this PO first, or the payable balance is already settled.'
+      ? 'Loading payable balance…'
+      : !paySuggestionError && totalOutstanding <= 0
+        ? po?.status === PurchaseOrderStatus.Completed
+          ? 'This purchase order is fully settled.'
+          : 'Nothing left to pay on this purchase order.'
         : '';
 
-  /** POST /PurchaseOrders/receive rejects Received (5) and Cancelled (8); Closed (9) blocked in UI. */
-  const receiveDisabled =
-    !po ||
-    po.status === 5 ||
-    po.status === 8 ||
-    po.status === 9 ||
-    (po.items?.every((line) => line.remainingQuantity <= 0) ?? true);
+  const recommendedAction = po ? getRecommendedAction(po) : 'none';
+
+  const receiveDisabled = !po || !canReceivePurchaseOrder(po);
 
   const receiveDisabledReason =
     !po
       ? ''
-      : po.status === 8
+      : po.status === PurchaseOrderStatus.Cancelled
         ? 'Cancelled purchase orders cannot receive goods.'
-        : po.status === 5
-          ? 'This order is already fully received.'
-          : po.status === 9
-            ? 'This purchase order is closed.'
-            : po.items?.every((line) => line.remainingQuantity <= 0)
-              ? 'All lines are fully received; there is nothing left to receive.'
-              : '';
+        : po.status === PurchaseOrderStatus.Completed
+          ? 'This purchase order is completed.'
+          : po.items?.every((line) => line.remainingQuantity <= 0)
+            ? 'All lines are fully received; there is nothing left to receive.'
+            : '';
   const [isEditSheetOpen, setIsEditSheetOpen] = React.useState(false);
   const [isReceiveSheetOpen, setIsReceiveSheetOpen] = React.useState(false);
   const [isPaymentDrawerOpen, setIsPaymentDrawerOpen] = React.useState(false);
@@ -218,6 +228,9 @@ export default function PurchaseOrderView() {
               <Badge variant="outline" className="px-3 py-1 bg-slate-50 text-slate-600 border-slate-200 font-mono tracking-tighter text-sm">
                 {po.purchaseOrderNumber}
               </Badge>
+              <Badge variant="outline" className={cn('px-3 py-1 font-bold', getPurchaseOrderStatusClassName(po.status))}>
+                {getPurchaseOrderStatusLabel(po.status)}
+              </Badge>
             </div>
             <div className="flex items-center gap-3 text-slate-500 text-sm font-medium">
               <span className="flex items-center gap-1.5">
@@ -246,7 +259,10 @@ export default function PurchaseOrderView() {
                 <span className={receiveDisabled ? 'inline-flex cursor-not-allowed' : 'inline-flex'}>
                   <Button
                     type="button"
-                    className="gap-2 h-12 px-5 text-base shadow-lg shadow-primary/20 disabled:opacity-60"
+                    className={cn(
+                      'gap-2 h-12 px-5 text-base shadow-lg shadow-primary/20 disabled:opacity-60',
+                      recommendedAction === 'receive' && 'ring-2 ring-primary/30 ring-offset-2'
+                    )}
                     disabled={receiveDisabled}
                     onClick={() => !receiveDisabled && setIsReceiveSheetOpen(true)}
                   >
@@ -269,7 +285,10 @@ export default function PurchaseOrderView() {
                   <Button
                     type="button"
                     variant="secondary"
-                    className="gap-2 h-12 px-6 text-base bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white border-0 shadow-lg shadow-emerald-500/25 font-semibold disabled:opacity-60"
+                    className={cn(
+                      'gap-2 h-12 px-6 text-base bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white border-0 shadow-lg shadow-emerald-500/25 font-semibold disabled:opacity-60',
+                      recommendedAction === 'pay' && 'ring-2 ring-emerald-300 ring-offset-2'
+                    )}
                     disabled={payDisabled}
                     onClick={() => !payDisabled && setIsPaymentDrawerOpen(true)}
                   >
@@ -301,83 +320,14 @@ export default function PurchaseOrderView() {
         </div>
       </motion.div>
 
-      {/* Lifecycle Intelligence Stepper */}
-      <motion.div variants={itemVariants}>
-        <Card className="border shadow-xl shadow-slate-200/50 bg-card overflow-hidden rounded-3xl">
-          <CardHeader className="bg-slate-50/80 border-b py-4">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" /> Order Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="flex overflow-x-auto no-scrollbar md:grid md:grid-cols-9 lg:grid-cols-9">
-              {statuses.map((status) => {
-                const isCurrent = po.status === status.value;
-                const isCancelled = po.status === 8;
-                const isDone = !isCancelled && po.status > status.value && status.value !== 8;
-
-                const name = status.name.toLowerCase();
-                let Icon = Clock;
-                let colorClass = "text-slate-400";
-                let bgClass = "bg-transparent";
-
-                if (name.includes('draft')) Icon = FileText;
-                else if (name.includes('sent')) Icon = Mail;
-                else if (name.includes('confirmed')) Icon = CheckCircle2;
-                else if (name.includes('partiallyreceived')) Icon = Package;
-                else if (name.includes('received')) Icon = Truck;
-                else if (name.includes('partiallypaid')) Icon = DollarSign;
-                else if (name.includes('paid')) Icon = DollarSign;
-                else if (name.includes('cancelled')) Icon = XCircle;
-                else if (name.includes('closed')) Icon = Save;
-
-                if (isCurrent) {
-                  colorClass = status.value === 8 ? "text-rose-600" : "text-primary";
-                  bgClass = status.value === 8 ? "bg-rose-50/50" : "bg-primary/5";
-                } else if (isDone) {
-                  colorClass = "text-emerald-600";
-                  bgClass = "bg-emerald-50/30";
-                }
-
-                return (
-                  <div
-                    key={status.value}
-                    className={cn(
-                      "flex flex-col items-center gap-3 p-5 min-w-[120px] border-r border-slate-100 last:border-0 transition-all relative",
-                      bgClass
-                    )}
-                  >
-                    <div className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border-2 transition-all duration-500 shadow-sm",
-                      isCurrent
-                        ? "bg-white border-current scale-110 z-10 rotate-3 shadow-lg"
-                        : "bg-slate-50/50 border-slate-100"
-                    )}>
-                      <Icon className={cn("h-5 w-5", colorClass)} />
-                    </div>
-                    <div className="flex flex-col items-center text-center">
-                      <span className={cn("text-[9px] font-black uppercase tracking-widest leading-none mb-1", colorClass)}>
-                        {status.name}
-                      </span>
-                      <span className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">
-                        {isCurrent ? "Active Node" : isDone ? "Validated" : isCancelled && status.value === 8 ? "Terminated" : "Pending"}
-                      </span>
-                    </div>
-                    {isCurrent && (
-                      <motion.div
-                        layoutId="active-indicator"
-                        className={cn(
-                          "absolute bottom-0 left-0 h-1 w-full",
-                          status.value === 8 ? "bg-rose-600" : "bg-primary"
-                        )}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Lifecycle + progress */}
+      <motion.div variants={itemVariants} className="space-y-4">
+        <PurchaseOrderLifecycleStepper
+          currentStatus={po.status}
+          statuses={statuses}
+          isLoading={statusesLoading}
+        />
+        <PurchaseOrderProgressSummary purchaseOrder={po} />
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -388,14 +338,14 @@ export default function PurchaseOrderView() {
             <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
               <CardHeader className="bg-slate-50/80 border-b py-4">
                 <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-orange-500" /> Logistics Intelligence
+                  <Truck className="w-4 h-4 text-orange-500" /> Delivery Details
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-8 pb-6">
                 <div className="grid md:grid-cols-2 gap-10">
                   <div className="space-y-6">
                     <div className="space-y-1.5 overflow-hidden">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Delivery Endpoint</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Delivery address</p>
                       <div className="flex items-start gap-3">
                         <MapPin className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
                         <p className="text-sm font-bold text-slate-700 leading-relaxed italic">{po.deliveryAddress || 'No address specified'}</p>
@@ -403,11 +353,11 @@ export default function PurchaseOrderView() {
                     </div>
                     <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-1">
-                        <p className="text-[9px] font-black text-slate-400 uppercase">Expectation</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase">Expected delivery</p>
                         <p className="font-bold text-slate-800">{new Date(po.expectedDeliveryDate).toLocaleDateString()}</p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-[9px] font-black text-slate-400 uppercase">Actual Arrival</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase">Actual delivery</p>
                         <p className={cn("font-bold", po.actualDeliveryDate ? "text-emerald-600" : "text-slate-400 italic")}>
                           {po.actualDeliveryDate ? new Date(po.actualDeliveryDate).toLocaleDateString() : 'Not recorded'}
                         </p>
@@ -419,7 +369,7 @@ export default function PurchaseOrderView() {
                       <StickyNote className="w-3 h-3" /> Special Instructions
                     </p>
                     <p className="text-sm text-slate-600 leading-relaxed italic">
-                      {po.notes || 'No tactical annotations recorded for this procurement cycle.'}
+                      {po.notes || 'No special instructions recorded.'}
                     </p>
                   </div>
                 </div>
@@ -432,10 +382,10 @@ export default function PurchaseOrderView() {
             <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
               <CardHeader className="bg-slate-50/80 border-b py-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                  <Package className="w-4 h-4 text-primary" /> SKU Manifest
+                  <Package className="w-4 h-4 text-primary" /> Line Items
                 </CardTitle>
                 <Badge variant="secondary" className="bg-white border-slate-200 text-slate-600 font-bold">
-                  {(po.items || []).length} SKUs Identified
+                  {(po.items || []).length} products
                 </Badge>
               </CardHeader>
               <CardContent className="p-0">
@@ -525,8 +475,11 @@ export default function PurchaseOrderView() {
                       <h2 className="text-5xl font-black tracking-tighter leading-none mb-2 text-primary">
                         {formatCurrency(calculations.total)}
                       </h2>
-                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 font-black text-[9px] uppercase tracking-widest px-3">
-                        Payment Due
+                      <Badge className={cn(
+                        'font-black text-[9px] uppercase tracking-widest px-3 border',
+                        getPurchaseOrderStatusClassName(po.status)
+                      )}>
+                        {getFinancialSummaryLabel(po)}
                       </Badge>
                     </div>
                   </div>
@@ -546,30 +499,13 @@ export default function PurchaseOrderView() {
                 <div className="h-1.5 bg-gradient-to-r from-primary via-violet-500 to-purple-500" />
               </Card>
             </motion.div>
-
-            {/* Ancillary Historical Data */}
-            <motion.div variants={itemVariants}>
-              <Card className="border-slate-200 shadow-none rounded-3xl">
-                <CardHeader className="pb-3 bg-slate-50/30 border-b">
-                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Order Info</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-4">
-                  <div className="p-4 border rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group">
-                    <div className="flex items-center gap-4">
-                      <Clock className="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors" />
-                      <span className="text-xs font-bold text-slate-600">Created At</span>
-                    </div>
-                    <span className="text-[10px] font-black text-slate-900">{new Date(po.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  <div className="p-4 border rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group text-xs text-muted-foreground italic">
-                    Last updated successfully.
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
           </div>
         </div>
       </div>
+
+      <motion.div variants={itemVariants}>
+        <PurchaseOrderTimeline events={timeline} isLoading={timelineLoading} />
+      </motion.div>
 
       <Sheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen}>
         <SheetContent className="sm:max-w-[540px] p-0 border-l-0">

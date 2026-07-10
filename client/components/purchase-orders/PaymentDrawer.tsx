@@ -114,19 +114,19 @@ export function PaymentDrawer({
     return accountsList?.find(a => a.id === accountId);
   }, [accountId, accountsList]);
 
-  /** Matches server GetMaxPayableForReceived (min(outstanding, max(0, grn − paid))). */
+  /** Matches server max payable (PO outstanding balance; advance payment allowed). */
   const validationErrors = useMemo(() => {
     const errors: string[] = [];
     if (!suggested) return errors;
 
-    const maxPayable = Number(suggested.suggestedPayableAmount ?? 0);
+    const maxPayable = Number(suggested.suggestedPayableAmount ?? suggested.totalOutstanding ?? 0);
     const amt = typeof amount === 'number' && Number.isFinite(amount) ? amount : NaN;
 
     if (!amt || amt <= 0) {
       errors.push('Enter a payment amount greater than zero.');
     } else if (amt > maxPayable + 1e-6) {
       errors.push(
-        `Amount cannot exceed ${formatCurrency(maxPayable)} (maximum payable on received goods, capped by outstanding balance).`
+        `Amount cannot exceed ${formatCurrency(maxPayable)} (remaining PO outstanding balance).`
       );
     }
 
@@ -227,7 +227,7 @@ export function PaymentDrawer({
             {suggested && (
               <div className="space-y-5">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  You can only pay up to the value of goods received so far, and never more than the PO outstanding balance.
+                  Pay the supplier in advance or against received goods. Amount cannot exceed the PO outstanding balance.
                 </p>
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
@@ -243,7 +243,7 @@ export function PaymentDrawer({
                     {formatCurrency(suggested.suggestedPayableAmount || 0)}
                   </p>
                   <p className="text-xs opacity-90 mt-2">
-                    Same rule the server uses when you submit (received goods vs paid vs outstanding).
+                    Advance payment is allowed before goods are received, up to the outstanding PO total.
                   </p>
                 </div>
 

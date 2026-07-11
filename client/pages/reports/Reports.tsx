@@ -279,10 +279,10 @@ export default function Reports() {
 
   const canExportPdf = Boolean(data) && !error && !isPending && !isFetching;
 
-  const handleExportPdf = useCallback(() => {
+  const handleExportPdf = useCallback(async () => {
     if (!data) return;
     try {
-      downloadAnalyticsReportPdf({
+      await downloadAnalyticsReportPdf({
         reportId,
         reportTitle: reportLabel,
         moduleLabel,

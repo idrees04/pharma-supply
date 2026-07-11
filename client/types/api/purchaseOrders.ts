@@ -86,6 +86,12 @@ export interface UpdatePurchaseOrderRequest {
   expectedDeliveryDate: string;
   deliveryAddress: string;
   notes: string;
+  /** Full edit (Sent PO only): replace supplier. */
+  supplierId?: number;
+  /** Full edit (Sent PO only): replace order date. */
+  orderDate?: string;
+  /** Full edit (Sent PO only): replace all line items. */
+  items?: CreatePurchaseOrderItemRequest[];
 }
 
 /**
@@ -97,19 +103,37 @@ export interface PurchaseOrderStatusOption {
 }
 
 /**
+ * One inventory batch within a PO receive line
+ */
+export interface ReceivePurchaseOrderBatchRequest {
+  receivedQuantity: number;
+  batchNumber: string;
+  manufactureDate: string;
+  expiryDate: string;
+  notes: string;
+}
+
+/**
+ * Request for receiving items (nested batches per line)
+ */
+export interface ReceivePurchaseOrderItemRequest {
+  purchaseOrderItemId: number;
+  batches: ReceivePurchaseOrderBatchRequest[];
+  /** Legacy flat payload — ignored when batches is non-empty */
+  receivedQuantity?: number;
+  batchNumber?: string;
+  manufactureDate?: string;
+  expiryDate?: string;
+  notes?: string;
+}
+
+/**
  * Request for receiving items
  */
 export interface ReceivePurchaseOrderRequest {
   purchaseOrderId: number;
   actualDeliveryDate: string;
-  items: {
-    purchaseOrderItemId: number;
-    receivedQuantity: number;
-    batchNumber: string;
-    manufactureDate: string;
-    expiryDate: string;
-    notes: string;
-  }[];
+  items: ReceivePurchaseOrderItemRequest[];
 }
 
 /**

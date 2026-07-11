@@ -55,6 +55,7 @@ import { PurchaseOrderProgressSummary } from '@/components/purchase-orders/Purch
 import { PurchaseOrderTimeline } from '@/components/purchase-orders/PurchaseOrderTimeline';
 import { unwrapSuggestedPayment } from '@/lib/purchaseOrderPayment';
 import {
+  canFullyEditPurchaseOrder,
   canPayPurchaseOrder,
   canReceivePurchaseOrder,
   getFinancialSummaryLabel,
@@ -64,6 +65,7 @@ import {
   isPurchaseOrderCancelled,
 } from '@/lib/purchaseOrderStatusDisplay';
 import { PurchaseOrderStatus } from '@/types/api/purchaseOrders';
+import { useAuth } from '@/context/AuthContext';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -87,11 +89,15 @@ const itemVariants: Variants = {
 export default function PurchaseOrderView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const poId = id ? parseInt(id) : null;
 
   const { data: po, isPending, error, refetch } = usePurchaseOrder(poId);
   const { data: statuses = [], isPending: statusesLoading } = usePurchaseOrderStatuses();
   const poCancelled = po ? isPurchaseOrderCancelled(po.status) : false;
+  const canFullyEdit = !!po && canFullyEditPurchaseOrder(po) && hasPermission('purchaseOrders', 'update');
+  const canPartialUpdate =
+    !!po && !canFullyEdit && !poCancelled && po.status !== PurchaseOrderStatus.Completed && hasPermission('purchaseOrders', 'update');
   const { data: paySuggestionRaw, isPending: paySuggestionLoading, error: paySuggestionError } =
     useSuggestedPayment(po && !poCancelled ? po.id : null);
   const { data: timeline = [], isPending: timelineLoading } = usePurchaseOrderTimeline(po?.id ?? null);
@@ -245,14 +251,25 @@ export default function PurchaseOrderView() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button
-            variant="outline"
-            className="gap-2 h-12 px-5 text-base border-slate-200 hover:bg-slate-50 shadow-sm"
-            onClick={() => setIsEditSheetOpen(true)}
-          >
-            <Edit2 className="h-5 w-5 text-primary shrink-0" />
-            <span className="font-semibold text-slate-700">Update order</span>
-          </Button>
+          {canFullyEdit ? (
+            <Button
+              variant="outline"
+              className="gap-2 h-12 px-5 text-base border-slate-200 hover:bg-slate-50 shadow-sm"
+              onClick={() => navigate(`/orders/purchase/edit/${po.id}`)}
+            >
+              <Edit2 className="h-5 w-5 text-primary shrink-0" />
+              <span className="font-semibold text-slate-700">Edit order</span>
+            </Button>
+          ) : canPartialUpdate ? (
+            <Button
+              variant="outline"
+              className="gap-2 h-12 px-5 text-base border-slate-200 hover:bg-slate-50 shadow-sm"
+              onClick={() => setIsEditSheetOpen(true)}
+            >
+              <Edit2 className="h-5 w-5 text-primary shrink-0" />
+              <span className="font-semibold text-slate-700">Update order</span>
+            </Button>
+          ) : null}
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>

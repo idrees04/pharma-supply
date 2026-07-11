@@ -3,7 +3,7 @@ import { useForm, useFieldArray, useWatch, UseFormReturn } from 'react-hook-form
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Loader2, Save, ShoppingCart, Calculator, Calendar, MapPin, StickyNote, Package, User, ChevronLeft } from 'lucide-react';
+import { Plus, Trash2, Loader2, Save, ShoppingCart, Calculator, Calendar, MapPin, StickyNote, Package, User, ArrowLeft } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -164,7 +164,7 @@ function OrderItemRow({
         />
       </TableCell>
 
-      <TableCell className="px-1 py-2">
+      <TableCell className="px-1 py-2 bg-blue-50/30">
         <FormField
           control={form.control}
           name={`items.${index}.taxPercentage`}
@@ -176,7 +176,7 @@ function OrderItemRow({
                   step="0.1"
                   {...field}
                   disabled={!itemsEditable}
-                  className="text-center font-medium h-9 tabular-nums bg-white border-slate-200 focus:border-primary px-1"
+                  className="text-center font-bold text-blue-700 h-9 tabular-nums bg-blue-50/60 border-blue-200/70 focus:border-blue-400 focus:bg-white"
                 />
               </FormControl>
               <FormMessage className="text-[10px] mt-0.5" />
@@ -185,7 +185,7 @@ function OrderItemRow({
         />
       </TableCell>
 
-      <TableCell className="px-1 py-2">
+      <TableCell className="px-1 py-2 bg-rose-50/30">
         <FormField
           control={form.control}
           name={`items.${index}.discountPercentage`}
@@ -197,7 +197,7 @@ function OrderItemRow({
                   step="0.1"
                   {...field}
                   disabled={!itemsEditable}
-                  className="text-center font-medium h-9 tabular-nums bg-white border-slate-200 focus:border-primary px-1"
+                  className="text-center font-bold text-rose-700 h-9 tabular-nums bg-rose-50/60 border-rose-200/70 focus:border-rose-400 focus:bg-white"
                 />
               </FormControl>
               <FormMessage className="text-[10px] mt-0.5" />
@@ -487,26 +487,9 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
     );
   }
 
-  return (
+  const formBody = (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 animate-slide-up">
-        {/* Header navigation if in page mode */}
-        {!propSupplyOrderId && (
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                {isEditMode ? 'Edit Supply Order' : 'Create Supply Order'}
-              </h1>
-              <p className="text-muted-foreground">
-                {isEditMode ? 'Update existing supply order details' : 'Fill in the details to create a new hospital supply order'}
-              </p>
-            </div>
-            <Button type="button" variant="outline" onClick={handleCancel} className="gap-2">
-              <ChevronLeft className="h-4 w-4" />
-              Back to List
-            </Button>
-          </div>
-        )}
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className={cn('grid gap-6', isModalMode ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-4')}>
           {/* Left Column: Basic Info & Items */}
           <div className={cn('space-y-6', !isModalMode && 'lg:col-span-3')}>
@@ -679,16 +662,16 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                 <div className="space-y-1">
                   <CardTitle className="text-xl flex items-center gap-2">
                     <ShoppingCart className="h-5 w-5 text-primary" />
-                    Order Items
+                    Products &amp; Items
                     {fields.length > 0 && (
                       <span className="ml-1 inline-flex items-center justify-center h-5 px-2 rounded-full bg-primary/10 text-primary text-xs font-black">
-                        {fields.length}
+                        {fields.length} {fields.length === 1 ? 'item' : 'items'}
                       </span>
                     )}
                   </CardTitle>
                   <CardDescription>
                     {itemsEditable
-                      ? 'Add products and fulfillment details'
+                      ? 'Add products and fulfillment details for this order'
                       : 'Line items are read-only after this order leaves Draft'}
                   </CardDescription>
                 </div>
@@ -726,8 +709,8 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                         <TableHead className={cn('pl-2 font-black text-slate-700 text-xs uppercase tracking-wider', isModalMode ? 'w-[22%]' : 'min-w-[200px]')}>Product</TableHead>
                         <TableHead className={cn('font-black text-slate-700 text-center text-xs uppercase tracking-wider', isModalMode ? 'w-[9%]' : 'min-w-[7.5rem] w-[7.5rem]')}>Qty</TableHead>
                         <TableHead className={cn('font-black text-slate-700 text-xs uppercase tracking-wider text-right', isModalMode ? 'w-[11%]' : 'w-[110px]')}>Price (PKR)</TableHead>
-                        <TableHead className={cn('font-black text-slate-700 text-center text-xs uppercase tracking-wider', isModalMode ? 'w-[8%]' : 'w-[80px]')}>Tax %</TableHead>
-                        <TableHead className={cn('font-black text-slate-700 text-center text-xs uppercase tracking-wider', isModalMode ? 'w-[8%]' : 'w-[80px]')}>Disc %</TableHead>
+                        <TableHead className={cn('font-black text-slate-700 text-center text-xs uppercase tracking-wider bg-blue-50/60 text-blue-700', isModalMode ? 'w-[8%]' : 'w-[80px]')}>Tax %</TableHead>
+                        <TableHead className={cn('font-black text-slate-700 text-center text-xs uppercase tracking-wider bg-rose-50/60 text-rose-700', isModalMode ? 'w-[8%]' : 'w-[80px]')}>Disc %</TableHead>
                         <TableHead className={cn('font-black text-slate-700 text-xs uppercase tracking-wider', isModalMode ? 'w-[12%]' : 'w-[120px]')}>Source</TableHead>
                         <TableHead className={cn('font-black text-slate-700 text-xs uppercase tracking-wider', isModalMode ? 'w-[14%]' : 'w-[150px]')}>Supplier</TableHead>
                         <TableHead className={cn('font-black text-primary text-right pr-2 text-xs uppercase tracking-wider bg-primary/5', isModalMode ? 'w-[12%]' : 'w-[130px]')}>Total (PKR)</TableHead>
@@ -795,6 +778,16 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                     </TableBody>
                   </Table>
                 </div>
+                {fields.length > 0 && (
+                  <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200 text-sm">
+                    <span className="text-muted-foreground font-medium">
+                      {fields.length} product{fields.length !== 1 ? 's' : ''} in this order
+                    </span>
+                    <span className="font-black text-primary tabular-nums text-base">
+                      Total: {formatCurrency(calculations.grandTotal)}
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -811,30 +804,31 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
               </CardHeader>
               <CardContent className="pt-6 space-y-4">
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center text-sm font-medium border-b border-slate-100 pb-2">
-                    <span className="text-muted-foreground uppercase tracking-tight text-xs">Gross Amount</span>
-                    <div className="text-md font-bold text-slate-700 tracking-tight">
-                      {formatCurrency(calculations.grandSubtotal)}
+                    <div className="flex justify-between items-center text-sm font-medium border-b border-slate-100 pb-2">
+                      <span className="text-muted-foreground uppercase tracking-tight text-xs">Gross Subtotal</span>
+                      <div className="text-md font-bold text-slate-700 tracking-tight">
+                        {formatCurrency(calculations.grandSubtotal)}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex justify-between items-center text-sm font-medium border-b border-slate-100 pb-2">
-                    <span className="text-muted-foreground uppercase tracking-tight text-xs">Tax Amount</span>
-                    <div className="text-md font-bold text-slate-700 tracking-tight">
-                      + {formatCurrency(calculations.grandTax)}
+                    <div className="flex justify-between items-center text-sm font-medium">
+                      <span className="text-muted-foreground uppercase tracking-tight text-xs">Taxes Accrued</span>
+                      <span className="text-blue-600 font-bold">+{formatCurrency(calculations.grandTax)}</span>
                     </div>
-                  </div>
-                  <div className="flex justify-between items-center text-sm font-medium border-b border-slate-100 pb-2">
-                    <span className="text-muted-foreground uppercase tracking-tight text-xs">Discount</span>
-                    <div className="text-md font-bold text-slate-700 tracking-tight">
-                      - {formatCurrency(calculations.grandDiscount)}
+                    <div className="flex justify-between items-center text-sm font-medium">
+                      <span className="text-muted-foreground uppercase tracking-tight text-xs">Total Discounts</span>
+                      <span className="text-red-600 font-bold">-{formatCurrency(calculations.grandDiscount)}</span>
                     </div>
-                  </div>
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-muted-foreground uppercase tracking-tight text-xs font-bold">Net Total</span>
-                    <div className="text-2xl font-black text-primary tracking-tighter">
-                      {formatCurrency(calculations.grandTotal)}
+
+                    <div className="border-t border-dashed pt-4 mt-6">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                          Grand net total (PKR)
+                        </span>
+                        <div className="text-3xl font-black text-primary tracking-tighter drop-shadow-sm">
+                          {formatCurrency(calculations.grandTotal)}
+                        </div>
+                      </div>
                     </div>
-                  </div>
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-3 bg-muted/10 pt-4 border-t">
@@ -864,5 +858,39 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
         </div>
       </form>
     </Form>
+  );
+
+  if (isModalMode) {
+    return formBody;
+  }
+
+  return (
+    <div className="space-y-6 animate-slide-up pb-10">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={handleCancel}
+            className="rounded-full hover:bg-muted transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+              <Package className="h-8 w-8 text-primary" />
+              {isEditMode ? 'Edit Supply Order' : 'Create Supply Order'}
+            </h1>
+            <p className="text-muted-foreground">
+              {isEditMode
+                ? 'Update existing supply order details'
+                : 'Fill in the details to create a new hospital supply order'}
+            </p>
+          </div>
+        </div>
+      </div>
+      {formBody}
+    </div>
   );
 }

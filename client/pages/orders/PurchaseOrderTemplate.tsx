@@ -3,6 +3,8 @@ import { formatCurrency } from '@/lib/utils';
 import { getPurchaseOrderStatusLabel } from '@/lib/purchaseOrderStatusDisplay';
 import type { PurchaseOrder } from '@/types/api/purchaseOrders';
 import { PrintSignatureBlock } from '@/components/print/PrintSignatureBlock';
+import { PrintDocumentHeader } from '@/components/print/PrintDocumentHeader';
+import { PrintFederationFromBlock } from '@/components/print/PrintFederationFromBlock';
 
 interface PurchaseOrderTemplateProps {
   purchaseOrder: PurchaseOrder;
@@ -30,20 +32,13 @@ export const PurchaseOrderTemplate = React.forwardRef<HTMLDivElement, PurchaseOr
           fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
         }}
       >
-        <div className="mb-8 border-b-2 border-slate-800 pb-4">
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">PURCHASE ORDER</h1>
-          <p className="mt-1 font-mono text-lg font-bold text-primary">
-            {purchaseOrder.purchaseOrderNumber}
-          </p>
-        </div>
+        <PrintDocumentHeader
+          title="PURCHASE ORDER"
+          subtitle={purchaseOrder.purchaseOrderNumber}
+        />
 
         <div className="mb-8 grid grid-cols-2 gap-8">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">From</p>
-            <p className="mt-1 font-bold text-slate-900">Pharma Supply Company</p>
-            <p className="text-xs text-slate-600">Main Office</p>
-            <p className="text-xs text-slate-600">accounts@pharmasupply.com</p>
-          </div>
+          <PrintFederationFromBlock labelClassName="text-[10px]" />
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Supplier</p>
             <p className="mt-1 font-bold text-slate-900">{purchaseOrder.supplierName}</p>

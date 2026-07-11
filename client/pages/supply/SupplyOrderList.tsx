@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Plus, Filter, FileText, CheckCircle, Clock, XCircle, DollarSign, Search, PackageCheck, Zap, TrendingUp } from 'lucide-react';
+import { Plus, Filter, FileText, CheckCircle, Clock, XCircle, DollarSign, Search, PackageCheck, TrendingUp, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -18,9 +18,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-import { SupplyOrder } from '@/types/api/supplyOrders';
+import { SupplyOrder, SupplyOrderStatus } from '@/types/api/supplyOrders';
 import { useSupplyOrderList, useSupplyOrderStatuses, useDeleteSupplyOrder } from '@/api/services/supplyOrders.service';
 import { formatCurrency } from '@/lib/utils';
+import {
+  getSupplyOrderStatusClassName,
+  getSupplyOrderStatusLabel,
+} from '@/lib/supplyOrderStatusDisplay';
+
 const ITEMS_PER_PAGE = 10;
 
 export default function SupplyOrderList() {
@@ -32,22 +37,18 @@ export default function SupplyOrderList() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // 1. Fetch data
   const { data: soData, isLoading } = useSupplyOrderList({
     pageSize: 1000,
     pageNumber: 1,
-    searchTerm: searchTerm || undefined
+    searchTerm: searchTerm || undefined,
   });
   const allSOs = soData?.items || [];
 
-  // 2. Fetch statuses for filter
   const { data: statuses = [] } = useSupplyOrderStatuses();
 
-  // 3. Filter data (local filter for now as per PO pattern, but can be server-side if needed)
   const filteredSOs = useMemo(() => {
     return allSOs.filter((so) => {
       const matchesStatus = statusFilter === 'all' || so.status.toString() === statusFilter;
-      // Search is already done via API if searchTerm is provided, but local filtering as backup
       const matchesSearch =
         so.supplyOrderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         so.hospitalName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -72,17 +73,24 @@ export default function SupplyOrderList() {
       totals.tax += so.taxAmount || 0;
       totals.discount += so.discountAmount || 0;
 
-      // Status values mapped from API: 1=Pending, 2=Approved, 3=Fulfilled, 4=Cancelled (assuming based on PO pattern)
-      if (so.status === 1) totals.pending++;
-      else if (so.status === 2) totals.approved++;
-      else if (so.status === 3) totals.fulfilled++;
-      else if (so.status === 4) totals.cancelled++;
+      if (so.status === SupplyOrderStatus.Pending || so.status === SupplyOrderStatus.Draft) {
+        totals.pending++;
+      } else if (so.status === SupplyOrderStatus.Approved) {
+        totals.approved++;
+      } else if (
+        so.status === SupplyOrderStatus.Fulfilled ||
+        so.status === SupplyOrderStatus.PartiallyFulfilled ||
+        so.status === SupplyOrderStatus.Invoiced
+      ) {
+        totals.fulfilled++;
+      } else if (so.status === SupplyOrderStatus.Cancelled) {
+        totals.cancelled++;
+      }
     });
 
     return totals;
   }, [allSOs]);
 
-  // 4. Mutations
   const { mutate: deleteSO, isPending: isDeleting } = useDeleteSupplyOrder();
 
   const handleDelete = async () => {
@@ -94,59 +102,56 @@ export default function SupplyOrderList() {
         setSoToDelete(null);
         queryClient.invalidateQueries({ queryKey: ['supplyOrders'] });
       },
-      onError: (error: any) => {
+      onError: (error: { userMessage?: string }) => {
         toast.error(error?.userMessage || 'Failed to delete supply order');
       },
     });
   };
 
-  const columns: Column<SupplyOrder>[] = useMemo(() => [
-    {
-      header: 'ID',
-      accessor: 'id',
-
-    },
-    {
-      header: 'SO Number',
-      accessor: (row) => (
-        <span className="font-black text-primary tracking-tight">{row.supplyOrderNumber}</span>
-      ),
-    },
-    {
-      header: 'Hospital',
-      accessor: 'hospitalName',
-    },
-    {
-      header: 'Order Date',
-      accessor: (row) => new Date(row.orderDate).toLocaleDateString(),
-    },
-    {
-      header: 'Required By',
-      accessor: (row) => new Date(row.requiredByDate).toLocaleDateString(),
-    },
-    {
-      header: 'Total amount (PKR)',
-      accessor: (row) => formatCurrency(row.totalAmount),
-    },
-    {
-      header: 'Status',
-      accessor: (row) => {
-        const statusName = statuses.find(s => s.value === row.status)?.name || `Status ${row.status}`;
-
-        let variant: 'default' | 'secondary' | 'outline' | 'destructive' = 'outline';
-        if (row.status === 1) variant = 'secondary';
-        if (row.status === 2) variant = 'default';
-        if (row.status === 3) variant = 'outline'; // Fulfilled
-        if (row.status === 4) variant = 'destructive'; // Cancelled
-
-        return <Badge variant={variant}>{statusName}</Badge>;
+  const columns: Column<SupplyOrder>[] = useMemo(
+    () => [
+      {
+        header: 'ID',
+        accessor: 'id',
       },
-    },
-  ], [statuses]);
+      {
+        header: 'SO Number',
+        accessor: (row) => (
+          <span className="font-black text-primary tracking-tight">{row.supplyOrderNumber}</span>
+        ),
+      },
+      {
+        header: 'Hospital',
+        accessor: 'hospitalName',
+      },
+      {
+        header: 'Order Date',
+        accessor: (row) => new Date(row.orderDate).toLocaleDateString(),
+        mobileHidden: true,
+      },
+      {
+        header: 'Required By',
+        accessor: (row) => new Date(row.requiredByDate).toLocaleDateString(),
+        mobileHidden: true,
+      },
+      {
+        header: 'Total amount (PKR)',
+        accessor: (row) => formatCurrency(row.totalAmount),
+      },
+      {
+        header: 'Status',
+        accessor: (row) => (
+          <Badge variant="outline" className={getSupplyOrderStatusClassName(row.status)}>
+            {getSupplyOrderStatusLabel(row.status, statuses)}
+          </Badge>
+        ),
+      },
+    ],
+    [statuses]
+  );
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Supply Orders</h1>
@@ -158,19 +163,32 @@ export default function SupplyOrderList() {
         </Button>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
-        <KPIBox label="Total SOs" value={stats.count} icon={<FileText className="w-4 h-4" />} color="bg-blue-500" />
-        <KPIBox label="Total amount (PKR)" value={formatCurrency(stats.amount)} icon={<DollarSign className="w-4 h-4" />} color="bg-green-500" />
-        <KPIBox label="Total tax (PKR)" value={formatCurrency(stats.tax)} icon={<TrendingUp className="w-4 h-4" />} color="bg-indigo-500" />
-        <KPIBox label="Total discount (PKR)" value={formatCurrency(stats.discount)} icon={<Zap className="w-4 h-4" />} color="bg-amber-500" />
-        <KPIBox label="Pending" value={stats.pending} icon={<Clock className="w-4 h-4" />} color="bg-orange-500" />
-        <KPIBox label="Approved" value={stats.approved} icon={<CheckCircle className="w-4 h-4" />} color="bg-emerald-500" />
-        <KPIBox label="Fulfilled" value={stats.fulfilled} icon={<PackageCheck className="w-4 h-4" />} color="bg-purple-500" />
-        <KPIBox label="Cancelled" value={stats.cancelled} icon={<XCircle className="w-4 h-4" />} color="bg-red-500" />
+        <KPIBox label="Total SOs" value={stats.count} icon={<FileText className="w-5 h-5" />} color="bg-blue-500" />
+        <KPIBox
+          label="Total amount (PKR)"
+          value={formatCurrency(stats.amount)}
+          icon={<DollarSign className="w-5 h-5" />}
+          color="bg-green-500"
+        />
+        <KPIBox
+          label="Total tax (PKR)"
+          value={formatCurrency(stats.tax)}
+          icon={<TrendingUp className="w-5 h-5" />}
+          color="bg-indigo-500"
+        />
+        <KPIBox
+          label="Total discount (PKR)"
+          value={formatCurrency(stats.discount)}
+          icon={<Zap className="w-5 h-5" />}
+          color="bg-amber-500"
+        />
+        <KPIBox label="Pending" value={stats.pending} icon={<Clock className="w-5 h-5" />} color="bg-orange-500" />
+        <KPIBox label="Approved" value={stats.approved} icon={<CheckCircle className="w-5 h-5" />} color="bg-emerald-500" />
+        <KPIBox label="Fulfilled" value={stats.fulfilled} icon={<PackageCheck className="w-5 h-5" />} color="bg-purple-500" />
+        <KPIBox label="Cancelled" value={stats.cancelled} icon={<XCircle className="w-5 h-5" />} color="bg-red-500" />
       </div>
 
-      {/* Control Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border shadow-sm">
         <div className="relative flex-1 group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -199,7 +217,6 @@ export default function SupplyOrderList() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto">
         <DataTable
           columns={columns}
@@ -218,7 +235,6 @@ export default function SupplyOrderList() {
         />
       </div>
 
-      {/* Delete Confirmation */}
       <ConfirmDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
@@ -239,17 +255,29 @@ export default function SupplyOrderList() {
   );
 }
 
-function KPIBox({ label, value, icon, color }: { label: string; value: string | number; icon: React.ReactNode; color: string }) {
+function KPIBox({
+  label,
+  value,
+  icon,
+  color,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  color: string;
+}) {
   return (
     <Card className="p-4 relative overflow-hidden group hover:shadow-md transition-all duration-300">
-      <div className={`absolute top-0 right-0 w-16 h-16 ${color} opacity-5 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500`} />
-      <div className="flex items-center gap-3">
-        <div className={`p-2 rounded-lg ${color} bg-opacity-10 text-primary flex items-center justify-center`}>
+      <div
+        className={`absolute top-0 right-0 w-16 h-16 ${color} opacity-5 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500`}
+      />
+      <div className="flex items-center gap-4">
+        <div className={`p-3 rounded-xl ${color} bg-opacity-10 text-primary flex items-center justify-center`}>
           {icon}
         </div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">{label}</p>
-          <p className="text-sm font-bold tracking-tight mt-0.5 truncate">{value}</p>
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+          <p className="text-lg font-bold tracking-tight mt-0.5">{value}</p>
         </div>
       </div>
     </Card>

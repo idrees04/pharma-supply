@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable, Column } from '@/components/common/DataTable';
 import {
   Dialog,
@@ -33,17 +34,20 @@ import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/utils';
 import {
   useExpenseList,
-  useIssuedVoucherExpenses,
+  useIssuedVoucherExpenseGroups,
   useDeleteExpense,
   useIssueExpenseVoucher,
+  useIssueExpenseVoucherBatch,
   useVoucherPrint,
+  useExpenseVoucherPrintByNumber,
 } from '@/api/services/expenses';
-import type { ExpenseDto, ExpenseListQueryParams } from '@/types/api/expenses';
+import type { ExpenseDto, ExpenseListQueryParams, ExpenseVoucherPrintDto } from '@/types/api/expenses';
 import { ExpenseStatus } from '@/types/api/expenses';
 import { useExpenseStatusOptions } from '@/hooks/dropdown';
 import ExpenseForm from './ExpenseForm';
 import BulkExpenseForm from './BulkExpenseForm';
-import { VoucherPreviewPanel } from '@/components/finance/VoucherPreviewPanel';
+import { VoucherPreviewPanel, type VoucherPreviewData } from '@/components/finance/VoucherPreviewPanel';
+import { FinanceVoucherGroupsTable } from '@/components/finance/FinanceVoucherGroupsTable';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 const ITEMS_PER_PAGE_TABLE = 100;
@@ -61,6 +65,41 @@ function statusBadgeVariant(status: ExpenseStatus): 'default' | 'secondary' | 'o
   if (status === ExpenseStatus.Paid) return 'default';
   if (status === ExpenseStatus.Cancelled) return 'destructive';
   return 'secondary';
+}
+
+function isEligibleForExpenseVoucher(row: ExpenseDto) {
+  return row.status === ExpenseStatus.Paid && !row.voucherNumber;
+}
+
+function mapExpenseVoucherToPreview(v: ExpenseVoucherPrintDto): VoucherPreviewData {
+  const lines = v.lines?.length
+    ? v.lines.map((line) => ({
+        documentNumber: line.expenseNumber,
+        date: line.expenseDate,
+        categoryName: line.categoryName,
+        accountName: line.accountName,
+        payeeOrSource: line.payeeName,
+        amount: line.amount,
+        description: line.description,
+        referenceNumber: line.referenceNumber,
+      }))
+    : undefined;
+
+  return {
+    title: 'Expense voucher',
+    number: v.voucherNumber ?? v.expenseNumber,
+    date: v.voucherIssuedDate ?? v.expenseDate,
+    categoryName: v.categoryName,
+    accountName: v.accountName,
+    payeeOrSource: v.payeeName,
+    amount: v.amount,
+    totalAmount: v.totalAmount,
+    amountInWords: v.amountInWords,
+    description: v.description,
+    referenceNumber: v.referenceNumber,
+    notes: v.notes,
+    lines,
+  };
 }
 
 export default function ExpenseList() {
@@ -84,15 +123,18 @@ export default function ExpenseList() {
   }, [debouncedSearch]);
 
   const { data: paged, isPending: loadingMain } = useExpenseList(listParams);
-  const { data: issuedList = [], isPending: loadingIssued } = useIssuedVoucherExpenses();
+  const { data: issuedGroupList = [], isPending: loadingIssued } = useIssuedVoucherExpenseGroups();
 
   const [formOpen, setFormOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editId, setEditId] = useState<number | undefined>(undefined);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [issueFor, setIssueFor] = useState<ExpenseDto | null>(null);
+  const [batchIssueOpen, setBatchIssueOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
   const [templateKey, setTemplateKey] = useState('default');
   const [printForId, setPrintForId] = useState<number | null>(null);
+  const [printVoucherNumber, setPrintVoucherNumber] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const canCreate = hasPermission('expenses', 'create');
@@ -101,8 +143,58 @@ export default function ExpenseList() {
 
   const { mutate: deleteExpense, isPending: deleting } = useDeleteExpense();
   const issueMutation = useIssueExpenseVoucher();
+  const issueBatchMutation = useIssueExpenseVoucherBatch();
 
   const rows = paged?.items ?? [];
+  const eligibleOnPage = useMemo(() => rows.filter(isEligibleForExpenseVoucher), [rows]);
+  const selectedTotal = useMemo(
+    () => rows.filter((r) => selectedIds.has(r.id)).reduce((s, r) => s + r.amount, 0),
+    [rows, selectedIds],
+  );
+  const allEligibleSelected =
+    eligibleOnPage.length > 0 && eligibleOnPage.every((r) => selectedIds.has(r.id));
+
+  const issuedGroups = useMemo(
+    () =>
+      issuedGroupList.map((group) => ({
+        voucherNumber: group.voucherNumber,
+        voucherIssuedDate: group.voucherIssuedDate,
+        lineCount: group.lineCount,
+        totalAmount: group.totalAmount,
+        lines: group.expenses.map((expense) => ({
+          id: expense.id,
+          documentNumber: expense.expenseNumber,
+          date: expense.expenseDate,
+          categoryName: expense.expenseCategoryName,
+          accountName: expense.accountName,
+          amount: expense.amount,
+          extraLabel: expense.payeeName?.trim() || null,
+        })),
+      })),
+    [issuedGroupList],
+  );
+
+  const toggleSelect = useCallback((row: ExpenseDto) => {
+    if (!isEligibleForExpenseVoucher(row)) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(row.id)) next.delete(row.id);
+      else next.add(row.id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAllOnPage = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allEligibleSelected) {
+        eligibleOnPage.forEach((r) => next.delete(r.id));
+      } else {
+        eligibleOnPage.forEach((r) => next.add(r.id));
+      }
+      return next;
+    });
+  }, [allEligibleSelected, eligibleOnPage]);
   const totalCount = paged?.totalCount ?? 0;
   const totalPages = Math.max(1, paged?.totalPages ?? 1);
   const pageNumber = listParams.pageNumber ?? 1;
@@ -144,6 +236,30 @@ export default function ExpenseList() {
 
   const columns: Column<ExpenseDto>[] = useMemo(
     () => [
+      {
+        header: (
+          <Checkbox
+            checked={allEligibleSelected}
+            onCheckedChange={toggleSelectAllOnPage}
+            disabled={eligibleOnPage.length === 0}
+            aria-label="Select all eligible on page"
+          />
+        ),
+        id: 'select',
+        accessor: (row) => {
+          const eligible = isEligibleForExpenseVoucher(row);
+          return (
+            <Checkbox
+              checked={selectedIds.has(row.id)}
+              onCheckedChange={() => toggleSelect(row)}
+              disabled={!eligible}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={eligible ? `Select ${row.expenseNumber ?? row.id}` : 'Not eligible'}
+            />
+          );
+        },
+        className: 'w-10',
+      },
       {
         header: 'Expense #',
         accessor: (row) => <span className="font-mono text-xs font-semibold">{row.expenseNumber ?? '—'}</span>,
@@ -219,7 +335,8 @@ export default function ExpenseList() {
                 className="h-8 gap-1 text-xs"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setPrintForId(row.id);
+                  if (row.voucherNumber) setPrintVoucherNumber(row.voucherNumber);
+                  else setPrintForId(row.id);
                 }}
               >
                 <Printer className="h-3.5 w-3.5" />
@@ -231,7 +348,7 @@ export default function ExpenseList() {
         className: 'w-[1%]',
       },
     ],
-    [statusLabel],
+    [statusLabel, selectedIds, allEligibleSelected, eligibleOnPage.length, toggleSelect, toggleSelectAllOnPage],
   );
 
   const confirmIssue = () => {
@@ -245,6 +362,25 @@ export default function ExpenseList() {
         onSuccess: () => {
           toast.success('Voucher issued');
           setIssueFor(null);
+        },
+        onError: (e) => toast.error(e.userMessage || 'Could not issue voucher'),
+      },
+    );
+  };
+
+  const confirmBatchIssue = () => {
+    const expenseIds = [...selectedIds];
+    if (expenseIds.length === 0) return;
+    issueBatchMutation.mutate(
+      {
+        expenseIds,
+        voucherTemplateKey: templateKey.trim() || 'default',
+      },
+      {
+        onSuccess: (result) => {
+          toast.success(`Voucher ${result.voucherNumber} issued for ${expenseIds.length} expense(s)`);
+          setBatchIssueOpen(false);
+          setSelectedIds(new Set());
         },
         onError: (e) => toast.error(e.userMessage || 'Could not issue voucher'),
       },
@@ -334,6 +470,26 @@ export default function ExpenseList() {
             </div>
           </div>
 
+          {selectedIds.size > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+              <p className="text-sm">
+                <span className="font-semibold">{selectedIds.size}</span> selected · Total{' '}
+                <span className="font-semibold tabular-nums">{formatCurrency(selectedTotal)}</span>
+              </p>
+              <Button
+                type="button"
+                className="gap-2"
+                onClick={() => {
+                  setBatchIssueOpen(true);
+                  setTemplateKey('default');
+                }}
+              >
+                <Ticket className="h-4 w-4" />
+                Issue combined voucher
+              </Button>
+            </div>
+          ) : null}
+
           <Card className="overflow-hidden border shadow-sm">
             <div className="overflow-x-auto">
               <DataTable
@@ -410,25 +566,16 @@ export default function ExpenseList() {
         </TabsContent>
 
         <TabsContent value="issued" className="mt-6 space-y-4">
-          <p className="text-sm text-muted-foreground">Expenses that already have an issued voucher.</p>
-          {loadingIssued ? (
-            <div className="py-12 text-center text-muted-foreground">Loading…</div>
-          ) : issuedList.length === 0 ? (
-            <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
-              No issued vouchers yet.
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={issuedList}
-              itemsPerPage={25}
-              showSearch={false}
-              showToolbar={false}
-              showColumnVisibility={false}
-              preserveServerOrder
-              emptyMessage="No data"
-            />
-          )}
+          <p className="text-sm text-muted-foreground">
+            Vouchers grouped by number. Expand a row to see individual expense lines.
+          </p>
+          <FinanceVoucherGroupsTable
+            groups={issuedGroups}
+            loading={loadingIssued}
+            documentHeader="Expense #"
+            emptyMessage="No issued vouchers yet."
+            onPrint={(voucherNumber) => setPrintVoucherNumber(voucherNumber)}
+          />
         </TabsContent>
       </Tabs>
 
@@ -531,21 +678,71 @@ export default function ExpenseList() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={printForId !== null} onOpenChange={(o) => !o && setPrintForId(null)}>
+      <Dialog open={batchIssueOpen} onOpenChange={setBatchIssueOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Issue combined voucher</DialogTitle>
+            <DialogDescription>
+              {selectedIds.size} expense line(s) · Total {formatCurrency(selectedTotal)}. Mixed accounts are allowed;
+              the print view lists each line.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="batch-tpl">Template key</Label>
+            <Input
+              id="batch-tpl"
+              value={templateKey}
+              onChange={(e) => setTemplateKey(e.target.value)}
+              placeholder="default"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBatchIssueOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmBatchIssue} disabled={issueBatchMutation.isPending || selectedIds.size === 0}>
+              {issueBatchMutation.isPending ? 'Issuing…' : 'Issue voucher'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={printForId !== null || printVoucherNumber !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPrintForId(null);
+            setPrintVoucherNumber(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Voucher preview</DialogTitle>
-            <DialogDescription>Print-friendly voucher details for this expense.</DialogDescription>
+            <DialogDescription>Print-friendly voucher details.</DialogDescription>
           </DialogHeader>
-          {printForId ? <VoucherPrintBody expenseId={printForId} /> : null}
+          {printVoucherNumber ? (
+            <VoucherPrintBody voucherNumber={printVoucherNumber} />
+          ) : printForId ? (
+            <VoucherPrintBody expenseId={printForId} />
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>
   );
 }
 
-function VoucherPrintBody({ expenseId }: { expenseId: number }) {
-  const { data: v, isPending, error } = useVoucherPrint(expenseId);
+function VoucherPrintBody({
+  expenseId,
+  voucherNumber,
+}: {
+  expenseId?: number;
+  voucherNumber?: string | null;
+}) {
+  const byId = useVoucherPrint(expenseId ?? null);
+  const byNumber = useExpenseVoucherPrintByNumber(voucherNumber ?? null);
+  const useNumber = !!voucherNumber?.trim();
+  const { data: v, isPending, error } = useNumber ? byNumber : byId;
 
   if (isPending) return <div className="py-8 text-center text-sm text-muted-foreground">Loading voucher…</div>;
   if (error || !v)
@@ -555,25 +752,11 @@ function VoucherPrintBody({ expenseId }: { expenseId: number }) {
       </div>
     );
 
+  const preview = mapExpenseVoucherToPreview(v);
+
   return (
     <div className="space-y-4">
-      <VoucherPreviewPanel
-        data={{
-          title: 'Expense voucher',
-          number: v.voucherNumber ?? v.expenseNumber,
-          date: v.expenseDate,
-          categoryName: v.categoryName,
-          accountName: v.accountName,
-          payeeOrSource: v.payeeName,
-          amount: v.amount,
-          description: v.description,
-          referenceNumber: v.referenceNumber,
-          notes: v.notes,
-        }}
-      />
-      {v.amountInWords ? (
-        <div className="rounded-lg border bg-muted/30 p-3 text-xs italic text-muted-foreground">{v.amountInWords}</div>
-      ) : null}
+      <VoucherPreviewPanel data={preview} />
       <div className="flex justify-end">
         <Button type="button" variant="outline" className="gap-2" onClick={() => window.print()}>
           <Printer className="h-4 w-4" />

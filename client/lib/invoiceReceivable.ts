@@ -5,12 +5,22 @@ export function roundMoney2(n: number): number {
 
 /** Mirrors backend `InvoiceReceivableHelper`: legal total is gross; collections use ex-tax net. */
 
+export function totalInvoiceDeductions(d: {
+  lateDeliveryDeduction?: number | null;
+  incomeTaxDeduction?: number | null;
+  salesTaxDeduction?: number | null;
+}): number {
+  return roundMoney2(
+    (d.lateDeliveryDeduction ?? 0) + (d.incomeTaxDeduction ?? 0) + (d.salesTaxDeduction ?? 0)
+  );
+}
+
 export function taxExclusiveCollectible(
   totalAmount: number,
   taxAmount: number,
-  lateDeliveryDeduction: number
+  totalDeduction: number
 ): number {
-  const v = totalAmount - taxAmount - lateDeliveryDeduction;
+  const v = totalAmount - taxAmount - totalDeduction;
   const x = v > 0 ? v : 0;
   return roundMoney2(x);
 }
@@ -18,10 +28,10 @@ export function taxExclusiveCollectible(
 export function outstandingTaxExclusive(
   totalAmount: number,
   taxAmount: number,
-  lateDeliveryDeduction: number,
+  totalDeduction: number,
   paidAmount: number
 ): number {
-  const v = taxExclusiveCollectible(totalAmount, taxAmount, lateDeliveryDeduction) - paidAmount;
+  const v = taxExclusiveCollectible(totalAmount, taxAmount, totalDeduction) - paidAmount;
   const x = v > 0 ? v : 0;
   return roundMoney2(x);
 }
@@ -31,12 +41,14 @@ export function outstandingExTaxForInvoice(d: {
   totalAmount: number;
   taxAmount: number;
   lateDeliveryDeduction?: number | null;
+  incomeTaxDeduction?: number | null;
+  salesTaxDeduction?: number | null;
   paidAmount: number;
 }): number {
   return outstandingTaxExclusive(
     d.totalAmount,
     d.taxAmount,
-    d.lateDeliveryDeduction ?? 0,
+    totalInvoiceDeductions(d),
     d.paidAmount
   );
 }

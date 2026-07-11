@@ -11,10 +11,15 @@ import {
   UpdateIncomeResponse,
   DeleteIncomeResponse,
   GetIssuedIncomeVouchersResponse,
+  GetIssuedIncomeVoucherGroupsResponse,
   GetIncomeVoucherPrintResponse,
   IssueIncomeVoucherResponse,
+  IssueIncomeVoucherBatchResponse,
   IssueIncomeVoucherRequest,
+  IssueIncomeVoucherBatchRequest,
   IncomeVoucherPrintDto,
+  IncomeVoucherGroupDto,
+  IncomeVoucherBatchResultDto,
 } from '@/types/api/incomes';
 import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
@@ -63,14 +68,45 @@ export const incomeService = {
     return response.data;
   },
 
+  getIssuedVoucherGroups: async (config?: RequestConfig): Promise<IncomeVoucherGroupDto[]> => {
+    const response = await get<GetIssuedIncomeVoucherGroupsResponse>(
+      '/api/Incomes/vouchers/issued-groups',
+      config
+    );
+    return response.data;
+  },
+
   getVoucherForPrint: async (id: number, config?: RequestConfig): Promise<IncomeVoucherPrintDto> => {
     const response = await get<GetIncomeVoucherPrintResponse>(`/api/Incomes/${id}/voucher-for-print`, config);
+    return response.data;
+  },
+
+  getVoucherForPrintByNumber: async (
+    voucherNumber: string,
+    config?: RequestConfig
+  ): Promise<IncomeVoucherPrintDto> => {
+    const response = await get<GetIncomeVoucherPrintResponse>(
+      `/api/Incomes/vouchers/${encodeURIComponent(voucherNumber)}/for-print`,
+      config
+    );
     return response.data;
   },
 
   issueVoucher: async (id: number, data: IssueIncomeVoucherRequest, config?: RequestConfig): Promise<IncomeDto> => {
     const response = await post<IssueIncomeVoucherResponse, IssueIncomeVoucherRequest>(
       `/api/Incomes/${id}/issue-voucher`,
+      data,
+      config
+    );
+    return response.data;
+  },
+
+  issueVoucherBatch: async (
+    data: IssueIncomeVoucherBatchRequest,
+    config?: RequestConfig
+  ): Promise<IncomeVoucherBatchResultDto> => {
+    const response = await post<IssueIncomeVoucherBatchResponse, IssueIncomeVoucherBatchRequest>(
+      '/api/Incomes/issue-voucher-batch',
       data,
       config
     );
@@ -83,7 +119,10 @@ const incomeKeys = {
   list: (p: IncomeListQueryParams | undefined) => [...incomeKeys.all, 'list', p] as const,
   detail: (id: number) => [...incomeKeys.all, id] as const,
   issued: () => [...incomeKeys.all, 'vouchers', 'issued'] as const,
+  issuedGroups: () => [...incomeKeys.all, 'vouchers', 'issued-groups'] as const,
   print: (id: number) => [...incomeKeys.all, 'voucher-print', id] as const,
+  printByNumber: (voucherNumber: string) =>
+    [...incomeKeys.all, 'voucher-print-number', voucherNumber] as const,
 };
 
 export function useIncomeList(params?: IncomeListQueryParams) {
@@ -106,10 +145,26 @@ export function useIssuedVoucherIncomes() {
   });
 }
 
+export function useIssuedVoucherIncomeGroups() {
+  return useGetQuery<IncomeVoucherGroupDto[]>(
+    incomeKeys.issuedGroups(),
+    () => incomeService.getIssuedVoucherGroups(),
+    { staleTime: 60 * 1000 }
+  );
+}
+
 export function useIncomeVoucherPrint(id: number | null) {
   return useGetQuery<IncomeVoucherPrintDto>(incomeKeys.print(id ?? 0), () => incomeService.getVoucherForPrint(id!), {
     enabled: id !== null && id > 0,
   });
+}
+
+export function useIncomeVoucherPrintByNumber(voucherNumber: string | null) {
+  return useGetQuery<IncomeVoucherPrintDto>(
+    incomeKeys.printByNumber(voucherNumber ?? ''),
+    () => incomeService.getVoucherForPrintByNumber(voucherNumber!),
+    { enabled: !!voucherNumber?.trim() }
+  );
 }
 
 export function useCreateIncome() {
@@ -152,6 +207,21 @@ export function useIssueIncomeVoucher() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: incomeKeys.all });
         queryClient.invalidateQueries({ queryKey: incomeKeys.issued() });
+        queryClient.invalidateQueries({ queryKey: incomeKeys.issuedGroups() });
+      },
+    }
+  );
+}
+
+export function useIssueIncomeVoucherBatch() {
+  const queryClient = useQueryClient();
+  return usePostMutation<IncomeVoucherBatchResultDto, IssueIncomeVoucherBatchRequest>(
+    (data) => incomeService.issueVoucherBatch(data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: incomeKeys.all });
+        queryClient.invalidateQueries({ queryKey: incomeKeys.issued() });
+        queryClient.invalidateQueries({ queryKey: incomeKeys.issuedGroups() });
       },
     }
   );

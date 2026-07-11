@@ -23,7 +23,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useFederationBranding } from "@/hooks/useFederationBranding";
-import { FALLBACK_LOGO, resolveMediaUrl } from "@/lib/federationBranding";
 import {
   Tooltip,
   TooltipContent,
@@ -296,9 +295,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const location = useLocation();
   const { pathname, search } = location;
   const { canAccess } = useAuth();
-  const { branding } = useFederationBranding({ enabled: false });
-  const logoSrc = resolveMediaUrl(branding?.logoUrl, FALLBACK_LOGO);
-  const federationName = branding?.federationName ?? "Ideal Distributor";
+  const { logoSrc, federationName } = useFederationBranding({ enabled: false });
 
   // Filter menu items based on user permissions (memoized for performance)
   const visibleMenuItems = useMemo(

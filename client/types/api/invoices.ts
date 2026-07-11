@@ -53,9 +53,13 @@ export interface InvoiceDto {
     previousBalance?: number;
     /** Current total hospital outstanding (ex-tax receivable). */
     hospitalOutstandingBalance?: number;
-    /** Cumulative hospital / late-delivery deduction; reduces ex-tax collectible. */
+    /** Cumulative late delivery / other deduction; reduces ex-tax collectible. */
     lateDeliveryDeduction?: number;
-    /** TotalAmount − TaxAmount − LateDeliveryDeduction (supplier cash expectation). */
+    /** Cumulative income tax deduction withheld by hospital. */
+    incomeTaxDeduction?: number;
+    /** Cumulative sales tax deduction withheld by hospital. */
+    salesTaxDeduction?: number;
+    /** TotalAmount − TaxAmount − all deductions (supplier cash expectation). */
     taxExclusiveCollectibleAmount?: number;
     /** Display-only: Σ (line net ex tax − qty × standard purchase rate). */
     estimatedContributionMargin?: number | null;
@@ -137,8 +141,12 @@ export type CreateInvoiceFromSupplyOrderResponse = ApiResponse<InvoiceDto>;
 export interface ProcessInvoicePaymentRequest {
   accountId: number;
   amount: number;
-  /** Cumulative deduction on the invoice; optional — omit to leave unchanged. */
+  /** Cumulative late delivery / other deduction; optional — omit to leave unchanged. */
   lateDeliveryDeduction?: number | null;
+  /** Cumulative income tax deduction; optional — omit to leave unchanged. */
+  incomeTaxDeduction?: number | null;
+  /** Cumulative sales tax deduction; optional — omit to leave unchanged. */
+  salesTaxDeduction?: number | null;
   paymentDate?: string | null;
   paymentMode: number;
   referenceNumber?: string | null;

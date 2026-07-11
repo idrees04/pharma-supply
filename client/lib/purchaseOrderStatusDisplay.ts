@@ -86,6 +86,14 @@ export function canCancelPurchaseOrder(status: number): boolean {
   return status === PurchaseOrderStatus.Sent || status === PurchaseOrderStatus.Active;
 }
 
+export function canFullyEditPurchaseOrder(
+  po: Pick<PurchaseOrder, 'status' | 'paidAmount' | 'items'>
+): boolean {
+  if (po.status !== PurchaseOrderStatus.Sent) return false;
+  if ((po.paidAmount ?? 0) > 0) return false;
+  return (po.items ?? []).every((line) => (line.receivedQuantity ?? 0) <= 0);
+}
+
 export interface ProgressSnapshot {
   received: number;
   ordered: number;

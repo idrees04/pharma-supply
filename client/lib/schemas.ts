@@ -210,17 +210,21 @@ export const updatePurchaseOrderSchema = z.object({
 export type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;
 export type UpdatePurchaseOrderFormData = z.infer<typeof updatePurchaseOrderSchema>;
 
-// Receive Items Schema — lines with qty 0 skip batch/dates; lines with qty > 0 must match POST /PurchaseOrders/receive expectations
-export const receiveItemLineSchema = z.object({
-  purchaseOrderItemId: z.coerce.number().int().min(1),
-  productName: z.string(),
-  orderedQuantity: z.coerce.number().int().min(0),
-  previouslyReceived: z.coerce.number().int().min(0),
+// Receive Items Schema — nested batches per line; batch fields required when qty > 0
+export const receiveBatchSchema = z.object({
   receivedQuantity: z.coerce.number().min(0),
   batchNumber: z.string().optional().default(""),
   manufactureDate: z.string().optional().default(""),
   expiryDate: z.string().optional().default(""),
   notes: z.string().optional().default(""),
+});
+
+export const receiveItemLineSchema = z.object({
+  purchaseOrderItemId: z.coerce.number().int().min(1),
+  productName: z.string(),
+  orderedQuantity: z.coerce.number().int().min(0),
+  previouslyReceived: z.coerce.number().int().min(0),
+  batches: z.array(receiveBatchSchema).min(1, "At least one batch row is required"),
 });
 
 export const receiveItemsSchema = z
@@ -232,24 +236,35 @@ export const receiveItemsSchema = z
   .superRefine((data, ctx) => {
     data.items.forEach((item, i) => {
       const fieldIssues = getReceiveLineFieldIssues(item);
-      (["receivedQuantity", "batchNumber", "manufactureDate", "expiryDate"] as const).forEach(
-        (key) => {
-          const msg = fieldIssues[key];
-          if (msg) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: msg,
-              path: ["items", i, key],
-            });
+
+      if (fieldIssues.lineTotal) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: fieldIssues.lineTotal,
+          path: ["items", i, "batches"],
+        });
+      }
+
+      fieldIssues.batches.forEach((batchIssues, bi) => {
+        (["receivedQuantity", "batchNumber", "manufactureDate", "expiryDate"] as const).forEach(
+          (key) => {
+            const msg = batchIssues[key];
+            if (msg) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: msg,
+                path: ["items", i, "batches", bi, key],
+              });
+            }
           }
-        }
-      );
+        );
+      });
     });
 
     if (!hasAnyReceiveQuantity(data.items)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Enter received quantity for at least one product.",
+        message: "Enter received quantity for at least one product batch.",
         path: ["items"],
       });
     }
@@ -257,6 +272,7 @@ export const receiveItemsSchema = z
 
 export type ReceiveItemsFormData = z.infer<typeof receiveItemsSchema>;
 export type ReceiveItemLineFormData = z.infer<typeof receiveItemLineSchema>;
+export type ReceiveBatchFormData = z.infer<typeof receiveBatchSchema>;
 
 
 // Delivery Challan Schema

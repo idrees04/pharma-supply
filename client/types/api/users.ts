@@ -100,6 +100,10 @@ export interface LoginResponseDTO {
   email: string;
   role: UserRole;
   token: string; // JWT or Bearer token
+  federationId?: number;
+  federationName?: string;
+  logoUrl?: string | null;
+  faviconUrl?: string | null;
 }
 
 /**

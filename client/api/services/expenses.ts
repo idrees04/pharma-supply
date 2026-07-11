@@ -11,10 +11,15 @@ import {
   UpdateExpenseResponse,
   DeleteExpenseResponse,
   GetIssuedVouchersResponse,
+  GetIssuedVoucherGroupsResponse,
   GetVoucherPrintResponse,
   IssueVoucherResponse,
+  IssueVoucherBatchResponse,
   IssueExpenseVoucherRequest,
+  IssueExpenseVoucherBatchRequest,
   ExpenseVoucherPrintDto,
+  ExpenseVoucherGroupDto,
+  ExpenseVoucherBatchResultDto,
 } from '@/types/api/expenses';
 import { PaginatedResponse } from '@/types/api/common';
 import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
@@ -75,8 +80,27 @@ export const expenseService = {
     return response.data;
   },
 
+  getIssuedVoucherGroups: async (config?: RequestConfig): Promise<ExpenseVoucherGroupDto[]> => {
+    const response = await get<GetIssuedVoucherGroupsResponse>(
+      '/api/Expenses/vouchers/issued-groups',
+      config
+    );
+    return response.data;
+  },
+
   getVoucherForPrint: async (id: number, config?: RequestConfig): Promise<ExpenseVoucherPrintDto> => {
     const response = await get<GetVoucherPrintResponse>(`/api/Expenses/${id}/voucher-for-print`, config);
+    return response.data;
+  },
+
+  getVoucherForPrintByNumber: async (
+    voucherNumber: string,
+    config?: RequestConfig
+  ): Promise<ExpenseVoucherPrintDto> => {
+    const response = await get<GetVoucherPrintResponse>(
+      `/api/Expenses/vouchers/${encodeURIComponent(voucherNumber)}/for-print`,
+      config
+    );
     return response.data;
   },
 
@@ -92,6 +116,18 @@ export const expenseService = {
     );
     return response.data;
   },
+
+  issueVoucherBatch: async (
+    data: IssueExpenseVoucherBatchRequest,
+    config?: RequestConfig
+  ): Promise<ExpenseVoucherBatchResultDto> => {
+    const response = await post<IssueVoucherBatchResponse, IssueExpenseVoucherBatchRequest>(
+      '/api/Expenses/issue-voucher-batch',
+      data,
+      config
+    );
+    return response.data;
+  },
 };
 
 const expenseKeys = {
@@ -99,7 +135,10 @@ const expenseKeys = {
   list: (p: ExpenseListQueryParams | undefined) => [...expenseKeys.all, 'list', p] as const,
   detail: (id: number) => [...expenseKeys.all, id] as const,
   issued: () => [...expenseKeys.all, 'vouchers', 'issued'] as const,
+  issuedGroups: () => [...expenseKeys.all, 'vouchers', 'issued-groups'] as const,
   print: (id: number) => [...expenseKeys.all, 'voucher-print', id] as const,
+  printByNumber: (voucherNumber: string) =>
+    [...expenseKeys.all, 'voucher-print-number', voucherNumber] as const,
 };
 
 export function useExpenseList(params?: ExpenseListQueryParams) {
@@ -122,11 +161,27 @@ export function useIssuedVoucherExpenses() {
   });
 }
 
+export function useIssuedVoucherExpenseGroups() {
+  return useGetQuery<ExpenseVoucherGroupDto[]>(
+    expenseKeys.issuedGroups(),
+    () => expenseService.getIssuedVoucherGroups(),
+    { staleTime: 60 * 1000 }
+  );
+}
+
 export function useVoucherPrint(id: number | null) {
   return useGetQuery<ExpenseVoucherPrintDto>(
     expenseKeys.print(id ?? 0),
     () => expenseService.getVoucherForPrint(id!),
     { enabled: id !== null && id > 0 }
+  );
+}
+
+export function useExpenseVoucherPrintByNumber(voucherNumber: string | null) {
+  return useGetQuery<ExpenseVoucherPrintDto>(
+    expenseKeys.printByNumber(voucherNumber ?? ''),
+    () => expenseService.getVoucherForPrintByNumber(voucherNumber!),
+    { enabled: !!voucherNumber?.trim() }
   );
 }
 
@@ -177,6 +232,21 @@ export function useIssueExpenseVoucher() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: expenseKeys.all });
         queryClient.invalidateQueries({ queryKey: expenseKeys.issued() });
+        queryClient.invalidateQueries({ queryKey: expenseKeys.issuedGroups() });
+      },
+    }
+  );
+}
+
+export function useIssueExpenseVoucherBatch() {
+  const queryClient = useQueryClient();
+  return usePostMutation<ExpenseVoucherBatchResultDto, IssueExpenseVoucherBatchRequest>(
+    (data) => expenseService.issueVoucherBatch(data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: expenseKeys.all });
+        queryClient.invalidateQueries({ queryKey: expenseKeys.issued() });
+        queryClient.invalidateQueries({ queryKey: expenseKeys.issuedGroups() });
       },
     }
   );

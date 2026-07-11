@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,6 @@ import type { CreateExpenseRequest, UpdateExpenseRequest } from '@/types/api/exp
 import { ExpenseStatus } from '@/types/api/expenses';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
-import { VoucherPreviewPanel } from '@/components/finance/VoucherPreviewPanel';
 
 const createSchema = z.object({
   expenseCategoryId: z.coerce.number().min(1, 'Select a category'),
@@ -112,8 +111,6 @@ export default function ExpenseForm({ expenseId, onSuccess, onCancel }: ExpenseF
     });
   }, [expense, isEdit, editForm]);
 
-  const createWatch = useWatch({ control: createForm.control });
-
   const onCreate = (v: CreateValues) => {
     const payload: CreateExpenseRequest = {
       expenseDate: new Date(v.expenseDate).toISOString(),
@@ -176,13 +173,9 @@ export default function ExpenseForm({ expenseId, onSuccess, onCancel }: ExpenseF
   }
 
   if (!isEdit) {
-    const selectedCategory = categories?.find((c) => c.id === Number(createWatch.expenseCategoryId));
-    const selectedAccount = accounts?.find((a) => a.id === Number(createWatch.accountId));
-
     return (
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Form {...createForm}>
-          <form onSubmit={createForm.handleSubmit(onCreate)} className="space-y-4" noValidate>
+      <Form {...createForm}>
+        <form onSubmit={createForm.handleSubmit(onCreate)} className="space-y-4" noValidate>
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField
               control={createForm.control}
@@ -337,21 +330,6 @@ export default function ExpenseForm({ expenseId, onSuccess, onCancel }: ExpenseF
           </div>
         </form>
       </Form>
-        <VoucherPreviewPanel
-          data={{
-            title: 'Expense voucher preview',
-            date: createWatch.expenseDate ?? new Date().toISOString().split('T')[0],
-            categoryName: selectedCategory?.categoryName,
-            accountName: selectedAccount?.accountName,
-            accountBalance: selectedAccount?.currentBalance,
-            payeeOrSource: createWatch.payeeName,
-            amount: Number(createWatch.amount) || 0,
-            description: createWatch.description,
-            referenceNumber: createWatch.referenceNumber,
-            notes: createWatch.notes,
-          }}
-        />
-      </div>
     );
   }
 

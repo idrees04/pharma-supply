@@ -107,7 +107,7 @@ export function SupplyOrderDocumentsSection({ supplyOrderId }: SupplyOrderDocume
   return (
     <>
       <motion.div variants={itemVariants} className="grid gap-6 md:grid-cols-1">
-        <Card className="overflow-hidden border-slate-200 shadow-lg">
+        <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
           <CardHeader className="border-b bg-slate-50/80 py-4">
             <CardTitle className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
               <Truck className="h-4 w-4 text-orange-500" />
@@ -124,18 +124,20 @@ export function SupplyOrderDocumentsSection({ supplyOrderId }: SupplyOrderDocume
               <p className="py-10 text-center text-sm text-muted-foreground">No delivery challans for this order.</p>
             ) : (
               <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50/80">
-                    <TableHead className="text-[10px] font-black uppercase">Challan</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase">Dispatch</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
-                    <TableHead className="w-[140px] text-right text-[10px] font-black uppercase">Actions</TableHead>
+                <TableHeader className="bg-slate-50/50">
+                  <TableRow>
+                    <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Challan</TableHead>
+                    <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Dispatch</TableHead>
+                    <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Status</TableHead>
+                    <TableHead className="w-[140px] px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {challans.map((c: DeliveryChallanSummary) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-mono font-semibold">{c.challanNumber}</TableCell>
+                    <TableRow key={c.id} className="hover:bg-slate-50/30 border-b border-slate-100">
+                      <TableCell className="px-6 py-4 font-mono font-semibold text-primary">{c.challanNumber}</TableCell>
                       <TableCell className="text-sm">
                         {c.dispatchDate ? new Date(c.dispatchDate).toLocaleString() : '—'}
                       </TableCell>
@@ -164,7 +166,7 @@ export function SupplyOrderDocumentsSection({ supplyOrderId }: SupplyOrderDocume
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-slate-200 shadow-lg">
+        <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
           <CardHeader className="border-b bg-slate-50/80 py-4">
             <CardTitle className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
               <FileText className="h-4 w-4 text-primary" />
@@ -181,19 +183,23 @@ export function SupplyOrderDocumentsSection({ supplyOrderId }: SupplyOrderDocume
               <p className="py-10 text-center text-sm text-muted-foreground">No invoices for this order.</p>
             ) : (
               <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50/80">
-                    <TableHead className="text-[10px] font-black uppercase">Invoice</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase">Date</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase text-right">Total</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
-                    <TableHead className="w-[140px] text-right text-[10px] font-black uppercase">Actions</TableHead>
+                <TableHeader className="bg-slate-50/50">
+                  <TableRow>
+                    <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Invoice</TableHead>
+                    <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Date</TableHead>
+                    <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right">Total</TableHead>
+                    <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Status</TableHead>
+                    <TableHead className="w-[140px] px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {invoices.map((inv: InvoiceDto) => (
-                    <TableRow key={inv.id}>
-                      <TableCell className="font-mono font-semibold">{inv.invoiceNumber ?? `#${inv.id}`}</TableCell>
+                    <TableRow key={inv.id} className="hover:bg-slate-50/30 border-b border-slate-100">
+                      <TableCell className="px-6 py-4 font-mono font-semibold text-primary">
+                        {inv.invoiceNumber ?? `#${inv.id}`}
+                      </TableCell>
                       <TableCell className="text-sm">
                         {inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString() : '—'}
                       </TableCell>
@@ -232,8 +238,8 @@ export function SupplyOrderDocumentsSection({ supplyOrderId }: SupplyOrderDocume
       </motion.div>
 
       <Dialog open={invoicePreviewId !== null} onOpenChange={(o) => !o && setInvoicePreviewId(null)}>
-        <DialogContent className="flex max-h-[92vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
-          <DialogHeader className="border-b px-6 py-4">
+        <DialogContent className="flex max-h-[92vh] max-w-4xl flex-col gap-0 overflow-hidden p-0 border-none shadow-2xl">
+          <DialogHeader className="border-b bg-muted/20 px-6 py-4">
             <DialogTitle>Invoice preview</DialogTitle>
             <DialogDescription>
               {invoiceDetail?.invoiceNumber ? (
@@ -272,8 +278,8 @@ export function SupplyOrderDocumentsSection({ supplyOrderId }: SupplyOrderDocume
       </Dialog>
 
       <Dialog open={dcPreviewId !== null} onOpenChange={(o) => !o && setDcPreviewId(null)}>
-        <DialogContent className="flex max-h-[92vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
-          <DialogHeader className="border-b px-6 py-4">
+        <DialogContent className="flex max-h-[92vh] max-w-4xl flex-col gap-0 overflow-hidden p-0 border-none shadow-2xl">
+          <DialogHeader className="border-b bg-muted/20 px-6 py-4">
             <DialogTitle>Delivery challan preview</DialogTitle>
             <DialogDescription>
               {dcDetail?.challanNumber ? (

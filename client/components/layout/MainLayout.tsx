@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { useFederationBranding } from "@/hooks/useFederationBranding";
 import {
   Tooltip,
   TooltipContent,
@@ -294,6 +295,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const location = useLocation();
   const { pathname, search } = location;
   const { canAccess } = useAuth();
+  const { logoSrc, federationName } = useFederationBranding({ enabled: false });
 
   // Filter menu items based on user permissions (memoized for performance)
   const visibleMenuItems = useMemo(
@@ -325,11 +327,11 @@ export function MainLayout({ children }: MainLayoutProps) {
             className="flex items-center gap-2 font-bold text-lg text-primary"
           >
             <img
-              src="/ideal-distributor-icon.png"
-              alt="Ideal Distributor Logo"
+              src={logoSrc}
+              alt={`${federationName} Logo`}
               className="w-6 h-6 object-contain"
             />
-            <span>Ideal Distributor</span>
+            <span>{federationName}</span>
           </Link>
 
           {/* User Nav - Visible on all screens */}

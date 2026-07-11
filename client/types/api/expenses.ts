@@ -54,6 +54,23 @@ export interface IssueExpenseVoucherRequest {
   voucherTemplateKey?: string | null;
 }
 
+export interface IssueExpenseVoucherBatchRequest {
+  expenseIds: number[];
+  voucherTemplateKey?: string | null;
+}
+
+export interface ExpenseVoucherLinePrintDto {
+  expenseId: number;
+  expenseNumber: string | null;
+  expenseDate: string;
+  categoryName: string | null;
+  accountName: string | null;
+  payeeName: string | null;
+  amount: number;
+  description: string | null;
+  referenceNumber: string | null;
+}
+
 export interface ExpenseVoucherPrintDto {
   expenseId: number;
   voucherNumber: string | null;
@@ -65,10 +82,28 @@ export interface ExpenseVoucherPrintDto {
   accountName: string | null;
   categoryName: string | null;
   amount: number;
+  totalAmount: number;
   amountInWords: string | null;
   description: string | null;
   referenceNumber: string | null;
   notes: string | null;
+  lines: ExpenseVoucherLinePrintDto[];
+}
+
+export interface ExpenseVoucherGroupDto {
+  voucherNumber: string;
+  voucherIssuedDate: string | null;
+  voucherTemplateKey: string | null;
+  lineCount: number;
+  totalAmount: number;
+  expenses: ExpenseDto[];
+}
+
+export interface ExpenseVoucherBatchResultDto {
+  voucherNumber: string;
+  voucherIssuedDate: string | null;
+  totalAmount: number;
+  expenses: ExpenseDto[];
 }
 
 export interface ExpenseListQueryParams {
@@ -85,5 +120,7 @@ export type CreateExpenseResponse = ApiResponse<ExpenseDto | null>;
 export type UpdateExpenseResponse = ApiResponse<ExpenseDto | null>;
 export type DeleteExpenseResponse = ApiResponse<null>;
 export type GetIssuedVouchersResponse = ApiResponse<ExpenseDto[]>;
+export type GetIssuedVoucherGroupsResponse = ApiResponse<ExpenseVoucherGroupDto[]>;
 export type GetVoucherPrintResponse = ApiResponse<ExpenseVoucherPrintDto>;
 export type IssueVoucherResponse = ApiResponse<ExpenseDto>;
+export type IssueVoucherBatchResponse = ApiResponse<ExpenseVoucherBatchResultDto>;

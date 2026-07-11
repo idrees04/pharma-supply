@@ -29,6 +29,7 @@ import {
 import { useActiveSuppliers, useSupplierProducts } from '@/api/services/suppliers';
 import { productService } from '@/api/services/products';
 import { formatCurrency, cn } from '@/lib/utils';
+import { canFullyEditPurchaseOrder } from '@/lib/purchaseOrderStatusDisplay';
 import { CreatePurchaseOrderRequest, UpdatePurchaseOrderRequest } from '@/types/api/purchaseOrders';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
@@ -38,13 +39,15 @@ export default function PurchaseOrderForm() {
   const location = useLocation();
   const isEditMode = !!id && !location.pathname.includes('/view/');
   const isViewMode = !!id && location.pathname.includes('/view/');
-  const isReadOnly = isViewMode;
   const poId = id ? parseInt(id) : null;
-  const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = React.useState(false);
-  const [supplierProductsQueryId, setSupplierProductsQueryId] = React.useState<number | null>(null);
 
   // 1. Fetch Data
   const { data: existingPO, isPending: isLoadingPO } = usePurchaseOrder(poId);
+  const canFullyEdit =
+    isEditMode && !!existingPO && canFullyEditPurchaseOrder(existingPO);
+  const canEditLineItems = !isViewMode && (!isEditMode || canFullyEdit);
+  const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = React.useState(false);
+  const [supplierProductsQueryId, setSupplierProductsQueryId] = React.useState<number | null>(null);
   const { data: suppliers = [], isPending: isLoadingSuppliers } = useActiveSuppliers();
   const sortedSuppliers = useMemo(() => {
     return [...suppliers].sort((a, b) => b.id - a.id);
@@ -141,12 +144,40 @@ export default function PurchaseOrderForm() {
   const { mutate: updatePO, isPending: isUpdating } = useUpdatePurchaseOrder(poId || 0);
 
   const onSubmit = (data: PurchaseOrderFormData) => {
-    if (isReadOnly) return;
+    if (isViewMode) return;
 
     if (isEditMode && poId) {
+      if (canFullyEdit) {
+        const updateData: UpdatePurchaseOrderRequest = {
+          expectedDeliveryDate: data.expectedDeliveryDate,
+          deliveryAddress: data.deliveryAddress,
+          notes: data.notes || '',
+          supplierId: data.supplierId,
+          orderDate: data.orderDate,
+          items: data.items.map((item) => ({
+            productId: item.productId,
+            productName: item.isManual ? item.productName : undefined,
+            orderedQuantity: item.orderedQuantity,
+            unitPrice: item.unitPrice,
+            taxPercentage: item.taxPercentage,
+            discountPercentage: item.discountPercentage,
+            supplyOrderIds: item.supplyOrderIds || [],
+          })),
+        };
+        updatePO(updateData, {
+          onSuccess: () => {
+            toast.success('Purchase order updated successfully');
+            navigate(`/orders/purchase/view/${poId}`);
+          },
+          onError: (error: any) => {
+            toast.error(error?.userMessage || 'Failed to update purchase order');
+          },
+        });
+        return;
+      }
+
       const updateData: UpdatePurchaseOrderRequest = {
         expectedDeliveryDate: data.expectedDeliveryDate,
-        status: existingPO?.status || 1,
         deliveryAddress: data.deliveryAddress,
         notes: data.notes || '',
       };
@@ -256,10 +287,16 @@ export default function PurchaseOrderForm() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
               <Package className="h-8 w-8 text-primary" />
-              {isViewMode ? `View Purchase Order #${existingPO?.purchaseOrderNumber}` : isEditMode ? 'Edit Purchase Order' : 'Create Purchase Order'}
+              {isViewMode ? `View Purchase Order #${existingPO?.purchaseOrderNumber}` : isEditMode ? (canFullyEdit ? 'Edit Purchase Order' : 'Update Purchase Order') : 'Create Purchase Order'}
             </h1>
             <p className="text-muted-foreground">
-              {isViewMode ? 'Detailed view of the purchase order' : isEditMode ? 'Update existing order details and items' : 'Fill in the details to create a new purchase order'}
+              {isViewMode
+                ? 'Detailed view of the purchase order'
+                : isEditMode
+                  ? canFullyEdit
+                    ? 'Update supplier, products, quantities, and delivery details'
+                    : 'Only delivery details can be changed after goods receipt or payment activity'
+                  : 'Fill in the details to create a new purchase order'}
             </p>
           </div>
         </div>
@@ -296,7 +333,7 @@ export default function PurchaseOrderForm() {
                               items={sortedSuppliers.map(s => ({ value: s.id, label: s.supplierName }))}
                               value={field.value === 0 ? undefined : field.value}
                               onValueChange={(val) => {
-                                if (isReadOnly) return;
+                                if (!canEditLineItems) return;
                                 const newSupplierId = Number(val);
                                 const prev = field.value;
                                 if (prev !== 0 && newSupplierId !== prev) {
@@ -313,9 +350,9 @@ export default function PurchaseOrderForm() {
                               isLoading={isLoadingSuppliers}
                               className={cn(
                                 "h-11 border-muted-foreground/20",
-                                (isEditMode || isViewMode) && "bg-muted cursor-not-allowed border-none opacity-80"
+                                !canEditLineItems && "bg-muted cursor-not-allowed border-none opacity-80"
                               )}
-                              disabled={isEditMode || isViewMode}
+                              disabled={!canEditLineItems}
                             />
                           </FormControl>
                           <FormMessage />
@@ -332,7 +369,7 @@ export default function PurchaseOrderForm() {
                             <Input
                               type="date"
                               {...field}
-                              disabled={isEditMode || isViewMode}
+                              disabled={!canEditLineItems}
                               className="h-11 border-muted-foreground/20 bg-muted/5 focus-visible:ring-primary"
                             />
                           </FormControl>
@@ -350,7 +387,7 @@ export default function PurchaseOrderForm() {
                             <Input
                               type="date"
                               {...field}
-                              disabled={isReadOnly}
+                              disabled={isViewMode}
                               className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
                             />
                           </FormControl>
@@ -373,7 +410,7 @@ export default function PurchaseOrderForm() {
                             <Input
                               placeholder="Enter full delivery destination"
                               {...field}
-                              disabled={isReadOnly}
+                              disabled={isViewMode}
                               className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
                             />
                           </FormControl>
@@ -393,7 +430,7 @@ export default function PurchaseOrderForm() {
                             <Input
                               placeholder="Any specific requirements or notes for the supplier..."
                               {...field}
-                              disabled={isReadOnly}
+                              disabled={isViewMode}
                               className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
                             />
                           </FormControl>
@@ -420,7 +457,7 @@ export default function PurchaseOrderForm() {
                     </CardTitle>
                     <CardDescription>Select products and specify quantities for this order</CardDescription>
                   </div>
-                  {!isReadOnly && (
+                  {canEditLineItems && (
                     <div className="flex items-center gap-2">
                       <Button
                         type="button"
@@ -466,7 +503,7 @@ export default function PurchaseOrderForm() {
                           <TableHead className="w-[100px] font-black text-blue-700 text-center text-xs uppercase tracking-wider bg-blue-50/60">Tax %</TableHead>
                           <TableHead className="w-[100px] font-black text-rose-700 text-center text-xs uppercase tracking-wider bg-rose-50/60">Disc %</TableHead>
                           <TableHead className="w-[170px] font-black text-primary text-right pr-5 text-xs uppercase tracking-wider bg-primary/5">Row Total (PKR)</TableHead>
-                          {!isReadOnly && <TableHead className="w-[52px]" />}
+                          {canEditLineItems && <TableHead className="w-[52px]" />}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -504,9 +541,9 @@ export default function PurchaseOrderForm() {
                                         isLoading={isLoadingSupplierProducts}
                                         className={cn(
                                           "w-full font-semibold h-9",
-                                          isReadOnly && "border-none bg-transparent cursor-default pointer-events-none text-foreground"
+                                          !canEditLineItems && "border-none bg-transparent cursor-default pointer-events-none text-foreground"
                                         )}
-                                        disabled={isReadOnly}
+                                        disabled={!canEditLineItems}
                                       />
                                     </FormControl>
                                     <FormMessage className="text-[10px] mt-0.5" />
@@ -529,10 +566,10 @@ export default function PurchaseOrderForm() {
                                         value={Number(field.value) || 0}
                                         onChange={field.onChange}
                                         onBlur={field.onBlur}
-                                        disabled={isReadOnly}
+                                        disabled={!canEditLineItems}
                                         className={cn(
                                           "h-9 bg-white border-slate-200 focus:border-primary focus:bg-white",
-                                          isReadOnly && "border-none bg-transparent"
+                                          !canEditLineItems && "border-none bg-transparent"
                                         )}
                                       />
                                     </FormControl>
@@ -554,10 +591,10 @@ export default function PurchaseOrderForm() {
                                         type="number"
                                         step="0.01"
                                         {...field}
-                                        disabled={isReadOnly}
+                                        disabled={!canEditLineItems}
                                         className={cn(
                                           "font-semibold h-9 tabular-nums bg-white border-slate-200 focus:border-primary focus:bg-white",
-                                          isReadOnly && "border-none bg-transparent"
+                                          !canEditLineItems && "border-none bg-transparent"
                                         )}
                                       />
                                     </FormControl>
@@ -579,10 +616,10 @@ export default function PurchaseOrderForm() {
                                         type="number"
                                         step="0.01"
                                         {...field}
-                                        disabled={isReadOnly}
+                                        disabled={!canEditLineItems}
                                         className={cn(
                                           "text-center font-bold text-blue-700 h-9 tabular-nums bg-blue-50/60 border-blue-200/70 focus:border-blue-400 focus:bg-white",
-                                          isReadOnly && "border-none bg-transparent text-center"
+                                          !canEditLineItems && "border-none bg-transparent text-center"
                                         )}
                                       />
                                     </FormControl>
@@ -604,10 +641,10 @@ export default function PurchaseOrderForm() {
                                         type="number"
                                         step="0.01"
                                         {...field}
-                                        disabled={isReadOnly}
+                                        disabled={!canEditLineItems}
                                         className={cn(
                                           "text-center font-bold text-rose-700 h-9 tabular-nums bg-rose-50/60 border-rose-200/70 focus:border-rose-400 focus:bg-white",
-                                          isReadOnly && "border-none bg-transparent text-center"
+                                          !canEditLineItems && "border-none bg-transparent text-center"
                                         )}
                                       />
                                     </FormControl>
@@ -632,7 +669,7 @@ export default function PurchaseOrderForm() {
                             </TableCell>
 
                             {/* Delete */}
-                            {!isReadOnly && (
+                            {canEditLineItems && (
                               <TableCell className="text-center py-2">
                                 <Button
                                   type="button"
@@ -649,7 +686,7 @@ export default function PurchaseOrderForm() {
                         ))}
                         {fields.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={isReadOnly ? 7 : 8} className="h-44 text-center text-muted-foreground bg-muted/5">
+                            <TableCell colSpan={!canEditLineItems ? 7 : 8} className="h-44 text-center text-muted-foreground bg-muted/5">
                               <div className="flex flex-col items-center gap-3">
                                 {supplierProductsQueryId != null && !isLoadingSupplierProducts && (!supplierProductsData || supplierProductsData.length === 0) ? (
                                   <>
@@ -734,7 +771,7 @@ export default function PurchaseOrderForm() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3 bg-muted/10 pt-4 border-t">
-                  {!isReadOnly && (
+                  {!isViewMode && (
                     <Button
                       type="submit"
                       className="w-full gap-2 h-12 text-md font-bold shadow-md hover:shadow-lg transition-all"
@@ -745,11 +782,12 @@ export default function PurchaseOrderForm() {
                       ) : (
                         <Save className="h-5 w-5" />
                       )}
-                      {isEditMode ? 'Update Purchase Order' : 'Submit Final Order'}
+                      {isEditMode
+                        ? canFullyEdit
+                          ? 'Update Purchase Order'
+                          : 'Save delivery details'
+                        : 'Submit Final Order'}
                     </Button>
-                  )}
-                  {isReadOnly && (
-                    <div />
                   )}
                   <Button
                     type="button"
@@ -763,7 +801,7 @@ export default function PurchaseOrderForm() {
               </Card>
 
               {/* Related Info */}
-              {supplierProductsQueryId != null && !isReadOnly && (
+              {supplierProductsQueryId != null && !isViewMode && (
                 <Card className="border-none shadow-none bg-muted/30">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xs font-black uppercase text-muted-foreground tracking-widest">Supplier Inventory Hints</CardTitle>

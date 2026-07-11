@@ -1,9 +1,11 @@
 import React from 'react';
 import { formatCurrency, cn } from '@/lib/utils';
-import { taxExclusiveCollectible, outstandingExTaxForInvoice } from '@/lib/invoiceReceivable';
+import { taxExclusiveCollectible, outstandingExTaxForInvoice, totalInvoiceDeductions } from '@/lib/invoiceReceivable';
 import { InvoiceDto } from '@/types/api/invoices';
 import { getInvoiceStatusClassName, getInvoiceStatusLabel } from '@/lib/invoiceStatusDisplay';
 import { PrintSignatureBlock } from '@/components/print/PrintSignatureBlock';
+import { PrintDocumentHeader } from '@/components/print/PrintDocumentHeader';
+import { PrintFederationFromBlock } from '@/components/print/PrintFederationFromBlock';
 import { motion } from 'framer-motion';
 
 interface InvoiceTemplateProps {
@@ -19,9 +21,12 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
     const adjustment = invoice.adjustmentAmount;
     const total = invoice.totalAmount;
     const lateDed = invoice.lateDeliveryDeduction ?? 0;
+    const incomeDed = invoice.incomeTaxDeduction ?? 0;
+    const salesDed = invoice.salesTaxDeduction ?? 0;
+    const totalDed = totalInvoiceDeductions(invoice);
     const collectibleExTax =
       invoice.taxExclusiveCollectibleAmount ??
-      taxExclusiveCollectible(total, tax, lateDed);
+      taxExclusiveCollectible(total, tax, totalDed);
     const outstandingExTax = outstandingExTaxForInvoice(invoice);
 
     const containerVariants = {
@@ -56,17 +61,11 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
           fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
         }}
       >
-        {/* Header */}
-        <motion.div variants={itemVariants} className="mb-8 pb-6 border-b-2 border-slate-200">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h1 className="text-4xl font-black text-primary mb-1">INVOICE</h1>
-              <p className="text-slate-500 text-sm font-semibold">
-                Invoice #{invoice.invoiceNumber || 'TBD'}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-bold text-slate-700 mb-1">Status</p>
+        <motion.div variants={itemVariants}>
+          <PrintDocumentHeader
+            title="INVOICE"
+            subtitle={`Invoice #${invoice.invoiceNumber || 'TBD'}`}
+            rightSlot={
               <div
                 className={cn(
                   'inline-block rounded-full border px-3 py-1 text-xs font-bold',
@@ -75,23 +74,13 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
               >
                 {getInvoiceStatusLabel(invoice.status)}
               </div>
-            </div>
-          </div>
+            }
+          />
         </motion.div>
 
         {/* Company & Hospital Info */}
         <motion.div variants={itemVariants} className="grid grid-cols-2 gap-12 mb-8">
-          <div>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
-              From
-            </p>
-            <div className="space-y-1">
-              <p className="font-bold text-slate-900 text-sm">Pharma Supply Company</p>
-              <p className="text-xs text-slate-600">Main Office</p>
-              <p className="text-xs text-slate-600">Email: accounts@pharmasupply.com</p>
-              <p className="text-xs text-slate-600">Phone: +92 (0) 300 1234567</p>
-            </div>
-          </div>
+          <PrintFederationFromBlock />
 
           <div>
             <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
@@ -247,8 +236,20 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
             )}
             {lateDed > 0 && (
               <div className="flex justify-between py-2 border-b border-slate-200">
-                <span className="text-slate-600 font-semibold">Hospital / late delivery deduction (PKR)</span>
+                <span className="text-slate-600 font-semibold">Late delivery / other deduction (PKR)</span>
                 <span className="text-red-600 font-bold">−{formatCurrency(lateDed)}</span>
+              </div>
+            )}
+            {incomeDed > 0 && (
+              <div className="flex justify-between py-2 border-b border-slate-200">
+                <span className="text-slate-600 font-semibold">Income tax deduction (PKR)</span>
+                <span className="text-red-600 font-bold">−{formatCurrency(incomeDed)}</span>
+              </div>
+            )}
+            {salesDed > 0 && (
+              <div className="flex justify-between py-2 border-b border-slate-200">
+                <span className="text-slate-600 font-semibold">Sales tax deduction (PKR)</span>
+                <span className="text-red-600 font-bold">−{formatCurrency(salesDed)}</span>
               </div>
             )}
             {discount > 0 && (

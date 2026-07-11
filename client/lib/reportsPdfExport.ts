@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 import { formatCurrency } from '@/lib/utils';
+import { getResolvedFederationBranding, loadLogoDataUrl } from '@/lib/federationBranding';
 import type { AnalyticsReportId } from '@/types/api/analyticsReports';
 import type {
   CashCollectionsReportDto,
@@ -20,7 +21,6 @@ import type {
   SupplyOrdersByHospitalReportDto,
 } from '@/types/api/analyticsReports';
 
-const COMPANY_NAME = 'Ideal Distributor';
 
 export type AnalyticsReportPdfMeta = {
   reportId: AnalyticsReportId;
@@ -410,13 +410,21 @@ function drawHeaderBlock(
   spec: TableSpec,
   margin: number,
   pageW: number,
+  companyName: string,
+  logoDataUrl: string | null,
 ): number {
   let y = margin;
+  const textX = logoDataUrl ? margin + 22 : margin;
+
+  if (logoDataUrl) {
+    doc.addImage(logoDataUrl, 'PNG', margin, y - 2, 18, 18);
+  }
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(15, 23, 42);
-  doc.text(COMPANY_NAME, margin, y);
-  y += 7;
+  doc.text(companyName, textX, y + 4);
+  y += logoDataUrl ? 20 : 7;
 
   doc.setFontSize(11);
   doc.text(meta.reportTitle, margin, y);
@@ -458,7 +466,7 @@ function drawHeaderBlock(
   return y;
 }
 
-function addFooters(doc: jsPDF, reportTitle: string): void {
+function addFooters(doc: jsPDF, reportTitle: string, companyName: string): void {
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const total = doc.getNumberOfPages();
@@ -470,13 +478,15 @@ function addFooters(doc: jsPDF, reportTitle: string): void {
     doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
     doc.setFont('helvetica', 'italic');
-    const footer = `${COMPANY_NAME}  ·  ${shortTitle}  ·  Generated ${generated}  ·  Page ${i} of ${total}`;
+    const footer = `${companyName}  ·  ${shortTitle}  ·  Generated ${generated}  ·  Page ${i} of ${total}`;
     doc.text(footer, pageW / 2, pageH - 5, { align: 'center' });
   }
 }
 
 /** A4 PDF with auto-paginated tables for any analytics report on the Reports page. */
-export function downloadAnalyticsReportPdf(meta: AnalyticsReportPdfMeta): void {
+export async function downloadAnalyticsReportPdf(meta: AnalyticsReportPdfMeta): Promise<void> {
+  const branding = getResolvedFederationBranding();
+  const logoDataUrl = await loadLogoDataUrl(branding.logoSrc);
   const spec = buildSpec(meta.reportId, meta.data);
   const doc = new jsPDF({ orientation: spec.orientation, unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
@@ -484,7 +494,15 @@ export function downloadAnalyticsReportPdf(meta: AnalyticsReportPdfMeta): void {
   const contentW = pageW - 2 * margin;
   const footerReserve = 12;
 
-  const startY = drawHeaderBlock(doc, meta, spec, margin, pageW);
+  const startY = drawHeaderBlock(
+    doc,
+    meta,
+    spec,
+    margin,
+    pageW,
+    branding.federationName,
+    logoDataUrl,
+  );
 
   const body =
     spec.rows.length > 0
@@ -530,7 +548,7 @@ export function downloadAnalyticsReportPdf(meta: AnalyticsReportPdfMeta): void {
     theme: 'grid',
   });
 
-  addFooters(doc, meta.reportTitle);
+  addFooters(doc, meta.reportTitle, branding.federationName);
 
   const slug = meta.reportTitle
     .toLowerCase()

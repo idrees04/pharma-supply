@@ -1,6 +1,7 @@
 import React from 'react';
 import type { DeliveryChallan } from '@/types/api/deliveryChallans';
 import { PrintSignatureBlock } from '@/components/print/PrintSignatureBlock';
+import { PrintDocumentHeader } from '@/components/print/PrintDocumentHeader';
 
 interface DeliveryChallanTemplateProps {
   challan: DeliveryChallan;
@@ -20,12 +21,10 @@ export const DeliveryChallanTemplate = React.forwardRef<HTMLDivElement, Delivery
           fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
         }}
       >
-        <div className="mb-8 border-b-2 border-slate-800 pb-4">
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">DELIVERY CHALLAN</h1>
-          <p className="mt-1 font-mono text-lg font-bold text-primary">
-            {challan.challanNumber ?? `#${challan.id}`}
-          </p>
-        </div>
+        <PrintDocumentHeader
+          title="DELIVERY CHALLAN"
+          subtitle={challan.challanNumber ?? `#${challan.id}`}
+        />
 
         <div className="mb-8 grid grid-cols-2 gap-8">
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">

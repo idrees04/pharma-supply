@@ -27,6 +27,16 @@ export interface PurchaseOrderItem {
 }
 
 /**
+ * Purchase Order lifecycle status codes (matches backend enum).
+ */
+export enum PurchaseOrderStatus {
+  Sent = 1,
+  Active = 2,
+  Completed = 3,
+  Cancelled = 4,
+}
+
+/**
  * Purchase Order entity
  */
 export interface PurchaseOrder {
@@ -39,6 +49,8 @@ export interface PurchaseOrder {
   actualDeliveryDate: string;
   status: number;
   totalAmount: number;
+  paidAmount?: number;
+  outstandingAmount?: number;
   deliveryAddress: string;
   paymentMethod?: 'Cash' | 'Cheque' | 'Bank';
   notes: string;
@@ -72,17 +84,47 @@ export interface CreatePurchaseOrderRequest {
  */
 export interface UpdatePurchaseOrderRequest {
   expectedDeliveryDate: string;
-  status: number;
   deliveryAddress: string;
+  notes: string;
+  /** Full edit (Sent PO only): replace supplier. */
+  supplierId?: number;
+  /** Full edit (Sent PO only): replace order date. */
+  orderDate?: string;
+  /** Full edit (Sent PO only): replace all line items. */
+  items?: CreatePurchaseOrderItemRequest[];
+}
+
+/**
+ * Status option from GET /api/PurchaseOrders/statuses
+ */
+export interface PurchaseOrderStatusOption {
+  value: number;
+  name: string;
+}
+
+/**
+ * One inventory batch within a PO receive line
+ */
+export interface ReceivePurchaseOrderBatchRequest {
+  receivedQuantity: number;
+  batchNumber: string;
+  manufactureDate: string;
+  expiryDate: string;
   notes: string;
 }
 
 /**
- * Purchase Order Status entity (from by-status API)
+ * Request for receiving items (nested batches per line)
  */
-export interface PurchaseOrderStatus {
-  value: number;
-  name: string;
+export interface ReceivePurchaseOrderItemRequest {
+  purchaseOrderItemId: number;
+  batches: ReceivePurchaseOrderBatchRequest[];
+  /** Legacy flat payload — ignored when batches is non-empty */
+  receivedQuantity?: number;
+  batchNumber?: string;
+  manufactureDate?: string;
+  expiryDate?: string;
+  notes?: string;
 }
 
 /**
@@ -91,14 +133,7 @@ export interface PurchaseOrderStatus {
 export interface ReceivePurchaseOrderRequest {
   purchaseOrderId: number;
   actualDeliveryDate: string;
-  items: {
-    purchaseOrderItemId: number;
-    receivedQuantity: number;
-    batchNumber: string;
-    manufactureDate: string;
-    expiryDate: string;
-    notes: string;
-  }[];
+  items: ReceivePurchaseOrderItemRequest[];
 }
 
 /**
@@ -132,8 +167,20 @@ export type GetPurchaseOrderResponse = ApiResponse<PurchaseOrder>;
 export type CreatePurchaseOrderResponse = ApiResponse<PurchaseOrder>;
 export type UpdatePurchaseOrderResponse = ApiResponse<PurchaseOrder>;
 export type DeletePurchaseOrderResponse = ApiResponse<string>;
-export type GetPurchaseOrderStatusesResponse = ApiResponse<PurchaseOrderStatus[]>;
+export type GetPurchaseOrderStatusesResponse = ApiResponse<PurchaseOrderStatusOption[]>;
 export type GetPurchaseOrdersByStatusResponse = ApiResponse<PurchaseOrder[]>;
 export type GetPurchaseOrdersBySupplierResponse = ApiResponse<PurchaseOrder[]>;
 export type ReceivePurchaseOrderResponse = ApiResponse<PurchaseOrder>;
 export type PartialOrderResponse = ApiResponse<PurchaseOrder>;
+
+export interface PurchaseOrderTimelineEvent {
+  occurredAt: string;
+  eventType: 'Created' | 'GoodsReceived' | 'Payment' | 'Cancelled' | string;
+  title: string;
+  description: string;
+  amount?: number | null;
+  quantity?: number | null;
+  referenceNumber?: string | null;
+}
+
+export type GetPurchaseOrderTimelineResponse = ApiResponse<PurchaseOrderTimelineEvent[]>;

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
 import { ArrowLeft, Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { downloadElementAsPdf } from '@/lib/downloadPdf';
-import { outstandingExTaxForInvoice, outstandingTaxExclusive, taxExclusiveCollectible } from '@/lib/invoiceReceivable';
+import { outstandingExTaxForInvoice, outstandingTaxExclusive, taxExclusiveCollectible, totalInvoiceDeductions } from '@/lib/invoiceReceivable';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useInvoice, useProcessInvoicePayment } from '@/hooks/invoices';
 import { usePaymentModeEnumOptions } from '@/hooks/dropdown';
@@ -54,6 +54,8 @@ const paymentFieldsSchema = z.object({
   accountId: z.coerce.number().min(1, 'Select an account'),
   amount: z.coerce.number().positive('Amount must be greater than 0'),
   lateDeliveryDeduction: z.coerce.number().min(0, 'Cannot be negative'),
+  incomeTaxDeduction: z.coerce.number().min(0, 'Cannot be negative'),
+  salesTaxDeduction: z.coerce.number().min(0, 'Cannot be negative'),
   paymentMode: z.coerce.number(),
   paymentDate: z.string().min(1, 'Date is required'),
   referenceNumber: z.string().optional(),
@@ -67,17 +69,18 @@ const AMOUNT_CHECK_EPS = 0.01;
 function buildPaymentSchema(invoice: InvoiceDto) {
   const maxDed = invoice.totalAmount - invoice.taxAmount;
   return paymentFieldsSchema.superRefine((data, ctx) => {
-    if (data.lateDeliveryDeduction > maxDed + AMOUNT_CHECK_EPS) {
+    const totalDed = totalInvoiceDeductions(data);
+    if (totalDed > maxDed + AMOUNT_CHECK_EPS) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Cannot exceed tax-exclusive invoice total (${formatCurrency(maxDed)})`,
+        message: `Total deductions cannot exceed tax-exclusive invoice total (${formatCurrency(maxDed)})`,
         path: ['lateDeliveryDeduction'],
       });
     }
     const maxPay = outstandingTaxExclusive(
       invoice.totalAmount,
       invoice.taxAmount,
-      data.lateDeliveryDeduction,
+      totalDed,
       invoice.paidAmount
     );
     if (data.amount > maxPay + AMOUNT_CHECK_EPS) {
@@ -108,10 +111,13 @@ function RecordPaymentCard({
   onSubmit: (values: PaymentFormValues) => void;
 }) {
   const defaultsLate = invoice.lateDeliveryDeduction ?? 0;
+  const defaultsIncome = invoice.incomeTaxDeduction ?? 0;
+  const defaultsSales = invoice.salesTaxDeduction ?? 0;
+  const defaultTotalDed = totalInvoiceDeductions(invoice);
   const defaultOutstanding = outstandingTaxExclusive(
     invoice.totalAmount,
     invoice.taxAmount,
-    defaultsLate,
+    defaultTotalDed,
     invoice.paidAmount
   );
   const paymentSchema = useMemo(() => buildPaymentSchema(invoice), [invoice]);
@@ -121,6 +127,8 @@ function RecordPaymentCard({
       accountId: 0,
       amount: defaultOutstanding,
       lateDeliveryDeduction: defaultsLate,
+      incomeTaxDeduction: defaultsIncome,
+      salesTaxDeduction: defaultsSales,
       paymentMode: PaymentMode.BankTransfer,
       paymentDate: new Date().toISOString().split('T')[0],
       referenceNumber: '',
@@ -128,12 +136,52 @@ function RecordPaymentCard({
     },
   });
 
-  const exTaxDue = outstandingTaxExclusive(
+  const watchedLate = useWatch({ control: form.control, name: 'lateDeliveryDeduction' });
+  const watchedIncome = useWatch({ control: form.control, name: 'incomeTaxDeduction' });
+  const watchedSales = useWatch({ control: form.control, name: 'salesTaxDeduction' });
+  const liveTotalDeduction = totalInvoiceDeductions({
+    lateDeliveryDeduction: Number(watchedLate) || 0,
+    incomeTaxDeduction: Number(watchedIncome) || 0,
+    salesTaxDeduction: Number(watchedSales) || 0,
+  });
+  const liveExTaxDue = outstandingTaxExclusive(
     invoice.totalAmount,
     invoice.taxAmount,
-    defaultsLate,
+    liveTotalDeduction,
     invoice.paidAmount
   );
+
+  const syncCashReceivedFromDeductions = (deductions: {
+    lateDeliveryDeduction: number;
+    incomeTaxDeduction: number;
+    salesTaxDeduction: number;
+  }) => {
+    form.setValue(
+      'amount',
+      outstandingTaxExclusive(
+        invoice.totalAmount,
+        invoice.taxAmount,
+        totalInvoiceDeductions(deductions),
+        invoice.paidAmount
+      ),
+      { shouldValidate: true }
+    );
+  };
+
+  const handleDeductionChange = (
+    field: 'lateDeliveryDeduction' | 'incomeTaxDeduction' | 'salesTaxDeduction',
+    rawValue: string
+  ) => {
+    const parsed = Number(rawValue) || 0;
+    const next = {
+      lateDeliveryDeduction: Number(watchedLate) || 0,
+      incomeTaxDeduction: Number(watchedIncome) || 0,
+      salesTaxDeduction: Number(watchedSales) || 0,
+      [field]: parsed,
+    };
+    form.setValue(field, parsed, { shouldValidate: true });
+    syncCashReceivedFromDeductions(next);
+  };
 
   return (
     <Card>
@@ -141,8 +189,17 @@ function RecordPaymentCard({
         <CardTitle className="text-base">Record payment</CardTitle>
         <CardDescription>
           <span className="block">
-            Amount due (ex. sales tax, PKR):{' '}
-            <span className="font-medium text-foreground">{formatCurrency(exTaxDue)}</span>
+            Amount due before this payment (ex. sales tax, PKR):{' '}
+            <span className="font-medium text-foreground">
+              {formatCurrency(
+                outstandingTaxExclusive(
+                  invoice.totalAmount,
+                  invoice.taxAmount,
+                  defaultTotalDed,
+                  invoice.paidAmount
+                )
+              )}
+            </span>
           </span>
           <span className="mt-1 block text-xs">
             Legal invoice total and PDF remain inclusive of tax; only supplier collections use ex-tax
@@ -218,23 +275,85 @@ function RecordPaymentCard({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="lateDeliveryDeduction"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Late delivery / hospital deduction (PKR)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" min={0} {...field} />
-                  </FormControl>
-                  <p className="text-xs text-muted-foreground">
-                    Cumulative total withheld by the hospital (max{' '}
-                    {formatCurrency(invoice.totalAmount - invoice.taxAmount)} ex. tax).
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+              <p className="text-sm font-medium">Deductions (cumulative, PKR)</p>
+              <div className="grid gap-4 sm:grid-cols-1">
+                <FormField
+                  control={form.control}
+                  name="lateDeliveryDeduction"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Late delivery / other deduction</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          value={field.value}
+                          onChange={(e) => handleDeductionChange('lateDeliveryDeduction', e.target.value)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="incomeTaxDeduction"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Income tax deduction</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          value={field.value}
+                          onChange={(e) => handleDeductionChange('incomeTaxDeduction', e.target.value)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="salesTaxDeduction"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sales tax deduction</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          value={field.value}
+                          onChange={(e) => handleDeductionChange('salesTaxDeduction', e.target.value)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Combined deductions (max {formatCurrency(invoice.totalAmount - invoice.taxAmount)} ex. tax):{' '}
+                <span className="font-medium text-foreground">{formatCurrency(liveTotalDeduction)}</span>
+              </p>
+              <div className="flex items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
+                <span className="font-medium text-amber-900">Remaining payable (ex. tax)</span>
+                <span className="font-bold tabular-nums text-amber-900">{formatCurrency(liveExTaxDue)}</span>
+              </div>
+            </div>
 
             <FormField
               control={form.control}
@@ -337,10 +456,12 @@ export default function InvoiceDetailPage() {
         accountId: values.accountId,
         amount: values.amount,
         lateDeliveryDeduction: values.lateDeliveryDeduction,
+        incomeTaxDeduction: values.incomeTaxDeduction,
+        salesTaxDeduction: values.salesTaxDeduction,
         paymentMode: values.paymentMode,
         paymentDate: new Date(values.paymentDate).toISOString(),
-        referenceNumber: values.referenceNumber?.trim() || null,
-        notes: values.notes?.trim() || null,
+        referenceNumber: values.referenceNumber?.trim() || '',
+        notes: values.notes?.trim() || '',
       },
       {
         onSuccess: (res) => {
@@ -470,7 +591,7 @@ export default function InvoiceDetailPage() {
 
           {canRecordPayment ? (
             <RecordPaymentCard
-              key={`pay-${invoice.id}-${outstandingExTax}-${invoice.paidAmount}-${invoice.lateDeliveryDeduction ?? 0}`}
+              key={`pay-${invoice.id}-${outstandingExTax}-${invoice.paidAmount}-${invoice.lateDeliveryDeduction ?? 0}-${invoice.incomeTaxDeduction ?? 0}-${invoice.salesTaxDeduction ?? 0}`}
               invoice={invoice}
               accounts={accounts}
               paymentModeOptions={paymentModeOptions}
@@ -496,10 +617,13 @@ export default function InvoiceDetailPage() {
 
 function SummaryCard({ invoice }: { invoice: InvoiceDto }) {
   const lateDed = invoice.lateDeliveryDeduction ?? 0;
+  const incomeDed = invoice.incomeTaxDeduction ?? 0;
+  const salesDed = invoice.salesTaxDeduction ?? 0;
+  const totalDed = totalInvoiceDeductions(invoice);
   const outstandingEx = outstandingExTaxForInvoice(invoice);
   const collectible =
     invoice.taxExclusiveCollectibleAmount ??
-    taxExclusiveCollectible(invoice.totalAmount, invoice.taxAmount, lateDed);
+    taxExclusiveCollectible(invoice.totalAmount, invoice.taxAmount, totalDed);
 
   return (
     <Card>
@@ -529,8 +653,20 @@ function SummaryCard({ invoice }: { invoice: InvoiceDto }) {
         </div>
         {lateDed > 0 ? (
           <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground">Hospital / late delivery deduction</span>
+            <span className="text-muted-foreground">Late delivery / other deduction</span>
             <span className="font-semibold tabular-nums text-red-700">−{formatCurrency(lateDed)}</span>
+          </div>
+        ) : null}
+        {incomeDed > 0 ? (
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">Income tax deduction</span>
+            <span className="font-semibold tabular-nums text-red-700">−{formatCurrency(incomeDed)}</span>
+          </div>
+        ) : null}
+        {salesDed > 0 ? (
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">Sales tax deduction</span>
+            <span className="font-semibold tabular-nums text-red-700">−{formatCurrency(salesDed)}</span>
           </div>
         ) : null}
         <div className="flex justify-between gap-4">

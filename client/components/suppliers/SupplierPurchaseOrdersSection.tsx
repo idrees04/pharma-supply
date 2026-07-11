@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,6 +10,7 @@ import {
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -18,9 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
+import { getPurchaseOrderStatusClassName, getPurchaseOrderStatusLabel } from '@/lib/purchaseOrderStatusDisplay';
 import { useSupplierPurchaseOrders } from '@/api/services/suppliers';
-import { usePurchaseOrderStatusOptions } from '@/hooks/dropdown';
 
 const PAGE_SIZE = 10;
 
@@ -30,17 +31,10 @@ interface SupplierPurchaseOrdersSectionProps {
 
 export function SupplierPurchaseOrdersSection({ supplierId }: SupplierPurchaseOrdersSectionProps) {
   const [page, setPage] = useState(1);
-  const { data: statusOptions = [] } = usePurchaseOrderStatusOptions();
-
   const { data, isPending, error } = useSupplierPurchaseOrders(supplierId, {
     pageNumber: page,
     pageSize: PAGE_SIZE,
   });
-
-  const statusLabel = useMemo(() => {
-    const map = new Map(statusOptions.map((o) => [o.value, o.name]));
-    return (s: number) => map.get(s) ?? `Status ${s}`;
-  }, [statusOptions]);
 
   const totalPages = Math.max(1, data?.totalPages ?? 1);
   const rows = data?.items ?? [];
@@ -101,7 +95,11 @@ export function SupplierPurchaseOrdersSection({ supplierId }: SupplierPurchaseOr
                             ? new Date(po.expectedDeliveryDate).toLocaleDateString()
                             : '—'}
                         </TableCell>
-                        <TableCell className="text-xs">{statusLabel(po.status)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={cn('text-xs font-semibold', getPurchaseOrderStatusClassName(po.status))}>
+                            {getPurchaseOrderStatusLabel(po.status)}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right tabular-nums font-medium">
                           {formatCurrency(po.totalAmount)}
                         </TableCell>

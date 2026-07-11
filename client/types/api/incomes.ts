@@ -52,6 +52,22 @@ export interface IssueIncomeVoucherRequest {
   voucherTemplateKey?: string | null;
 }
 
+export interface IssueIncomeVoucherBatchRequest {
+  incomeIds: number[];
+  voucherTemplateKey?: string | null;
+}
+
+export interface IncomeVoucherLinePrintDto {
+  incomeId: number;
+  incomeNumber: string | null;
+  incomeDate: string;
+  categoryName: string | null;
+  accountName: string | null;
+  amount: number;
+  description: string | null;
+  referenceNumber: string | null;
+}
+
 export interface IncomeVoucherPrintDto {
   incomeId: number;
   voucherNumber: string | null;
@@ -62,10 +78,28 @@ export interface IncomeVoucherPrintDto {
   accountName: string | null;
   categoryName: string | null;
   amount: number;
+  totalAmount: number;
   amountInWords: string | null;
   description: string | null;
   referenceNumber: string | null;
   notes: string | null;
+  lines: IncomeVoucherLinePrintDto[];
+}
+
+export interface IncomeVoucherGroupDto {
+  voucherNumber: string;
+  voucherIssuedDate: string | null;
+  voucherTemplateKey: string | null;
+  lineCount: number;
+  totalAmount: number;
+  incomes: IncomeDto[];
+}
+
+export interface IncomeVoucherBatchResultDto {
+  voucherNumber: string;
+  voucherIssuedDate: string | null;
+  totalAmount: number;
+  incomes: IncomeDto[];
 }
 
 export interface IncomeListQueryParams {
@@ -82,6 +116,8 @@ export type CreateIncomeResponse = ApiResponse<IncomeDto | null>;
 export type UpdateIncomeResponse = ApiResponse<IncomeDto | null>;
 export type DeleteIncomeResponse = ApiResponse<null>;
 export type GetIssuedIncomeVouchersResponse = ApiResponse<IncomeDto[]>;
+export type GetIssuedIncomeVoucherGroupsResponse = ApiResponse<IncomeVoucherGroupDto[]>;
 export type GetIncomeVoucherPrintResponse = ApiResponse<IncomeVoucherPrintDto>;
 export type IssueIncomeVoucherResponse = ApiResponse<IncomeDto>;
+export type IssueIncomeVoucherBatchResponse = ApiResponse<IncomeVoucherBatchResultDto>;
 

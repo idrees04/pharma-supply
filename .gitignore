@@ -28,3 +28,4 @@ dist-ssr
 .deploy.env
 scripts/deploy/.deploy.env
 publish/
+/.vs

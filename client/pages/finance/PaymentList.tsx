@@ -56,13 +56,11 @@ export default function PaymentList() {
   const { data, isLoading } = usePaymentList(params);
   const { mutate: deletePayment } = useDeletePayment();
 
-  const [selectedPayment, setSelectedPayment] = useState<PaymentDto | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState<number | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const canCreate = hasPermission('payments', 'create');
-  const canUpdate = hasPermission('payments', 'update');
   const canDelete = hasPermission('payments', 'delete');
 
   const payments = data?.items ?? [];
@@ -146,10 +144,7 @@ export default function PaymentList() {
         </div>
         {canCreate && (
           <Button
-            onClick={() => {
-              setSelectedPayment(null);
-              setIsFormOpen(true);
-            }}
+            onClick={() => setIsFormOpen(true)}
             className="gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -176,14 +171,6 @@ export default function PaymentList() {
             <DataTable
               columns={columns}
               data={payments}
-              onEdit={
-                canUpdate
-                  ? (payment) => {
-                      setSelectedPayment(payment);
-                      setIsFormOpen(true);
-                    }
-                  : undefined
-              }
               onDelete={canDelete ? (payment) => setIsDeleteConfirming(payment.id) : undefined}
               itemsPerPage={PAGE_SIZE}
               showSearch={false}
@@ -266,23 +253,13 @@ export default function PaymentList() {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {selectedPayment ? 'Edit Payment' : 'Record New Payment'}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedPayment
-                ? 'Update payment details'
-                : 'Record a new payment transaction'}
-            </DialogDescription>
+            <DialogTitle>Record New Payment</DialogTitle>
+            <DialogDescription>Record a new payment transaction</DialogDescription>
           </DialogHeader>
           <PaymentForm
-            initialData={selectedPayment || undefined}
             onSuccess={() => {
               setIsFormOpen(false);
-              setSelectedPayment(null);
-              if (!selectedPayment) {
-                setRefreshTrigger((prev) => prev + 1);
-              }
+              setRefreshTrigger((prev) => prev + 1);
             }}
           />
         </DialogContent>

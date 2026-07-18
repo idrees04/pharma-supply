@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Plus, Trash2, ArrowLeft, Loader2, Save, ShoppingCart, Calculator, Calendar, MapPin, StickyNote, Package, Type, Search } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Loader2, Save, ShoppingCart, Calculator, Calendar, MapPin, StickyNote, Package, Type, Search, Link2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { canFullyEditPurchaseOrder } from '@/lib/purchaseOrderStatusDisplay';
 import { CreatePurchaseOrderRequest, UpdatePurchaseOrderRequest } from '@/types/api/purchaseOrders';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { SupplyOrderLinkPicker } from '@/components/purchase-orders/SupplyOrderLinkPicker';
 
 export default function PurchaseOrderForm() {
   const navigate = useNavigate();
@@ -59,8 +60,10 @@ export default function PurchaseOrderForm() {
       supplierId: 0,
       orderDate: new Date().toISOString().split('T')[0],
       expectedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      hospitalOrderNumber: '',
       deliveryAddress: '',
       notes: '',
+      linkedSupplyOrderIds: [],
       items: [],
     },
   });
@@ -77,8 +80,14 @@ export default function PurchaseOrderForm() {
         supplierId: existingPO.supplierId,
         orderDate: existingPO.orderDate.split('T')[0],
         expectedDeliveryDate: existingPO.expectedDeliveryDate.split('T')[0],
-        deliveryAddress: existingPO.deliveryAddress,
+        hospitalOrderNumber: existingPO.hospitalOrderNumber ?? '',
+        deliveryAddress: existingPO.deliveryAddress || '',
         notes: existingPO.notes || '',
+        linkedSupplyOrderIds: Array.from(
+          new Set(
+            (existingPO.items ?? []).flatMap((item) => item.supplyOrderIds ?? []),
+          ),
+        ),
         items: existingPO.items.map(item => ({
           productId: item.productId,
           orderedQuantity: item.orderedQuantity,
@@ -146,23 +155,28 @@ export default function PurchaseOrderForm() {
   const onSubmit = (data: PurchaseOrderFormData) => {
     if (isViewMode) return;
 
+    const linkedIds = data.linkedSupplyOrderIds ?? [];
+    const mapItems = (items: PurchaseOrderFormData['items']) =>
+      items.map((item) => ({
+        productId: item.productId,
+        productName: item.isManual ? item.productName : undefined,
+        orderedQuantity: item.orderedQuantity,
+        unitPrice: item.unitPrice,
+        taxPercentage: item.taxPercentage,
+        discountPercentage: item.discountPercentage,
+        supplyOrderIds: linkedIds,
+      }));
+
     if (isEditMode && poId) {
       if (canFullyEdit) {
         const updateData: UpdatePurchaseOrderRequest = {
           expectedDeliveryDate: data.expectedDeliveryDate,
-          deliveryAddress: data.deliveryAddress,
+          hospitalOrderNumber: data.hospitalOrderNumber,
+          deliveryAddress: data.deliveryAddress || '',
           notes: data.notes || '',
           supplierId: data.supplierId,
           orderDate: data.orderDate,
-          items: data.items.map((item) => ({
-            productId: item.productId,
-            productName: item.isManual ? item.productName : undefined,
-            orderedQuantity: item.orderedQuantity,
-            unitPrice: item.unitPrice,
-            taxPercentage: item.taxPercentage,
-            discountPercentage: item.discountPercentage,
-            supplyOrderIds: item.supplyOrderIds || [],
-          })),
+          items: mapItems(data.items),
         };
         updatePO(updateData, {
           onSuccess: () => {
@@ -178,7 +192,8 @@ export default function PurchaseOrderForm() {
 
       const updateData: UpdatePurchaseOrderRequest = {
         expectedDeliveryDate: data.expectedDeliveryDate,
-        deliveryAddress: data.deliveryAddress,
+        hospitalOrderNumber: data.hospitalOrderNumber,
+        deliveryAddress: data.deliveryAddress || '',
         notes: data.notes || '',
       };
       updatePO(updateData, {
@@ -195,17 +210,10 @@ export default function PurchaseOrderForm() {
         supplierId: data.supplierId,
         orderDate: data.orderDate,
         expectedDeliveryDate: data.expectedDeliveryDate,
-        deliveryAddress: data.deliveryAddress,
+        hospitalOrderNumber: data.hospitalOrderNumber,
+        deliveryAddress: data.deliveryAddress || '',
         notes: data.notes || '',
-        items: data.items.map(item => ({
-          productId: item.productId,
-          productName: item.isManual ? item.productName : undefined,
-          orderedQuantity: item.orderedQuantity,
-          unitPrice: item.unitPrice,
-          taxPercentage: item.taxPercentage,
-          discountPercentage: item.discountPercentage,
-          supplyOrderIds: item.supplyOrderIds || []
-        }))
+        items: mapItems(data.items),
       };
       createPO(createData, {
         onSuccess: () => {
@@ -397,14 +405,35 @@ export default function PurchaseOrderForm() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="hospitalOrderNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                            Hospital order number *
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g. HO-2026-001"
+                              {...field}
+                              disabled={isViewMode}
+                              className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name="deliveryAddress"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="md:col-span-2">
                           <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                            <MapPin className="h-3 w-3" /> Delivery Address
+                            <MapPin className="h-3 w-3" /> Delivery Address{' '}
+                            <span className="font-normal normal-case text-muted-foreground">(optional)</span>
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -422,9 +451,10 @@ export default function PurchaseOrderForm() {
                       control={form.control}
                       name="notes"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="md:col-span-3">
                           <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                            <StickyNote className="h-3 w-3" /> Special Instructions
+                            <StickyNote className="h-3 w-3" /> Special Instructions{' '}
+                            <span className="font-normal normal-case text-muted-foreground">(optional)</span>
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -439,6 +469,27 @@ export default function PurchaseOrderForm() {
                       )}
                     />
                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name="linkedSupplyOrderIds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                          <Link2 className="h-3 w-3" /> Linked Supply Orders{' '}
+                          <span className="font-normal normal-case text-muted-foreground/80">(optional)</span>
+                        </FormLabel>
+                        <FormControl>
+                          <SupplyOrderLinkPicker
+                            value={field.value ?? []}
+                            onChange={field.onChange}
+                            disabled={isViewMode || (isEditMode && !canEditLineItems)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </Card>
 

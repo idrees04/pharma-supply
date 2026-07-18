@@ -46,6 +46,7 @@ import { IncomeStatus } from '@/types/api/incomes';
 import IncomeForm from './IncomeForm';
 import BulkIncomeForm from './BulkIncomeForm';
 import { VoucherPreviewPanel, type VoucherPreviewData } from '@/components/finance/VoucherPreviewPanel';
+import { printVoucherSheet } from '@/lib/printVoucherSheet';
 import { FinanceVoucherGroupsTable } from '@/components/finance/FinanceVoucherGroupsTable';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
@@ -165,6 +166,7 @@ export default function IncomeList() {
           categoryName: income.incomeCategoryName,
           accountName: income.accountName,
           amount: income.amount,
+          description: income.description,
         })),
       })),
     [issuedGroupList],
@@ -666,10 +668,10 @@ export default function IncomeList() {
           }
         }}
       >
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
+        <DialogContent className="max-h-[92vh] w-[min(100vw-1.5rem,52rem)] max-w-4xl overflow-y-auto sm:rounded-lg">
+          <DialogHeader className="print:hidden">
             <DialogTitle>Voucher preview</DialogTitle>
-            <DialogDescription>Print-friendly voucher details.</DialogDescription>
+            <DialogDescription>A4 layout — up to ~15 line items fit on one page.</DialogDescription>
           </DialogHeader>
           {printVoucherNumber ? (
             <VoucherPrintBody voucherNumber={printVoucherNumber} />
@@ -705,10 +707,10 @@ function VoucherPrintBody({
   const preview = mapIncomeVoucherToPreview(v);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <VoucherPreviewPanel data={preview} />
-      <div className="flex justify-end">
-        <Button type="button" variant="outline" className="gap-2" onClick={() => window.print()}>
+      <div className="flex justify-end print:hidden">
+        <Button type="button" variant="outline" className="gap-2" onClick={() => printVoucherSheet()}>
           <Printer className="h-4 w-4" />
           Print
         </Button>

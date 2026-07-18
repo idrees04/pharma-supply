@@ -169,3 +169,9 @@
     @apply bg-primary/10 text-primary border-r-2 border-primary;
   }
 }
+
+@media print {
+  .voucher-print-sheet {
+    box-shadow: none !important;
+  }
+}

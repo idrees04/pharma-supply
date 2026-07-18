@@ -496,11 +496,11 @@ export default function InventoryList() {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Inventory adjustment</DialogTitle>
             <DialogDescription>
-              Adjust stock for {selectedItem?.productName ?? 'product'}
+              Adjust stock by batch for {selectedItem?.productName ?? 'product'}
             </DialogDescription>
           </DialogHeader>
           {selectedItem && (

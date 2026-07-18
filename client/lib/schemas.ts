@@ -116,18 +116,18 @@ export const supplyOrderSchema = z.object({
   hospitalId: z.coerce.number().int().min(1, "Hospital is required"),
   orderDate: z.string().min(1, "Order Date is required"),
   requiredByDate: z.string().min(1, "Required By Date is required"),
-  requestedBy: z.string().min(1, "Requested By is required"),
-  shippingAddress: z.string().min(1, "Shipping Address is required"),
-  notes: z.string().optional().default(""),
+  requestedBy: z.string().max(100).optional().default(""),
+  shippingAddress: z.string().max(500).optional().default(""),
+  notes: z.string().max(1000).optional().default(""),
   items: z.array(supplyOrderItemSchema).min(1, "At least one item is required"),
   status: z.number().int().min(1).optional(),
 });
 
 export const updateSupplyOrderSchema = z.object({
   requiredByDate: z.string().min(1, "Required By Date is required"),
-  requestedBy: z.string().min(1, "Requested By is required"),
-  shippingAddress: z.string().min(1, "Shipping Address is required"),
-  notes: z.string().optional().default(""),
+  requestedBy: z.string().max(100).optional().default(""),
+  shippingAddress: z.string().max(500).optional().default(""),
+  notes: z.string().max(1000).optional().default(""),
   status: z.coerce.number().int().min(1, "Status is required"),
 });
 
@@ -196,15 +196,19 @@ export const purchaseOrderSchema = z.object({
   supplierId: z.coerce.number().int().min(1, "Supplier is required"),
   orderDate: z.string().min(1, "Order Date is required"),
   expectedDeliveryDate: z.string().min(1, "Expected Delivery Date is required"),
-  deliveryAddress: z.string().min(1, "Delivery Address is required"),
+  hospitalOrderNumber: z.string().trim().min(1, "Hospital order number is required").max(100),
+  deliveryAddress: z.string().max(500).optional().default(""),
+  /** Reference-only links to one or more supply orders (applied to all PO lines on save). */
+  linkedSupplyOrderIds: z.array(z.coerce.number().int()).default([]),
   items: z.array(poItemSchema).min(1, "At least one item is required"),
-  notes: z.string().optional().default(""),
+  notes: z.string().max(1000).optional().default(""),
 });
 
 export const updatePurchaseOrderSchema = z.object({
   expectedDeliveryDate: z.string().min(1, "Expected Delivery Date is required"),
-  deliveryAddress: z.string().min(1, "Delivery Address is required"),
-  notes: z.string().optional().default(""),
+  hospitalOrderNumber: z.string().trim().min(1, "Hospital order number is required").max(100),
+  deliveryAddress: z.string().max(500).optional().default(""),
+  notes: z.string().max(1000).optional().default(""),
 });
 
 export type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;

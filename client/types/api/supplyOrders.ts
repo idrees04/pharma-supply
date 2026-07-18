@@ -62,6 +62,8 @@ export interface SupplyOrder {
   approvedDate: string | null;
   shippingAddress: string | null;
   notes: string | null;
+  attachmentPath?: string | null;
+  attachmentFileName?: string | null;
   invoiceId: number | null;
   items: SupplyOrderItem[] | null;
 }
@@ -73,9 +75,9 @@ export interface CreateSupplyOrderRequest {
   hospitalId: number;
   orderDate: string;
   requiredByDate: string;
-  requestedBy: string;
-  shippingAddress: string;
-  notes: string;
+  requestedBy?: string;
+  shippingAddress?: string;
+  notes?: string;
   items: {
     productId: number;
     orderedQuantity: number;
@@ -105,9 +107,9 @@ export interface UpdateSupplyOrderItemRequest {
  */
 export interface UpdateSupplyOrderRequest {
   requiredByDate: string;
-  requestedBy: string;
-  shippingAddress: string;
-  notes: string;
+  requestedBy?: string;
+  shippingAddress?: string;
+  notes?: string;
   status: number;
   items?: UpdateSupplyOrderItemRequest[];
 }

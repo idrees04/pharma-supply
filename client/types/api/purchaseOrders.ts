@@ -51,6 +51,7 @@ export interface PurchaseOrder {
   totalAmount: number;
   paidAmount?: number;
   outstandingAmount?: number;
+  hospitalOrderNumber?: string | null;
   deliveryAddress: string;
   paymentMethod?: 'Cash' | 'Cheque' | 'Bank';
   notes: string;
@@ -62,21 +63,24 @@ export interface PurchaseOrder {
 /**
  * Request for creating a Purchase Order
  */
+export interface CreatePurchaseOrderItemRequest {
+  productId: number;
+  productName?: string;
+  orderedQuantity: number;
+  unitPrice: number;
+  taxPercentage: number;
+  discountPercentage: number;
+  supplyOrderIds: number[];
+}
+
 export interface CreatePurchaseOrderRequest {
   supplierId: number;
   orderDate: string;
   expectedDeliveryDate: string;
-  deliveryAddress: string;
-  notes: string;
-  items: {
-    productId: number;
-    productName?: string;
-    orderedQuantity: number;
-    unitPrice: number;
-    taxPercentage: number;
-    discountPercentage: number;
-    supplyOrderIds: number[];
-  }[];
+  hospitalOrderNumber: string;
+  deliveryAddress?: string;
+  notes?: string;
+  items: CreatePurchaseOrderItemRequest[];
 }
 
 /**
@@ -84,8 +88,9 @@ export interface CreatePurchaseOrderRequest {
  */
 export interface UpdatePurchaseOrderRequest {
   expectedDeliveryDate: string;
-  deliveryAddress: string;
-  notes: string;
+  hospitalOrderNumber?: string;
+  deliveryAddress?: string;
+  notes?: string;
   /** Full edit (Sent PO only): replace supplier. */
   supplierId?: number;
   /** Full edit (Sent PO only): replace order date. */

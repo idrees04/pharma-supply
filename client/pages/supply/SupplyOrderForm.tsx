@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, useFieldArray, useWatch, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Loader2, Save, ShoppingCart, Calculator, Calendar, MapPin, StickyNote, Package, User, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Loader2, Save, ShoppingCart, Calculator, Calendar, MapPin, StickyNote, Package, User, ArrowLeft, Paperclip, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +25,8 @@ import {
   useCreateSupplyOrder,
   useUpdateSupplyOrder,
   useSupplyOrder,
-  useSupplyOrderStatuses
+  useSupplyOrderStatuses,
+  supplyOrderService,
 } from '@/api/services/supplyOrders.service';
 import { useSupplyOrderFulfillmentSourceOptions, useSupplyOrderStatusOptions } from '@/hooks/dropdown';
 import { useProductSuppliersByProduct } from '@/api/services/productSuppliers';
@@ -298,6 +299,10 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
     }
   };
 
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
+
   // 1. Fetch Data
   const { data: existingSO, isPending: isLoadingSO } = useSupplyOrder(supplyOrderId || null);
   const { data: hospitalsData, isPending: isLoadingHospitals } = useGetHospitals({ pageSize: 1000, pageNumber: 1 });
@@ -375,6 +380,23 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
   const { mutate: createSO, isPending: isCreating } = useCreateSupplyOrder();
   const { mutate: updateSO, isPending: isUpdating } = useUpdateSupplyOrder(supplyOrderId || 0);
 
+  const uploadAttachmentIfNeeded = async (orderId: number) => {
+    if (!attachmentFile) return;
+    setIsUploadingAttachment(true);
+    try {
+      await supplyOrderService.uploadAttachment(orderId, attachmentFile);
+    } catch (error: unknown) {
+      const message =
+        error && typeof error === 'object' && 'userMessage' in error
+          ? String((error as { userMessage?: string }).userMessage)
+          : 'Order saved but attachment upload failed';
+      toast.error(message);
+      throw error;
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
   const onSubmit = (data: SupplyOrderFormValues) => {
     // Helper to format date to ISO string if it's just a YYYY-MM-DD string
     const formatToISO = (dateStr: string) => {
@@ -386,9 +408,9 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
     if (isEditMode && supplyOrderId) {
       const updateData: UpdateSupplyOrderRequest = {
         requiredByDate: formatToISO(data.requiredByDate),
-        requestedBy: data.requestedBy,
-        shippingAddress: data.shippingAddress,
-        notes: data.notes || '',
+        requestedBy: data.requestedBy?.trim() || '',
+        shippingAddress: data.shippingAddress?.trim() || '',
+        notes: data.notes?.trim() || '',
         status: data.status ?? existingSO?.status ?? 1,
         items:
           isDraftOrder && data.items?.length > 0
@@ -404,9 +426,14 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
             : undefined,
       };
       updateSO(updateData, {
-        onSuccess: () => {
-          toast.success('Supply order updated successfully');
-          handleSuccess();
+        onSuccess: async () => {
+          try {
+            await uploadAttachmentIfNeeded(supplyOrderId);
+            toast.success('Supply order updated successfully');
+            handleSuccess();
+          } catch {
+            // Attachment error already toasted; keep user on form to retry
+          }
         },
         onError: (error) => {
           toast.error(error.userMessage || 'Failed to update supply order');
@@ -417,9 +444,9 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
         hospitalId: data.hospitalId,
         orderDate: formatToISO(data.orderDate),
         requiredByDate: formatToISO(data.requiredByDate),
-        requestedBy: data.requestedBy,
-        shippingAddress: data.shippingAddress,
-        notes: data.notes || '',
+        requestedBy: data.requestedBy?.trim() || '',
+        shippingAddress: data.shippingAddress?.trim() || '',
+        notes: data.notes?.trim() || '',
         items: data.items.map(item => ({
           productId: item.productId,
           orderedQuantity: item.orderedQuantity,
@@ -431,9 +458,17 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
         }))
       };
       createSO(createData, {
-        onSuccess: () => {
-          toast.success('Supply order created successfully');
-          handleSuccess();
+        onSuccess: async (created) => {
+          try {
+            if (created?.id) {
+              await uploadAttachmentIfNeeded(created.id);
+            }
+            toast.success('Supply order created successfully');
+            handleSuccess();
+          } catch {
+            toast.success('Supply order created (attachment failed — you can retry from edit)');
+            handleSuccess();
+          }
         },
         onError: (error) => {
           toast.error(error.userMessage || 'Failed to create supply order');
@@ -572,7 +607,8 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                          <User className="h-3 w-3" /> Requested By
+                          <User className="h-3 w-3" /> Requested By{' '}
+                          <span className="font-normal normal-case text-muted-foreground/80">(optional)</span>
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -591,7 +627,8 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                          <MapPin className="h-3 w-3" /> Shipping Address
+                          <MapPin className="h-3 w-3" /> Shipping Address{' '}
+                          <span className="font-normal normal-case text-muted-foreground/80">(optional)</span>
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -640,7 +677,8 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                        <StickyNote className="h-3 w-3" /> Notes
+                        <StickyNote className="h-3 w-3" /> Notes{' '}
+                        <span className="font-normal normal-case text-muted-foreground/80">(optional)</span>
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -653,6 +691,67 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                     </FormItem>
                   )}
                 />
+
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                    <Paperclip className="h-3 w-3" /> Attachment{' '}
+                    <span className="font-normal normal-case text-muted-foreground/80">
+                      (optional, 1 file · max 10 MB)
+                    </span>
+                  </p>
+                  {isEditMode && existingSO?.attachmentFileName && !attachmentFile ? (
+                    <p className="text-sm text-slate-600">
+                      Current:{' '}
+                      <span className="font-medium">{existingSO.attachmentFileName}</span>
+                      {' — '}select a new file to replace it.
+                    </p>
+                  ) : null}
+                  <input
+                    ref={attachmentInputRef}
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.xls,.xlsx"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      if (file && file.size > 10 * 1024 * 1024) {
+                        toast.error('Attachment must be 10 MB or smaller');
+                        e.target.value = '';
+                        setAttachmentFile(null);
+                        return;
+                      }
+                      setAttachmentFile(file);
+                    }}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 gap-2"
+                      onClick={() => attachmentInputRef.current?.click()}
+                    >
+                      <Paperclip className="h-4 w-4" />
+                      {attachmentFile || existingSO?.attachmentPath ? 'Choose file' : 'Add attachment'}
+                    </Button>
+                    {attachmentFile ? (
+                      <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                        <span className="max-w-[220px] truncate font-medium text-slate-800">
+                          {attachmentFile.name}
+                        </span>
+                        <button
+                          type="button"
+                          className="text-slate-400 hover:text-slate-700"
+                          onClick={() => {
+                            setAttachmentFile(null);
+                            if (attachmentInputRef.current) attachmentInputRef.current.value = '';
+                          }}
+                          aria-label="Remove attachment"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -835,9 +934,9 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                 <Button
                   type="submit"
                   className="w-full gap-2 h-12 text-md font-bold shadow-md hover:shadow-lg transition-all"
-                  disabled={isCreating || isUpdating}
+                  disabled={isCreating || isUpdating || isUploadingAttachment}
                 >
-                  {(isCreating || isUpdating) ? (
+                  {(isCreating || isUpdating || isUploadingAttachment) ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <Save className="h-5 w-5" />

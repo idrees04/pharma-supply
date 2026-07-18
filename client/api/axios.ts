@@ -69,6 +69,15 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    // Let the browser set multipart boundary for file uploads
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      if (config.headers && typeof config.headers.delete === 'function') {
+        config.headers.delete('Content-Type');
+      } else if (config.headers) {
+        delete (config.headers as Record<string, unknown>)['Content-Type'];
+      }
+    }
+
     // Add correlation ID for request tracing (helpful for debugging and server logs)
     config.headers["X-Request-ID"] = generateRequestId();
 

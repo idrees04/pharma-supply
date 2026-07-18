@@ -54,9 +54,23 @@ export interface CreateProductBatchRequest {
     notes?: string | null;
 }
 
-export interface UpdateInventoryStockRequest {
+export interface AdjustInventoryBatchLineRequest {
+    productBatchId?: number | null;
+    batchNumber?: string | null;
+    manufactureDate?: string | null;
+    expiryDate?: string | null;
+    purchaseRate?: number | null;
+    /** Signed: positive = stock in, negative = stock out. */
     quantity: number;
     notes?: string | null;
+}
+
+export interface UpdateInventoryStockRequest {
+    /** Legacy single-qty adjust (used only when batches is empty). */
+    quantity?: number;
+    notes?: string | null;
+    /** Preferred: one or more batch lines (signed quantity per line). */
+    batches?: AdjustInventoryBatchLineRequest[];
 }
 
 // Query parameters

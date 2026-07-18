@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -14,7 +15,11 @@ import { useExpenseCategories } from '@/api/services/expenseCategories';
 import { useAccountList } from '@/api/services/accounts';
 import { post } from '@/api/requests';
 import type { ApiResponse } from '@/types/api/common';
-import type { CreateExpenseRequest } from '@/types/api/expenses';
+import type {
+  BulkCreateExpensesRequest,
+  BulkCreateExpensesResultDto,
+  CreateExpenseRequest,
+} from '@/types/api/expenses';
 import { toast } from 'sonner';
 
 interface BulkLine extends CreateExpenseRequest {
@@ -31,6 +36,7 @@ export default function BulkExpenseForm({ onSuccess, onCancel }: BulkExpenseForm
   const { data: accounts } = useAccountList();
   const [sharedDate, setSharedDate] = useState(new Date().toISOString().split('T')[0]);
   const [sharedAccountId, setSharedAccountId] = useState('');
+  const [createVoucher, setCreateVoucher] = useState(false);
   const [lines, setLines] = useState<BulkLine[]>([
     {
       key: '1',
@@ -83,6 +89,10 @@ export default function BulkExpenseForm({ onSuccess, onCancel }: BulkExpenseForm
       expenseDate: new Date(sharedDate).toISOString(),
       expenseCategoryId: Number(line.expenseCategoryId),
       amount: Number(line.amount),
+      payeeName: line.payeeName ?? '',
+      referenceNumber: line.referenceNumber ?? '',
+      notes: line.notes ?? '',
+      description: line.description ?? '',
     }));
     if (items.some((l) => !l.expenseCategoryId || !l.description || l.amount <= 0)) {
       toast.error('Each row needs category, description, and amount');
@@ -90,11 +100,22 @@ export default function BulkExpenseForm({ onSuccess, onCancel }: BulkExpenseForm
     }
     setSubmitting(true);
     try {
-      const res = await post<ApiResponse<number>, { items: CreateExpenseRequest[] }>(
+      const body: BulkCreateExpensesRequest = {
+        items,
+        createVoucher,
+        voucherTemplateKey: createVoucher ? 'default' : null,
+      };
+      const res = await post<ApiResponse<BulkCreateExpensesResultDto>, BulkCreateExpensesRequest>(
         '/api/Expenses/bulk',
-        { items },
+        body,
       );
-      toast.success(res.message ?? `${res.data} expense(s) created`);
+      const count = res.data?.count ?? items.length;
+      const voucher = res.data?.voucherNumber;
+      toast.success(
+        voucher
+          ? `${count} expense(s) created · voucher ${voucher}`
+          : (res.message ?? `${count} expense(s) created`)
+      );
       onSuccess();
     } catch {
       toast.error('Bulk expense creation failed');
@@ -175,13 +196,29 @@ export default function BulkExpenseForm({ onSuccess, onCancel }: BulkExpenseForm
         ))}
       </div>
 
+      <div className="flex items-start gap-3 rounded-lg border border-dashed p-3">
+        <Checkbox
+          id="bulk-create-voucher"
+          checked={createVoucher}
+          onCheckedChange={(checked) => setCreateVoucher(checked === true)}
+        />
+        <div className="space-y-0.5">
+          <Label htmlFor="bulk-create-voucher" className="cursor-pointer font-medium">
+            Create voucher for these entries
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Optional. Issues one combined voucher for all rows after they are saved as paid.
+          </p>
+        </div>
+      </div>
+
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" onClick={addLine} className="gap-2">
           <Plus className="h-4 w-4" />
           Add row
         </Button>
         <Button type="button" onClick={handleSubmit} disabled={submitting}>
-          Save all
+          {submitting ? 'Saving…' : createVoucher ? 'Save & create voucher' : 'Save all'}
         </Button>
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel

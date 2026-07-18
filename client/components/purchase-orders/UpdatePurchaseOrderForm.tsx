@@ -59,7 +59,8 @@ export function UpdatePurchaseOrderForm({
         resolver: zodResolver(updatePurchaseOrderSchema),
         defaultValues: {
             expectedDeliveryDate: purchaseOrder.expectedDeliveryDate?.split('T')[0] ?? '',
-            deliveryAddress: purchaseOrder.deliveryAddress,
+            hospitalOrderNumber: purchaseOrder.hospitalOrderNumber ?? '',
+            deliveryAddress: purchaseOrder.deliveryAddress || '',
             notes: purchaseOrder.notes || '',
         },
     });
@@ -67,7 +68,8 @@ export function UpdatePurchaseOrderForm({
     const onSubmit = (data: UpdatePurchaseOrderFormData) => {
         const updateData: UpdatePurchaseOrderRequest = {
             expectedDeliveryDate: data.expectedDeliveryDate,
-            deliveryAddress: data.deliveryAddress,
+            hospitalOrderNumber: data.hospitalOrderNumber,
+            deliveryAddress: data.deliveryAddress || '',
             notes: data.notes || '',
         };
 
@@ -167,11 +169,34 @@ export function UpdatePurchaseOrderForm({
                         <motion.div variants={itemVariants}>
                             <FormField
                                 control={form.control}
+                                name="hospitalOrderNumber"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                                            Hospital order number *
+                                        </FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                placeholder="e.g. HO-2026-001"
+                                                {...field}
+                                                className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </motion.div>
+
+                        <motion.div variants={itemVariants}>
+                            <FormField
+                                control={form.control}
                                 name="deliveryAddress"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                                            <MapPin className="h-3 w-3" /> Delivery Address
+                                            <MapPin className="h-3 w-3" /> Delivery Address{' '}
+                                            <span className="font-normal normal-case text-muted-foreground">(optional)</span>
                                         </FormLabel>
                                         <FormControl>
                                             <Input
@@ -193,7 +218,8 @@ export function UpdatePurchaseOrderForm({
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                                            <StickyNote className="h-3 w-3" /> Special Instructions
+                                            <StickyNote className="h-3 w-3" /> Special Instructions{' '}
+                                            <span className="font-normal normal-case text-muted-foreground">(optional)</span>
                                         </FormLabel>
                                         <FormControl>
                                             <Textarea

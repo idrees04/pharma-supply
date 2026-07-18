@@ -61,6 +61,8 @@ export function useAdjustStock(productId: number) {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: ['inventory', 'stocks'] });
+                queryClient.invalidateQueries({ queryKey: ['inventory', 'batches'] });
+                queryClient.invalidateQueries({ queryKey: ['inventory', 'stocks', productId, 'ledger'] });
                 queryClient.invalidateQueries({ queryKey: ['products', 'low-stock'] });
             },
         }

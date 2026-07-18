@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { usePurchaseOrder, usePurchaseOrderStatuses, useSuggestedPayment, usePurchaseOrderTimeline } from '@/api/services/purchaseOrders';
+import { useSupplyOrderList } from '@/api/services/supplyOrders.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import {
@@ -18,7 +19,8 @@ import {
   Printer,
   TrendingUp,
   PackageCheck,
-  CreditCard
+  CreditCard,
+  Link2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -94,6 +96,31 @@ export default function PurchaseOrderView() {
 
   const { data: po, isPending, error, refetch } = usePurchaseOrder(poId);
   const { data: statuses = [], isPending: statusesLoading } = usePurchaseOrderStatuses();
+  const { data: supplyOrdersPage } = useSupplyOrderList({
+    pageNumber: 1,
+    pageSize: 200,
+    sortBy: 'Id',
+    sortDescending: true,
+  });
+
+  const linkedSupplyOrderIds = useMemo(() => {
+    if (!po?.items?.length) return [] as number[];
+    return Array.from(new Set(po.items.flatMap((item) => item.supplyOrderIds ?? [])));
+  }, [po?.items]);
+
+  const linkedSupplyOrders = useMemo(() => {
+    if (!linkedSupplyOrderIds.length) return [];
+    const byId = new Map((supplyOrdersPage?.items ?? []).map((so) => [so.id, so]));
+    return linkedSupplyOrderIds.map((id) => {
+      const so = byId.get(id);
+      return {
+        id,
+        label: so?.supplyOrderNumber || `SO #${id}`,
+        hospitalName: so?.hospitalName ?? null,
+      };
+    });
+  }, [linkedSupplyOrderIds, supplyOrdersPage?.items]);
+
   const poCancelled = po ? isPurchaseOrderCancelled(po.status) : false;
   const canFullyEdit = !!po && canFullyEditPurchaseOrder(po) && hasPermission('purchaseOrders', 'update');
   const canPartialUpdate =
@@ -362,6 +389,12 @@ export default function PurchaseOrderView() {
                 <div className="grid md:grid-cols-2 gap-10">
                   <div className="space-y-6">
                     <div className="space-y-1.5 overflow-hidden">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hospital order number</p>
+                      <p className="text-sm font-bold text-slate-800 font-mono">
+                        {po.hospitalOrderNumber?.trim() || '—'}
+                      </p>
+                    </div>
+                    <div className="space-y-1.5 overflow-hidden">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Delivery address</p>
                       <div className="flex items-start gap-3">
                         <MapPin className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
@@ -389,6 +422,30 @@ export default function PurchaseOrderView() {
                       {po.notes || 'No special instructions recorded.'}
                     </p>
                   </div>
+                </div>
+
+                <div className="mt-8 border-t border-slate-100 pt-6">
+                  <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <Link2 className="h-3.5 w-3.5 text-primary" /> Linked supply orders
+                  </p>
+                  {linkedSupplyOrders.length === 0 ? (
+                    <p className="text-sm text-slate-500 italic">No supply orders linked for reference.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {linkedSupplyOrders.map((so) => (
+                        <Link
+                          key={so.id}
+                          to={`/supply-orders/view/${so.id}`}
+                          className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+                        >
+                          <span className="font-mono">{so.label}</span>
+                          {so.hospitalName ? (
+                            <span className="text-xs font-medium text-slate-500">{so.hospitalName}</span>
+                          ) : null}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -27,6 +27,10 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { cn, formatCurrency } from '@/lib/utils';
+import {
+  formatInvoiceBatchSlice,
+  groupInvoiceItemsByProduct,
+} from '@/lib/invoices/groupInvoiceItems';
 
 const ITEMS_PER_PAGE = 10;
 const PAGE_SIZE = 1000;
@@ -176,7 +180,7 @@ const InvoiceDetailPanel = memo(function InvoiceDetailPanel({
     );
   }
 
-  const items = invoice.items ?? [];
+  const productLines = groupInvoiceItemsByProduct(invoice.items ?? []);
 
   return (
     <Card className={cn('space-y-5 p-5', className)}>
@@ -212,34 +216,46 @@ const InvoiceDetailPanel = memo(function InvoiceDetailPanel({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="font-semibold">Items</h4>
-          <span className="text-sm text-muted-foreground">{items.length} line item(s)</span>
+          <span className="text-sm text-muted-foreground">{productLines.length} product(s)</span>
         </div>
 
         <div className="space-y-2">
-          {items.length === 0 ? (
+          {productLines.length === 0 ? (
             <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
               No item details available for this invoice.
             </div>
           ) : (
-            items.map((item) => (
+            productLines.map((line) => (
               <motion.div
-                key={item.id}
+                key={line.key}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2 }}
                 className="rounded-xl border p-3"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium">{item.productName || `Product #${item.productId}`}</p>
+                  <div className="min-w-0">
+                    <p className="font-medium">{line.productName || `Product #${line.productId}`}</p>
                     <p className="text-sm text-muted-foreground">
-                      Qty {item.quantity} x {formatCurrency(item.unitPrice)}
+                      Qty {line.quantity} x {formatCurrency(line.unitPrice)}
                     </p>
+                    {line.batches.length > 0 ? (
+                      <ul className="mt-1.5 space-y-0.5">
+                        {line.batches.map((batch, batchIdx) => (
+                          <li
+                            key={`${line.key}-b-${batchIdx}`}
+                            className="text-xs text-muted-foreground"
+                          >
+                            {formatInvoiceBatchSlice(batch)}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{formatCurrency(item.totalAmount)}</p>
+                  <div className="text-right shrink-0">
+                    <p className="font-semibold">{formatCurrency(line.totalAmount)}</p>
                     <p className="text-xs text-muted-foreground">
-                      Tax {item.taxPercentage}% · Discount {item.discountPercentage}%
+                      Tax {line.taxPercentage}% · Discount {line.discountPercentage}%
                     </p>
                   </div>
                 </div>

@@ -46,7 +46,7 @@ export const PurchaseOrderTemplate = React.forwardRef<HTMLDivElement, PurchaseOr
           </div>
         </div>
 
-        <div className="mb-8 grid grid-cols-4 gap-4 rounded-lg bg-slate-50 p-4 text-sm">
+        <div className="mb-8 grid grid-cols-2 gap-4 rounded-lg bg-slate-50 p-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Order date</p>
             <p className="font-semibold">
@@ -68,8 +68,14 @@ export const PurchaseOrderTemplate = React.forwardRef<HTMLDivElement, PurchaseOr
             <p className="font-semibold">{getPurchaseOrderStatusLabel(purchaseOrder.status)}</p>
           </div>
           <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Hospital order no.</p>
+            <p className="font-semibold font-mono">
+              {purchaseOrder.hospitalOrderNumber?.trim() || '—'}
+            </p>
+          </div>
+          <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Delivery address</p>
-            <p className="font-semibold">{purchaseOrder.deliveryAddress || '—'}</p>
+            <p className="font-semibold">{purchaseOrder.deliveryAddress?.trim() || '—'}</p>
           </div>
         </div>
 
@@ -129,7 +135,9 @@ export const PurchaseOrderTemplate = React.forwardRef<HTMLDivElement, PurchaseOr
         </div>
 
         <div className="mb-4 rounded-lg border border-dashed border-slate-200 p-4">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Notes</p>
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+            Special instructions
+          </p>
           <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">
             {purchaseOrder.notes?.trim() ? purchaseOrder.notes : '—'}
           </p>

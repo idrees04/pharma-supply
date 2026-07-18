@@ -408,8 +408,8 @@ export function InvoiceCreationPanel({
                         </FormControl>
                         <p className="text-xs text-muted-foreground">
                           {requireDeliveryChallan
-                            ? 'Required: choose the delivery challan this invoice applies to.'
-                            : 'If set, must belong to this supply order. Line items may link to challan lines.'}
+                            ? 'Required: choose the delivery challan this invoice applies to. One product row is shown with batch qty / number / expiry listed under it.'
+                            : 'If set, batch details from that challan appear under each product on the invoice.'}
                         </p>
                       </>
                     )}

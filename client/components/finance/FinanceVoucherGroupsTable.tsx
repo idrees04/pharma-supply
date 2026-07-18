@@ -19,6 +19,7 @@ export type VoucherGroupLine = {
   categoryName: string | null;
   accountName: string | null;
   amount: number;
+  description?: string | null;
   extraLabel?: string | null;
 };
 
@@ -132,6 +133,7 @@ export function FinanceVoucherGroupsTable({
                             <TableHead className="text-[10px] font-bold uppercase">{documentHeader}</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase">Date</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase">Category</TableHead>
+                            <TableHead className="text-[10px] font-bold uppercase">Description</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase">Account</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase text-right">Amount</TableHead>
                           </TableRow>
@@ -144,6 +146,9 @@ export function FinanceVoucherGroupsTable({
                                 {new Date(line.date).toLocaleDateString()}
                               </TableCell>
                               <TableCell className="text-xs">{line.categoryName ?? '—'}</TableCell>
+                              <TableCell className="text-xs max-w-[220px]">
+                                {line.description?.trim() || '—'}
+                              </TableCell>
                               <TableCell className="text-xs">
                                 {line.accountName ?? '—'}
                                 {line.extraLabel ? (

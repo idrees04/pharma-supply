@@ -19,10 +19,13 @@ import {
   FileType2,
   Truck,
   Printer,
+  Paperclip,
+  Download,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency, cn } from '@/lib/utils';
+import { resolveMediaUrl } from '@/lib/federationBranding';
 import { motion, Variants } from 'framer-motion';
 import {
   Breadcrumb,
@@ -534,6 +537,22 @@ export default function SupplyOrderView() {
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Requested by</p>
                     <p className="text-sm font-bold text-slate-800">{so.requestedBy || 'N/A'}</p>
                   </div>
+                  {so.attachmentPath ? (
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                        <Paperclip className="h-3 w-3" /> Attachment
+                      </p>
+                      <a
+                        href={resolveMediaUrl(so.attachmentPath, '#')}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        {so.attachmentFileName || 'Download attachment'}
+                      </a>
+                    </div>
+                  ) : null}
                   {so.approvedBy && (
                     <div className="space-y-1">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Approved by</p>

@@ -37,6 +37,19 @@ export interface CreateIncomeRequest {
   notes: string;
 }
 
+export interface BulkCreateIncomesRequest {
+  items: CreateIncomeRequest[];
+  /** When true, issue one combined voucher for all created incomes. */
+  createVoucher?: boolean;
+  voucherTemplateKey?: string | null;
+}
+
+export interface BulkCreateIncomesResultDto {
+  count: number;
+  incomeIds: number[];
+  voucherNumber: string | null;
+}
+
 /** PUT /api/Incomes/{id} */
 export interface UpdateIncomeRequest {
   incomeDate: string;

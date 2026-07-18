@@ -167,6 +167,24 @@ export const supplyOrderService = {
     >(`/api/SupplyOrders/${supplyOrderId}/delivery-challans`, data, config);
     return response.data;
   },
+
+  /**
+   * Upload a single attachment for a supply order (replaces any existing file).
+   */
+  uploadAttachment: async (
+    supplyOrderId: number,
+    file: File,
+    config?: RequestConfig
+  ): Promise<SupplyOrder> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await post<ApiResponse<SupplyOrder>, FormData>(
+      `/api/SupplyOrders/${supplyOrderId}/attachment`,
+      formData,
+      config
+    );
+    return response.data;
+  },
 };
 
 /**

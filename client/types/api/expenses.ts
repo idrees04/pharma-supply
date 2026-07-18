@@ -39,6 +39,19 @@ export interface CreateExpenseRequest {
   notes: string;
 }
 
+export interface BulkCreateExpensesRequest {
+  items: CreateExpenseRequest[];
+  /** When true, issue one combined voucher for all created expenses. */
+  createVoucher?: boolean;
+  voucherTemplateKey?: string | null;
+}
+
+export interface BulkCreateExpensesResultDto {
+  count: number;
+  expenseIds: number[];
+  voucherNumber: string | null;
+}
+
 /** PUT /api/Expenses/{id} */
 export interface UpdateExpenseRequest {
   expenseDate: string;

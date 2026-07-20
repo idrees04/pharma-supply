@@ -11,6 +11,8 @@ import {
 
 interface InvoiceTemplateProps {
   invoice: InvoiceDto;
+  /** When true, renders the statutory Warranty declaration below the Notes section. */
+  showWarranty?: boolean;
 }
 
 function formatShortDate(value: string): string {
@@ -22,7 +24,7 @@ function formatShortDate(value: string): string {
 }
 
 export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateProps>(
-  ({ invoice }, ref) => {
+  ({ invoice, showWarranty = false }, ref) => {
     const subtotal = invoice.subTotal;
     const tax = invoice.taxAmount;
     const discount = invoice.discountAmount;
@@ -237,6 +239,21 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
             <p className="mb-0.5 text-[9px] font-black uppercase tracking-wider text-slate-400">Notes</p>
             <p className="line-clamp-2 text-[10px] leading-snug text-slate-700 whitespace-pre-wrap">
               {notes}
+            </p>
+          </div>
+        ) : null}
+
+        {showWarranty ? (
+          <div className="mb-2 rounded border border-slate-200 bg-slate-50 px-2 py-1.5">
+            <p className="mb-0.5 text-[9px] font-black uppercase tracking-wider text-slate-400">
+              Warranty
+            </p>
+            <p className="text-[9px] leading-snug text-slate-700">
+              I Mr. M Banaris Khan S/o Shah Zaman, caring out business in the name of
+              &ldquo;IDEAL DISTRIBUTOR&rdquo; at House # E-64, Block-E, Near Jamia Masjid Aqsa,
+              Satellite Town, Rawalpindi. Do hereby given this Warranty that drugs / Medicines in
+              this memo / invoice as sold by us do not contrivance in any way the provision of
+              section 23 of Drugs Act 1976 as Warranty of manufactures / Suppliers.
             </p>
           </div>
         ) : null}

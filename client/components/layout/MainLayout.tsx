@@ -336,7 +336,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
           {/* User Nav - Visible on all screens */}
           <div className="flex items-center gap-2 md:gap-4">
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             <UserNav />
             {/* Mobile Menu Trigger */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>

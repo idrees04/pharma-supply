@@ -34,6 +34,7 @@ import { Product } from '@/types/api/products';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { TableCard } from '@/components/common/TableCard';
 import { Badge } from '@/components/ui/badge';
 
 const ITEMS_PER_PAGE = 10;
@@ -440,24 +441,27 @@ export default function ProductList() {
 
       {/* Content */}
       <AnimatePresence mode="wait">
-        <motion.div
-          key="table"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="w-full overflow-x-auto"
-        >
-          <DataTable
-            columns={columns}
-            data={filteredProducts}
-            isLoading={isLoading}
-            onEdit={canUpdate ? handleEdit : undefined}
-            onDelete={canDelete ? handleDeleteClick : undefined}
-            itemsPerPage={ITEMS_PER_PAGE}
-            emptyMessage="No products found."
-            showSearch={false}
-            onRowClick={(p) => navigate(`/inventory/products/${p.id}`)}
-          />
+        <motion.div key="table" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <TableCard
+            icon={<Package />}
+            title="All products"
+            count={filteredProducts.length}
+            countLabel={(c) => `${c} product(s)`}
+            contentClassName="overflow-x-auto p-2 sm:p-4"
+          >
+            <DataTable
+              columns={columns}
+              data={filteredProducts}
+              isLoading={isLoading}
+              onEdit={canUpdate ? handleEdit : undefined}
+              onDelete={canDelete ? handleDeleteClick : undefined}
+              itemsPerPage={ITEMS_PER_PAGE}
+              emptyMessage="No products found."
+              showSearch={false}
+              onRowClick={(p) => navigate(`/inventory/products/${p.id}`)}
+              defaultSort={{ id: 'id', desc: false }}
+            />
+          </TableCard>
         </motion.div>
       </AnimatePresence>
 

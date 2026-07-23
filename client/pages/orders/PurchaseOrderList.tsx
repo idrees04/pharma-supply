@@ -8,6 +8,7 @@ import { DataTable, Column } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { TableCard } from '@/components/common/TableCard';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Input } from '@/components/ui/input';
 import {
@@ -203,7 +204,13 @@ export default function PurchaseOrderList() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <TableCard
+        icon={<FileText />}
+        title="All purchase orders"
+        count={filteredPOs.length}
+        countLabel={(c) => `${c} order(s)`}
+        contentClassName="overflow-x-auto p-2 sm:p-4"
+      >
         <DataTable
           columns={columns}
           data={filteredPOs}
@@ -217,8 +224,9 @@ export default function PurchaseOrderList() {
           showSearch={false}
           onRowClick={(row) => navigate(`/orders/purchase/view/${row.id}`)}
           resetSortTrigger={refreshTrigger}
+          defaultSort={{ id: 'id', desc: false }}
         />
-      </div>
+      </TableCard>
 
       {/* Delete Confirmation */}
       <ConfirmDialog

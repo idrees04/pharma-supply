@@ -76,6 +76,12 @@ interface DataTableProps<T> {
   preserveServerOrder?: boolean;
   /** Hide built-in pagination footer (use server-driven pagination outside the table). */
   hidePaginationFooter?: boolean;
+  /**
+   * Column to sort by before the user interacts with any header.
+   * Direction defaults to ascending (`desc: false`) unless overridden, per
+   * the standardized table convention used across the app.
+   */
+  defaultSort?: { id: string; desc?: boolean };
 }
 
 export function DataTable<T extends { id?: string | number }>({
@@ -94,16 +100,20 @@ export function DataTable<T extends { id?: string | number }>({
   resetSortTrigger,
   preserveServerOrder = false,
   hidePaginationFooter = false,
+  defaultSort,
 }: DataTableProps<T>) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [sorting, setSorting] = React.useState<SortingState>(() =>
+    defaultSort ? [{ id: defaultSort.id, desc: defaultSort.desc ?? false }] : [],
+  );
   const [globalFilter, setGlobalFilter] = React.useState('');
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [expandedRows, setExpandedRows] = React.useState<Record<string | number, boolean>>({});
 
   React.useEffect(() => {
     if (resetSortTrigger && resetSortTrigger > 0) {
-      setSorting([]);
+      setSorting(defaultSort ? [{ id: defaultSort.id, desc: defaultSort.desc ?? false }] : []);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetSortTrigger]);
 
   const toggleRowExpansion = (id: string | number, e: React.MouseEvent) => {

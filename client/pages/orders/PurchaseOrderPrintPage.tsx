@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { usePurchaseOrder } from '@/api/services/purchaseOrders';
 import { PurchaseOrderTemplate } from './PurchaseOrderTemplate';
 import { downloadElementAsPdf } from '@/lib/downloadPdf';
+import { printElement } from '@/lib/printElement';
 
 export default function PurchaseOrderPrintPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +24,7 @@ export default function PurchaseOrderPrintPage() {
   };
 
   const handlePrint = () => {
-    window.print();
+    printElement(printRef.current, { mountId: 'purchase-order-print-mount' });
   };
 
   if (isPending) {

@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { BookOpen, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -13,21 +13,20 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { TableCard } from '@/components/common/TableCard';
+import { DataTable, type Column } from '@/components/common/DataTable';
+import { LedgerPrintTemplate, type LedgerPrintColumn } from '@/components/print/LedgerPrintTemplate';
+import { PrintActionsToolbar } from '@/components/print/PrintActionsToolbar';
 import { formatCurrency } from '@/lib/utils';
 import { analyticsReportService } from '@/api/services/analyticsReports';
 import { useGetHospitals } from '@/hooks/useHospitals';
+import type { LedgerEntryRowDto } from '@/types/api/analyticsReports';
 
 function fmtDate(value: string) {
   return value ? new Date(value).toLocaleDateString() : '—';
 }
+
+type LedgerRow = LedgerEntryRowDto & { id: number };
 
 export default function HospitalLedgerReport() {
   const [searchParams] = useSearchParams();
@@ -40,6 +39,7 @@ export default function HospitalLedgerReport() {
     return d.toISOString().slice(0, 10);
   });
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const printRef = useRef<HTMLDivElement>(null);
 
   const { data: hospitalsData } = useGetHospitals({ pageNumber: 1, pageSize: 500 });
   const hospitals = hospitalsData?.data?.items ?? [];
@@ -55,6 +55,73 @@ export default function HospitalLedgerReport() {
     queryFn: () => analyticsReportService.getHospitalLedger(hid, params),
     enabled: hid > 0,
   });
+
+  const rows: LedgerRow[] = useMemo(
+    () => (data?.rows ?? []).map((row, idx) => ({ ...row, id: idx })),
+    [data],
+  );
+
+  const columns: Column<LedgerRow>[] = useMemo(() => {
+    const cols: Column<LedgerRow>[] = [
+      { header: 'Date', accessor: (r) => fmtDate(r.entryDate), id: 'date' },
+      { header: 'Type', accessor: 'entryType', id: 'entryType' },
+      {
+        header: 'Reference',
+        accessor: (r) => <span className="font-mono text-xs">{r.referenceNumber}</span>,
+        id: 'referenceNumber',
+      },
+    ];
+    if (view === 'product') {
+      cols.push({ header: 'Product', accessor: (r) => r.productName ?? '—', id: 'productName' });
+    }
+    cols.push(
+      {
+        header: 'Debit',
+        accessor: (r) => <div className="text-right tabular-nums">{formatCurrency(r.debit)}</div>,
+        id: 'debit',
+        className: 'justify-end',
+      },
+      {
+        header: 'Credit',
+        accessor: (r) => <div className="text-right tabular-nums">{formatCurrency(r.credit)}</div>,
+        id: 'credit',
+        className: 'justify-end',
+      },
+      {
+        header: 'Balance',
+        accessor: (r) => (
+          <div className="text-right tabular-nums font-semibold">{formatCurrency(r.runningBalance)}</div>
+        ),
+        id: 'runningBalance',
+        className: 'justify-end',
+      },
+      {
+        header: 'Notes',
+        accessor: (r) => r.notes ?? '—',
+        id: 'notes',
+        mobileHidden: true,
+      },
+    );
+    return cols;
+  }, [view]);
+
+  const printColumns: LedgerPrintColumn<LedgerRow>[] = useMemo(() => {
+    const cols: LedgerPrintColumn<LedgerRow>[] = [
+      { header: 'Date', render: (r) => fmtDate(r.entryDate) },
+      { header: 'Type', render: (r) => r.entryType },
+      { header: 'Reference', render: (r) => r.referenceNumber },
+    ];
+    if (view === 'product') {
+      cols.push({ header: 'Product', render: (r) => r.productName ?? '—' });
+    }
+    cols.push(
+      { header: 'Debit', align: 'right', render: (r) => formatCurrency(r.debit) },
+      { header: 'Credit', align: 'right', render: (r) => formatCurrency(r.credit) },
+      { header: 'Balance', align: 'right', render: (r) => formatCurrency(r.runningBalance) },
+      { header: 'Notes', render: (r) => r.notes ?? '—' },
+    );
+    return cols;
+  }, [view]);
 
   return (
     <div className="space-y-6">
@@ -113,47 +180,49 @@ export default function HospitalLedgerReport() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </Card>
       ) : data ? (
-        <Card className="p-4 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-semibold">{data.entityName}</p>
-            <p className="text-sm">
-              Closing balance:{' '}
-              <span className="font-bold tabular-nums">{formatCurrency(data.closingBalance)}</span>
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Reference</TableHead>
-                  {view === 'product' ? <TableHead>Product</TableHead> : null}
-                  <TableHead className="text-right">Debit</TableHead>
-                  <TableHead className="text-right">Credit</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.rows.map((row, idx) => (
-                  <TableRow key={`${row.referenceNumber}-${idx}`}>
-                    <TableCell>{fmtDate(row.entryDate)}</TableCell>
-                    <TableCell>{row.entryType}</TableCell>
-                    <TableCell className="font-mono text-xs">{row.referenceNumber}</TableCell>
-                    {view === 'product' ? (
-                      <TableCell>{row.productName ?? '—'}</TableCell>
-                    ) : null}
-                    <TableCell className="text-right tabular-nums">{formatCurrency(row.debit)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCurrency(row.credit)}</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold">
-                      {formatCurrency(row.runningBalance)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
+        <TableCard
+          icon={<BookOpen />}
+          title={data.entityName}
+          description={`Closing balance: ${formatCurrency(data.closingBalance)}`}
+          count={rows.length}
+          countLabel={(c) => `${c} entr${c === 1 ? 'y' : 'ies'}`}
+          actions={
+            <PrintActionsToolbar
+              targetRef={printRef}
+              fileName={`hospital-ledger-${data.entityName}`}
+              disabled={rows.length === 0}
+              mountId="hospital-ledger-print-mount"
+            />
+          }
+        >
+          <DataTable
+            columns={columns}
+            data={rows}
+            defaultSort={{ id: 'date', desc: false }}
+            itemsPerPage={15}
+            emptyMessage="No ledger entries for the selected period."
+          />
+        </TableCard>
+      ) : null}
+
+      {data ? (
+        <div className="fixed left-[-9999px] top-0" aria-hidden="true">
+          <LedgerPrintTemplate
+            ref={printRef}
+            title="Hospital Ledger"
+            subtitle={`${fmtDate(dateFrom)} – ${fmtDate(dateTo)} · ${view === 'product' ? 'Product-wise' : 'Payment-wise'}`}
+            entityLabel="Hospital"
+            entityName={data.entityName}
+            meta={[
+              { label: 'Period', value: `${fmtDate(dateFrom)} – ${fmtDate(dateTo)}` },
+              { label: 'View', value: view === 'product' ? 'Product-wise' : 'Payment-wise' },
+            ]}
+            columns={printColumns}
+            rows={rows}
+            rowKey={(r) => r.id}
+            summary={[{ label: 'Closing balance', value: formatCurrency(data.closingBalance) }]}
+          />
+        </div>
       ) : null}
 
       <Button variant="link" asChild className="px-0">

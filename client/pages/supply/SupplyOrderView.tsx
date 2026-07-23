@@ -56,6 +56,7 @@ import SupplyOrderForm from './SupplyOrderForm';
 import { DeliveryChallanFromSupplyOrderPanel } from './DeliveryChallanFromSupplyOrderPanel';
 import { InvoiceCreationPanel } from './InvoiceCreationPanel';
 import { SupplyOrderDocumentsSection } from './SupplyOrderDocumentsSection';
+import { printElement } from '@/lib/printElement';
 import { SupplyOrderStatus } from '@/types/api/supplyOrders';
 
 const containerVariants: Variants = {
@@ -94,6 +95,7 @@ export default function SupplyOrderView() {
     undefined
   );
   const [isEditSheetOpen, setIsEditSheetOpen] = React.useState(false);
+  const printRef = React.useRef<HTMLDivElement>(null);
 
   const openDispatchSheet = () => {
     setFulfillmentMode('dispatch');
@@ -163,6 +165,7 @@ export default function SupplyOrderView() {
 
   return (
     <motion.div
+      ref={printRef}
       initial="hidden"
       animate="visible"
       variants={containerVariants}
@@ -297,7 +300,7 @@ export default function SupplyOrderView() {
           <Button
             variant="outline"
             className="gap-2 h-12 px-5 text-base border-slate-200 hover:bg-slate-50 shadow-sm"
-            onClick={() => window.print()}
+            onClick={() => printElement(printRef.current, { mountId: 'supply-order-print-mount' })}
           >
             <Printer className="h-5 w-5 text-primary shrink-0" />
             <span className="font-semibold text-slate-700">Preview / Print</span>

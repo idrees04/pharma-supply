@@ -57,10 +57,10 @@ function useDebounce<T>(value: T, delay: number): T {
 // KPI Cards Component
 const StatsCards = memo(function StatsCards({ stats }: { stats: ReturnType<typeof useStats> }) {
   const items = [
-    { label: 'Total Products', value: stats.total, icon: Package, color: 'text-blue-600 bg-blue-50', bg: 'bg-blue-500' },
-    { label: 'Medicines', value: stats.medicines, icon: Pill, color: 'text-green-600 bg-green-50', bg: 'bg-green-500' },
-    { label: 'Equipment', value: stats.equipment, icon: Stethoscope, color: 'text-purple-600 bg-purple-50', bg: 'bg-purple-500' },
-    { label: 'Low Stock', value: stats.lowStock, icon: TrendingDown, color: 'text-red-600 bg-red-50', bg: 'bg-red-500', highlight: stats.lowStock > 0 },
+    { label: 'Total Products', value: stats.total, icon: Package, color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-500/10', bg: 'bg-blue-500' },
+    { label: 'Medicines', value: stats.medicines, icon: Pill, color: 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-500/10', bg: 'bg-green-500' },
+    { label: 'Equipment', value: stats.equipment, icon: Stethoscope, color: 'text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-500/10', bg: 'bg-purple-500' },
+    { label: 'Low Stock', value: stats.lowStock, icon: TrendingDown, color: 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-500/10', bg: 'bg-red-500', highlight: stats.lowStock > 0 },
   ];
 
   return (
@@ -74,7 +74,7 @@ const StatsCards = memo(function StatsCards({ stats }: { stats: ReturnType<typeo
         >
           <Card className={cn(
             'p-4 relative overflow-hidden group hover:shadow-md transition-all duration-300 border-border',
-            item.highlight && 'border-red-100 bg-red-50/20'
+            item.highlight && 'border-red-100 dark:border-red-900/50 bg-red-50/20 dark:bg-red-950/10'
           )}>
             <div className={`absolute top-0 right-0 w-20 h-20 ${item.bg} opacity-[0.04] rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500`} />
             <div className="flex items-center gap-3">
@@ -83,7 +83,7 @@ const StatsCards = memo(function StatsCards({ stats }: { stats: ReturnType<typeo
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">{item.label}</p>
-                <p className={cn('text-xl font-bold tracking-tight mt-0.5', item.highlight && 'text-red-600')}>
+                <p className={cn('text-xl font-bold tracking-tight mt-0.5', item.highlight && 'text-red-600 dark:text-red-400')}>
                   {item.value}
                 </p>
               </div>
@@ -234,7 +234,7 @@ export default function ProductList() {
       header: 'Product',
       accessor: (row) => (
         <div>
-          <div className="font-semibold text-slate-900">{row.productName}</div>
+          <div className="font-semibold text-foreground">{row.productName}</div>
           <div className="text-xs text-muted-foreground">{row.genericName}</div>
         </div>
       ),
@@ -246,9 +246,7 @@ export default function ProductList() {
     {
       header: 'Type',
       accessor: (row) => (
-        <Badge variant="outline" className="text-[10px] font-semibold bg-slate-50">
-          {row.productTypeName || '—'}
-        </Badge>
+        <Badge variant="outline" className="text-[10px] font-semibold bg-muted">{row.productTypeName || '—'}</Badge>
       ),
     },
     {
@@ -266,7 +264,7 @@ export default function ProductList() {
     {
       header: 'Sale (PKR)',
       accessor: (row) => (
-        <span className="font-bold text-emerald-600 tabular-nums">{formatCurrency(row.standardSaleRate)}</span>
+        <span className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(row.standardSaleRate)}</span>
       ),
       align: 'right',
     },
@@ -284,7 +282,7 @@ export default function ProductList() {
       accessor: (row) => (
         <div className={cn(
           'font-bold tabular-nums',
-          row.availableQuantity <= (row.reorderLevel || 0) ? 'text-red-600' : 'text-slate-800'
+          row.availableQuantity <= (row.reorderLevel || 0) ? 'text-red-600 dark:text-red-400' : 'text-foreground'
         )}>
           {row.availableQuantity}
           {row.availableQuantity <= (row.reorderLevel || 0) && (
@@ -303,7 +301,7 @@ export default function ProductList() {
     },
     {
       header: 'Batch',
-      accessor: (row) => row.isBatchRequired ? <CheckCircle className="w-4 h-4 text-green-600" /> : <XCircle className="w-4 h-4 text-slate-300" />,
+      accessor: (row) => row.isBatchRequired ? <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/40" />,
       align: 'center',
     },
     {
@@ -467,8 +465,8 @@ export default function ProductList() {
 
       {/* Dialogs */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-4 rounded-3xl p-0 border-none shadow-2xl bg-gradient-to-b from-white to-slate-50">
-          <div className="sticky top-0 z-10 bg-white/70 backdrop-blur-xl p-8 border-b">
+        <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-4 rounded-3xl p-0 border-none shadow-2xl bg-background">
+          <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-xl p-8 border-b border-border">
             <DialogHeader>
               <DialogTitle className="text-2xl font-extrabold tracking-tight">
                 {selectedProductId ? 'Edit Product' : 'Add New Product'}
@@ -501,11 +499,11 @@ export default function ProductList() {
         title="Delete Product"
         description={
           <div className="space-y-4 pt-2">
-            <p className="text-slate-600">
+            <p className="text-muted-foreground">
               You are about to permanently delete{' '}
-              <span className="font-bold text-slate-900">{productToDelete?.productName}</span> from the system.
+              <span className="font-bold text-foreground">{productToDelete?.productName}</span> from the system.
             </p>
-            <div className="bg-red-50 text-red-700 p-4 rounded-xl text-sm border border-red-100 flex gap-3">
+            <div className="bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 p-4 rounded-xl text-sm border border-red-100 dark:border-red-900/50 flex gap-3">
               <AlertCircle className="w-5 h-5 shrink-0" />
               <p>This action cannot be undone and will remove all related inventory records.</p>
             </div>

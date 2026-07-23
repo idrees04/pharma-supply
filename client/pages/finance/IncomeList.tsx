@@ -74,14 +74,14 @@ function isEligibleForIncomeVoucher(row: IncomeDto) {
 function mapIncomeVoucherToPreview(v: IncomeVoucherPrintDto): VoucherPreviewData {
   const lines = v.lines?.length
     ? v.lines.map((line) => ({
-        documentNumber: line.incomeNumber,
-        date: line.incomeDate,
-        categoryName: line.categoryName,
-        accountName: line.accountName,
-        amount: line.amount,
-        description: line.description,
-        referenceNumber: line.referenceNumber,
-      }))
+      documentNumber: line.incomeNumber,
+      date: line.incomeDate,
+      categoryName: line.categoryName,
+      accountName: line.accountName,
+      amount: line.amount,
+      description: line.description,
+      referenceNumber: line.referenceNumber,
+    }))
     : undefined;
 
   return {
@@ -435,7 +435,7 @@ export default function IncomeList() {
                 placeholder="Search income # or description…"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="h-10 border-slate-200 bg-slate-50 pl-10 focus:bg-background"
+                className="h-10 border-border bg-muted/50 pl-10 focus:bg-background"
               />
             </div>
             <div className="flex items-center gap-2">

@@ -111,7 +111,7 @@ export default function BankAccountList() {
       header: 'Account Details',
       accessor: (account: AccountDto) => (
         <div>
-          <span className="font-semibold text-slate-900">{account.accountName}</span>
+          <span className="font-semibold text-foreground">{account.accountName}</span>
           {account.accountNumber && (
             <div className="text-xs text-muted-foreground">{account.accountNumber}</div>
           )}
@@ -134,11 +134,11 @@ export default function BankAccountList() {
       accessor: (account: AccountDto) => (
         <div className="flex items-center gap-2">
           {account.accountType === AccountType.Cash ? (
-            <Wallet className="w-3.5 h-3.5 text-orange-500" />
+            <Wallet className="w-3.5 h-3.5 text-orange-500 dark:text-orange-400" />
           ) : account.accountType === AccountType.CreditCard ? (
-            <CreditCard className="w-3.5 h-3.5 text-violet-500" />
+            <CreditCard className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
           ) : (
-            <Building2 className="w-3.5 h-3.5 text-blue-500" />
+            <Building2 className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
           )}
           <span className="text-xs font-medium">{AccountTypeLabels[account.accountType]}</span>
         </div>
@@ -150,8 +150,8 @@ export default function BankAccountList() {
         <Badge className={cn(
           'text-[10px] font-black uppercase tracking-wider px-2',
           account.isActive
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-            : 'bg-slate-100 text-slate-500'
+            ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50'
+            : 'bg-muted text-muted-foreground'
         )}>
           {account.isActive ? 'Active' : 'Inactive'}
         </Badge>
@@ -162,7 +162,7 @@ export default function BankAccountList() {
       accessor: (account: AccountDto) => (
         <span className={cn(
           'font-bold tabular-nums',
-          account.currentBalance < 1000 ? 'text-red-600' : 'text-slate-900'
+          account.currentBalance < 1000 ? 'text-red-600 dark:text-red-400' : 'text-foreground'
         )}>
           {formatCurrency(account.currentBalance)}
         </span>
@@ -175,11 +175,11 @@ export default function BankAccountList() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">Bank Accounts</h1>
-        <div className="rounded-xl border border-red-200 bg-red-50 p-5 flex gap-3 items-start">
-          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+        <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-500/10 p-5 flex gap-3 items-start">
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
           <div>
-            <h3 className="font-semibold text-red-800">Error loading accounts</h3>
-            <p className="text-sm text-red-700 mt-1">
+            <h3 className="font-semibold text-red-800 dark:text-red-300">Error loading accounts</h3>
+            <p className="text-sm text-red-700 dark:text-red-400 mt-1">
               {(error as any).userMessage || 'An error occurred'}
             </p>
             <Button
@@ -227,21 +227,21 @@ export default function BankAccountList() {
           value={formatCurrency(stats.totalBalance)}
           icon={<CreditCard className="w-5 h-5" />}
           color="bg-blue-500"
-          iconColor="text-blue-600 bg-blue-50"
+          iconColor="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
         />
         <KPIBox
           label="Active Accounts"
           value={stats.activeAccounts}
           icon={<CheckCircle className="w-5 h-5" />}
           color="bg-emerald-500"
-          iconColor="text-emerald-600 bg-emerald-50"
+          iconColor="text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10"
         />
         <KPIBox
           label="Bank Reserves"
           value={formatCurrency(stats.bankTotal)}
           icon={<Building2 className="w-5 h-5" />}
           color="bg-indigo-500"
-          iconColor="text-indigo-600 bg-indigo-50"
+          iconColor="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10"
         />
       </div>
 

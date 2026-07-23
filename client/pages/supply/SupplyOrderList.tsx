@@ -153,6 +153,7 @@ export default function SupplyOrderList() {
 
   return (
     <div className="space-y-6 animate-slide-up">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Supply Orders</h1>
@@ -164,6 +165,7 @@ export default function SupplyOrderList() {
         </Button>
       </div>
 
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
         <KPIBox label="Total SOs" value={stats.count} icon={<FileText className="w-5 h-5" />} color="bg-blue-500" />
         <KPIBox
@@ -190,14 +192,15 @@ export default function SupplyOrderList() {
         <KPIBox label="Cancelled" value={stats.cancelled} icon={<XCircle className="w-5 h-5" />} color="bg-red-500" />
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border shadow-sm">
+      {/* Control Bar */}
+      <div className="flex flex-col md:flex-row gap-4 items-center bg-card p-4 rounded-xl border shadow-sm">
         <div className="relative flex-1 group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
             placeholder="Search by SO number or hospital..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-10 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+            className="pl-10 h-10 bg-muted/50 border-border focus:bg-card transition-all"
           />
         </div>
         <div className="flex items-center gap-3">
@@ -218,6 +221,7 @@ export default function SupplyOrderList() {
         </div>
       </div>
 
+      {/* Table */}
       <TableCard
         icon={<FileText />}
         title="All supply orders"
@@ -243,6 +247,7 @@ export default function SupplyOrderList() {
         />
       </TableCard>
 
+      {/* Delete Confirmation */}
       <ConfirmDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
@@ -263,29 +268,17 @@ export default function SupplyOrderList() {
   );
 }
 
-function KPIBox({
-  label,
-  value,
-  icon,
-  color,
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  color: string;
-}) {
+function KPIBox({ label, value, icon, color }: { label: string; value: string | number; icon: React.ReactNode; color: string }) {
   return (
     <Card className="p-4 relative overflow-hidden group hover:shadow-md transition-all duration-300">
-      <div
-        className={`absolute top-0 right-0 w-16 h-16 ${color} opacity-5 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500`}
-      />
-      <div className="flex items-center gap-4">
-        <div className={`p-3 rounded-xl ${color} bg-opacity-10 text-primary flex items-center justify-center`}>
+      <div className={`absolute top-0 right-0 w-16 h-16 ${color} opacity-5 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500`} />
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-lg ${color} bg-opacity-10 text-primary flex items-center justify-center`}>
           {icon}
         </div>
-        <div>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
-          <p className="text-lg font-bold tracking-tight mt-0.5">{value}</p>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">{label}</p>
+          <p className="text-sm font-bold tracking-tight mt-0.5 truncate">{value}</p>
         </div>
       </div>
     </Card>

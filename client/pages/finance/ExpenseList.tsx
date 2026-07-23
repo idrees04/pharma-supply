@@ -75,15 +75,15 @@ function isEligibleForExpenseVoucher(row: ExpenseDto) {
 function mapExpenseVoucherToPreview(v: ExpenseVoucherPrintDto): VoucherPreviewData {
   const lines = v.lines?.length
     ? v.lines.map((line) => ({
-        documentNumber: line.expenseNumber,
-        date: line.expenseDate,
-        categoryName: line.categoryName,
-        accountName: line.accountName,
-        payeeOrSource: line.payeeName,
-        amount: line.amount,
-        description: line.description,
-        referenceNumber: line.referenceNumber,
-      }))
+      documentNumber: line.expenseNumber,
+      date: line.expenseDate,
+      categoryName: line.categoryName,
+      accountName: line.accountName,
+      payeeOrSource: line.payeeName,
+      amount: line.amount,
+      description: line.description,
+      referenceNumber: line.referenceNumber,
+    }))
     : undefined;
 
   return {
@@ -447,7 +447,7 @@ export default function ExpenseList() {
                 placeholder="Search expense # or description…"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="h-10 border-slate-200 bg-slate-50 pl-10 focus:bg-background"
+                className="h-10 border-border bg-muted/50 pl-10 focus:bg-background"
               />
             </div>
             <div className="flex items-center gap-2">

@@ -234,14 +234,12 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
           </div>
         </div>
 
-        {notes ? (
-          <div className="mb-2">
-            <p className="mb-0.5 text-[9px] font-black uppercase tracking-wider text-slate-400">Notes</p>
-            <p className="line-clamp-2 text-[10px] leading-snug text-slate-700 whitespace-pre-wrap">
-              {notes}
-            </p>
-          </div>
-        ) : null}
+        <div className="mb-2">
+          <p className="mb-0.5 text-[9px] font-black uppercase tracking-wider text-slate-400">Notes</p>
+          <p className="text-[10px] leading-snug text-slate-700 whitespace-pre-wrap">
+            {notes || 'No additional notes.'}
+          </p>
+        </div>
 
         {showWarranty ? (
           <div className="mb-2 rounded border border-slate-200 bg-slate-50 px-2 py-1.5">

@@ -19,6 +19,7 @@ import { EntityBulkImportDialog } from '@/components/common/EntityBulkImportDial
 import { useQueryClient } from '@tanstack/react-query';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
+import { TableCard } from '@/components/common/TableCard';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
@@ -135,6 +136,7 @@ export default function HospitalList() {
       accessor: (row: Hospital) => (
         <span className="font-semibold text-slate-900">{row.hospitalName}</span>
       ),
+      id: 'hospitalName',
     },
     {
       header: 'Contact Person',
@@ -258,7 +260,13 @@ export default function HospitalList() {
       </div>
 
       {/* Responsive Table */}
-      <div className="w-full overflow-x-auto">
+      <TableCard
+        icon={<HospitalIcon />}
+        title="All hospitals"
+        count={filteredHospitals.length}
+        countLabel={(c) => `${c} hospital(s)`}
+        contentClassName="overflow-x-auto p-2 sm:p-4"
+      >
         <DataTable
           columns={columns}
           data={filteredHospitals}
@@ -270,8 +278,9 @@ export default function HospitalList() {
           showSearch={false}
           onRowClick={(h) => navigate(`/hospitals/${h.id}`)}
           resetSortTrigger={refreshTrigger}
+          defaultSort={{ id: 'hospitalName', desc: false }}
         />
-      </div>
+      </TableCard>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-4">

@@ -8,6 +8,7 @@ import { DataTable, Column } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { TableCard } from '@/components/common/TableCard';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Input } from '@/components/ui/input';
 import {
@@ -217,7 +218,13 @@ export default function SupplyOrderList() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <TableCard
+        icon={<FileText />}
+        title="All supply orders"
+        count={filteredSOs.length}
+        countLabel={(c) => `${c} order(s)`}
+        contentClassName="overflow-x-auto p-2 sm:p-4"
+      >
         <DataTable
           columns={columns}
           data={filteredSOs}
@@ -232,8 +239,9 @@ export default function SupplyOrderList() {
           showSearch={false}
           onRowClick={(row) => navigate(`/supply-orders/view/${row.id}`)}
           resetSortTrigger={refreshTrigger}
+          defaultSort={{ id: 'id', desc: false }}
         />
-      </div>
+      </TableCard>
 
       <ConfirmDialog
         open={isDeleteDialogOpen}

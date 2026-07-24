@@ -134,7 +134,7 @@ export default function HospitalList() {
     {
       header: 'Hospital Name',
       accessor: (row: Hospital) => (
-        <span className="font-semibold text-slate-900">{row.hospitalName}</span>
+        <span className="font-semibold text-foreground">{row.hospitalName}</span>
       ),
       id: 'hospitalName',
     },
@@ -155,7 +155,9 @@ export default function HospitalList() {
       accessor: (row) => (
         <Badge className={cn(
           'text-[10px] font-black uppercase tracking-wider px-2',
-          row.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500'
+          row.isActive
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-900/50'
+            : 'bg-muted text-muted-foreground'
         )}>
           {row.isActive ? 'Active' : 'Inactive'}
         </Badge>
@@ -170,7 +172,7 @@ export default function HospitalList() {
     {
       header: 'Outstanding (PKR)',
       accessor: (row) => (
-        <span className={cn('font-bold tabular-nums', (row.outstandingBalance || 0) > 0 ? 'text-red-600' : 'text-emerald-600')}>
+        <span className={cn('font-bold tabular-nums', (row.outstandingBalance || 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400')}>
           {formatCurrency(row.outstandingBalance)}
         </span>
       ),
@@ -181,11 +183,11 @@ export default function HospitalList() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">Hospitals</h1>
-        <div className="rounded-xl border border-red-200 bg-red-50 p-5 flex gap-3 items-start">
-          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+        <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 p-5 flex gap-3 items-start">
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
           <div>
-            <h3 className="font-semibold text-red-800">Error loading hospitals</h3>
-            <p className="text-sm text-red-700 mt-1">{(hospitalsError as any).userMessage || 'An error occurred'}</p>
+            <h3 className="font-semibold text-red-800 dark:text-red-300">Error loading hospitals</h3>
+            <p className="text-sm text-red-700 dark:text-red-400 mt-1">{(hospitalsError as any).userMessage || 'An error occurred'}</p>
             <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ['hospitals'] })} className="mt-3">
               Try Again
             </Button>
@@ -243,9 +245,9 @@ export default function HospitalList() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <KPIBox label="Total Hospitals" value={stats.total} icon={<HospitalIcon className="w-5 h-5" />} color="bg-blue-500" iconColor="text-blue-600 bg-blue-50" />
-        <KPIBox label="Active Hospitals" value={stats.active} icon={<CheckCircle className="w-5 h-5" />} color="bg-emerald-500" iconColor="text-emerald-600 bg-emerald-50" />
-        <KPIBox label="Total outstanding (PKR)" value={formatCurrency(stats.outstanding)} icon={<TrendingDown className="w-5 h-5" />} color="bg-red-500" iconColor="text-red-600 bg-red-50" />
+        <KPIBox label="Total Hospitals" value={stats.total} icon={<HospitalIcon className="w-5 h-5" />} color="bg-blue-500" iconColor="text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-500/10" />
+        <KPIBox label="Active Hospitals" value={stats.active} icon={<CheckCircle className="w-5 h-5" />} color="bg-emerald-500" iconColor="text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10" />
+        <KPIBox label="Total outstanding (PKR)" value={formatCurrency(stats.outstanding)} icon={<TrendingDown className="w-5 h-5" />} color="bg-red-500" iconColor="text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-500/10" />
       </div>
 
       {/* Search Bar */}

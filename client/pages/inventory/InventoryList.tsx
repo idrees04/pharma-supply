@@ -164,17 +164,17 @@ export default function InventoryList() {
       {
         header: 'Product',
         accessor: (row) => (
-          <span className="font-semibold text-slate-900">{row.productName ?? `#${row.productId}`}</span>
+          <span className="font-semibold text-foreground">{row.productName ?? `#${row.productId}`}</span>
         ),
       },
       {
         header: 'Available',
-        accessor: (item) => <span className="font-medium text-emerald-700">{item.availableQuantity}</span>,
+        accessor: (item) => <span className="font-medium text-emerald-700 dark:text-emerald-400">{item.availableQuantity}</span>,
         className: 'text-right w-[88px]',
       },
       {
         header: 'Reserved',
-        accessor: (item) => <span className="text-amber-700">{item.reservedQuantity}</span>,
+        accessor: (item) => <span className="text-amber-700 dark:text-amber-400">{item.reservedQuantity}</span>,
         className: 'text-right w-[88px]',
       },
       {
@@ -227,19 +227,19 @@ export default function InventoryList() {
 
           if (isOut) {
             return (
-              <span className="inline-flex items-center gap-1 text-red-600">
+              <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
                 <TrendingDown className="h-4 w-4" /> Out
               </span>
             );
           }
           if (isLow) {
             return (
-              <span className="inline-flex items-center gap-1 text-amber-600">
+              <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
                 <TrendingUp className="h-4 w-4" /> Low
               </span>
             );
           }
-          return <span className="text-emerald-600">OK</span>;
+          return <span className="text-emerald-600 dark:text-emerald-400">OK</span>;
         },
       },
     ],
@@ -298,14 +298,14 @@ export default function InventoryList() {
           label="Low stock (reorder)"
           value={lowStockCount}
           icon={<TrendingUp className="h-4 w-4" />}
-          valueClassName="text-amber-700"
+          valueClassName="text-amber-700 dark:text-amber-400"
         />
         <KpiCard
           label="Past-expiry batches"
           description="Batches past expiry that still show on-hand quantity"
           value={expiredCount}
           icon={<Calendar className="h-4 w-4" />}
-          valueClassName="text-red-600"
+          valueClassName="text-red-600 dark:text-red-400"
           tooltip="Counts how many batch lines are already past expiry but still have remaining quantity. Based on the near-expiry batch feed, filtered to expiry dates before today."
         />
       </div>
@@ -317,7 +317,7 @@ export default function InventoryList() {
             placeholder="Search product name or code…"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="h-10 border-slate-200 bg-slate-50 pl-10 focus:bg-background"
+            className="h-10 border-input bg-muted/50 pl-10 focus:bg-background"
           />
         </div>
 

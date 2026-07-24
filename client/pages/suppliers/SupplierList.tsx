@@ -186,7 +186,7 @@ export default function SupplierList() {
     {
       header: 'Supplier Name',
       accessor: (row: Supplier) => (
-        <span className="font-semibold text-slate-900">{row.supplierName}</span>
+        <span className="font-semibold text-foreground">{row.supplierName}</span>
       ),
       id: 'supplierName',
     },
@@ -212,7 +212,9 @@ export default function SupplierList() {
           <Badge
             className={cn(
               'text-[10px] font-black uppercase tracking-wider px-2',
-              row.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500'
+              row.isActive
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-900/50'
+                : 'bg-muted text-muted-foreground'
             )}
           >
             {label}
@@ -223,7 +225,7 @@ export default function SupplierList() {
     {
       header: 'Outstanding (PKR)',
       accessor: (row) => (
-        <span className={cn('font-bold tabular-nums', (row.outstandingBalance || 0) > 0 ? 'text-red-600' : 'text-emerald-600')}>
+        <span className={cn('font-bold tabular-nums', (row.outstandingBalance || 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400')}>
           {formatCurrency(row.outstandingBalance)}
         </span>
       ),
@@ -231,7 +233,7 @@ export default function SupplierList() {
     {
       header: 'City / Address',
       accessor: (row) => (
-        <span className="text-slate-500 text-sm truncate block max-w-[160px]">{row.address}</span>
+        <span className="text-muted-foreground text-sm truncate block max-w-[160px]">{row.address}</span>
       ),
     },
   ], [supplierStatusOptions]);
@@ -257,7 +259,7 @@ export default function SupplierList() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Suppliers</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Manage your pharmaceutical suppliers</p>
@@ -306,9 +308,9 @@ export default function SupplierList() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <KPIBox label="Total Suppliers" value={stats.total} icon={<Users className="w-5 h-5" />} iconColor="text-blue-600 bg-blue-50" color="bg-blue-500" />
-        <KPIBox label="Active Suppliers" value={stats.active} icon={<CheckCircle className="w-5 h-5" />} iconColor="text-emerald-600 bg-emerald-50" color="bg-emerald-500" />
-        <KPIBox label="Total outstanding (PKR)" value={formatCurrency(stats.outstanding)} icon={<TrendingUp className="w-5 h-5" />} iconColor="text-red-600 bg-red-50" color="bg-red-500" />
+        <KPIBox label="Total Suppliers" value={stats.total} icon={<Users className="w-5 h-5" />} iconColor="text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-500/10" color="bg-blue-500" />
+        <KPIBox label="Active Suppliers" value={stats.active} icon={<CheckCircle className="w-5 h-5" />} iconColor="text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10" color="bg-emerald-500" />
+        <KPIBox label="Total outstanding (PKR)" value={formatCurrency(stats.outstanding)} icon={<TrendingUp className="w-5 h-5" />} iconColor="text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-500/10" color="bg-red-500" />
       </div>
 
       {/* Filters */}

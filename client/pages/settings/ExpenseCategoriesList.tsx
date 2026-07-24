@@ -67,7 +67,7 @@ export default function ExpenseCategoriesList() {
       {
         header: 'Name',
         accessor: (row) => (
-          <span className="font-semibold text-slate-900">{row.categoryName}</span>
+          <span className="font-semibold text-foreground">{row.categoryName}</span>
         ),
       },
       {
@@ -153,10 +153,10 @@ export default function ExpenseCategoriesList() {
             <p className="text-muted-foreground">Classify daily expenses</p>
           </div>
         </div>
-        <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-red-600" />
-          <h3 className="mt-4 text-lg font-semibold text-red-900">Could not load categories</h3>
-          <p className="mt-1 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-500/10 p-8 text-center">
+          <AlertCircle className="mx-auto h-12 w-12 text-red-600 dark:text-red-400" />
+          <h3 className="mt-4 text-lg font-semibold text-red-900 dark:text-red-300">Could not load categories</h3>
+          <p className="mt-1 text-sm text-red-700 dark:text-red-400">
             {(error as { userMessage?: string }).userMessage || 'Request failed'}
           </p>
           <Button className="mt-4" variant="outline" onClick={() => window.location.reload()}>
@@ -198,7 +198,7 @@ export default function ExpenseCategoriesList() {
             label="Matching search"
             value={filteredCategories.length}
             icon={<Filter className="h-4 w-4" />}
-            accent="bg-slate-500"
+            accent="bg-muted/500"
           />
         ) : null}
       </div>
@@ -210,7 +210,7 @@ export default function ExpenseCategoriesList() {
             placeholder="Search name, code, or description…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-10 border-slate-200 bg-slate-50 pl-10 focus:bg-background"
+            className="h-10 border-border bg-muted/50 pl-10 focus:bg-background"
           />
         </div>
       </div>

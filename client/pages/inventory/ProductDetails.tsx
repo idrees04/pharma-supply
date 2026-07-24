@@ -111,7 +111,7 @@ export default function ProductDetails() {
                     <AlertCircle className="h-12 w-12 text-destructive" />
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Product Not Found</h2>
+                    <h2 className="text-3xl font-black tracking-tight text-foreground uppercase">Product Not Found</h2>
                     <p className="text-muted-foreground max-w-sm text-balance">
                         This product may have been removed or you may not have permission to view it.
                     </p>
@@ -143,7 +143,7 @@ export default function ProductDetails() {
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="font-bold text-slate-900">Product Details</BreadcrumbPage>
+                            <BreadcrumbPage className="font-bold text-foreground">Product Details</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
@@ -151,15 +151,15 @@ export default function ProductDetails() {
             {/* High-Fidelity Header */}
             <motion.div variants={itemVariants} className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-5">
-                    <div className="hidden md:flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 border border-orange-100 shadow-inner">
+                    <div className="hidden md:flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/50 shadow-inner">
                         <Package className="h-8 w-8" />
                     </div>
                     <div className="space-y-1">
                         <div className="flex items-center gap-3 flex-wrap">
-                            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                            <h1 className="text-4xl font-extrabold tracking-tight text-foreground leading-tight">
                                 {product.productName}
                             </h1>
-                            <Badge variant="outline" className="px-3 py-1 bg-slate-50 text-slate-600 border-slate-200 font-mono tracking-tighter">
+                            <Badge variant="outline" className="px-3 py-1 bg-muted/50 text-muted-foreground border-border font-mono tracking-tighter">
                                 {product.productCode}
                             </Badge>
                             {product.availableQuantity <= product.reorderLevel && (
@@ -168,11 +168,11 @@ export default function ProductDetails() {
                                 </Badge>
                             )}
                         </div>
-                        <div className="flex items-center gap-3 text-slate-500 text-sm font-medium">
+                        <div className="flex items-center gap-3 text-muted-foreground text-sm font-medium">
                             <span className="flex items-center gap-1.5">
-                                <Pill className="w-3.5 h-3.5 text-orange-500/70" /> {product.genericName}
+                                <Pill className="w-3.5 h-3.5 text-orange-500/70 dark:text-orange-400/70" /> {product.genericName}
                             </span>
-                            <span className="w-1 h-1 rounded-full bg-slate-300" />
+                            <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
                             <span className="flex items-center gap-1.5">
                                 <Factory className="w-3.5 h-3.5 text-primary/60" /> {product.manufacturer}
                             </span>
@@ -184,14 +184,14 @@ export default function ProductDetails() {
                     {canUpdate && (
                         <Button
                             variant="outline"
-                            className="gap-2 h-11 px-5 border-slate-200 hover:bg-slate-50 shadow-sm transition-all hover:scale-[1.02]"
+                            className="gap-2 h-11 px-5 border-border hover:bg-muted/50 shadow-sm transition-all hover:scale-[1.02]"
                             onClick={() => {
                                 toast.info('Opening product editor...');
                                 navigate(`/inventory/products?edit=${product.id}`);
                             }}
                         >
-                            <Edit2 className="w-4 h-4 text-orange-600" />
-                            <span className="font-bold text-slate-700">Edit Product</span>
+                            <Edit2 className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                            <span className="font-bold text-foreground/90">Edit Product</span>
                         </Button>
                     )}
                     <Button
@@ -210,32 +210,32 @@ export default function ProductDetails() {
                 <div className="lg:col-span-8 space-y-8">
                     {/* Technical Specifications */}
                     <motion.div variants={itemVariants}>
-                        <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
-                            <CardHeader className="bg-slate-50/80 border-b py-4">
-                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                    <Info className="w-4 h-4 text-orange-500" /> Technical Specifications
+                        <Card className="overflow-hidden border-border shadow-xl">
+                            <CardHeader className="bg-muted/80 border-b py-4">
+                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                    <Info className="w-4 h-4 text-orange-500 dark:text-orange-400" /> Technical Specifications
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-8 pb-6">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Classification</p>
-                                        <p className="font-bold text-slate-800">{product.productTypeName}</p>
+                                        <p className="text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Classification</p>
+                                        <p className="font-bold text-foreground">{product.productTypeName}</p>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inventory Unit</p>
-                                        <p className="font-bold text-slate-800">{product.unitName}</p>
+                                        <p className="text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Inventory Unit</p>
+                                        <p className="font-bold text-foreground">{product.unitName}</p>
                                     </div>
                                 </div>
 
                                 <Separator className="my-8" />
 
                                 <div className="space-y-4">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                        <Zap className="w-3 h-3 text-orange-500" /> Functional Profile
+                                    <p className="text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest flex items-center gap-2">
+                                        <Zap className="w-3 h-3 text-orange-500 dark:text-orange-400" /> Functional Profile
                                     </p>
-                                    <div className="bg-slate-50 p-5 rounded-2xl border border-dashed border-slate-200">
-                                        <p className="text-sm text-slate-600 leading-relaxed italic">
+                                    <div className="bg-muted/50 p-5 rounded-2xl border border-dashed border-border">
+                                        <p className="text-sm text-muted-foreground leading-relaxed italic">
                                             {product.description || "No description has been added for this product yet."}
                                         </p>
                                     </div>
@@ -246,30 +246,30 @@ export default function ProductDetails() {
 
                     {/* Supply Chain Logic */}
                     <motion.div variants={itemVariants}>
-                        <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
-                            <CardHeader className="bg-slate-50/80 border-b py-4">
-                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                        <Card className="overflow-hidden border-border shadow-xl">
+                            <CardHeader className="bg-muted/80 border-b py-4">
+                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
                                     <Truck className="w-4 h-4 text-primary" /> Strategic Sourcing
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-0">
                                 {isSuppliersPending ? (
                                     <div className="p-12 text-center flex flex-col items-center gap-3">
-                                        <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Accessing Supply Nodes...</p>
+                                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/50" />
+                                        <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest">Accessing Supply Nodes...</p>
                                     </div>
                                 ) : !suppliers || suppliers.length === 0 ? (
                                     <div className="p-16 text-center space-y-4">
-                                        <Truck className="w-12 h-12 text-slate-200 mx-auto" />
+                                        <Truck className="w-12 h-12 text-muted-foreground/40 mx-auto" />
                                         <div className="space-y-1">
-                                            <p className="text-sm font-bold text-slate-600">No Suppliers Linked</p>
-                                            <p className="text-xs text-slate-400">This product has not been linked to any suppliers yet.</p>
+                                            <p className="text-sm font-bold text-muted-foreground">No Suppliers Linked</p>
+                                            <p className="text-xs text-muted-foreground/70">This product has not been linked to any suppliers yet.</p>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <Table>
-                                            <TableHeader className="bg-slate-50/50">
+                                            <TableHeader className="bg-muted/50">
                                                 <TableRow>
                                                     <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Supplier Entity</TableHead>
                                                     <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Procurement Cycle</TableHead>
@@ -279,10 +279,10 @@ export default function ProductDetails() {
                                             </TableHeader>
                                             <TableBody>
                                                 {suppliers.map((ps) => (
-                                                    <TableRow key={ps.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer border-l-4 border-l-transparent hover:border-l-primary">
-                                                        <TableCell className="px-6 py-5 font-bold text-slate-800">{ps.supplierName}</TableCell>
-                                                        <TableCell className="px-6 py-5 text-center font-medium text-slate-600">{ps.leadTimeDays || 7} Days</TableCell>
-                                                        <TableCell className="px-6 py-5 text-right font-black text-slate-900">{formatCurrency(ps.supplierRate)}</TableCell>
+                                                    <TableRow key={ps.id} className="hover:bg-muted/50 transition-colors group cursor-pointer border-l-4 border-l-transparent hover:border-l-primary">
+                                                        <TableCell className="px-6 py-5 font-bold text-foreground">{ps.supplierName}</TableCell>
+                                                        <TableCell className="px-6 py-5 text-center font-medium text-muted-foreground">{ps.leadTimeDays || 7} Days</TableCell>
+                                                        <TableCell className="px-6 py-5 text-right font-black text-foreground">{formatCurrency(ps.supplierRate)}</TableCell>
                                                         <TableCell className="px-6 py-5 text-right">
                                                             {ps.isPreferredSupplier && (
                                                                 <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] font-black uppercase tracking-tighter">Preferred Source</Badge>
@@ -300,22 +300,22 @@ export default function ProductDetails() {
 
                     {/* Batch & Inventory Control */}
                     <motion.div variants={itemVariants}>
-                        <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
-                            <CardHeader className="bg-slate-50/80 border-b py-4">
-                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                    <Layers className="w-4 h-4 text-violet-500" /> Active Batch Control
+                        <Card className="overflow-hidden border-border shadow-xl">
+                            <CardHeader className="bg-muted/80 border-b py-4">
+                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                    <Layers className="w-4 h-4 text-violet-500 dark:text-violet-400" /> Active Batch Control
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-0">
-                                <div className="p-12 text-center bg-violet-50/20">
+                                <div className="p-12 text-center bg-violet-50/20 dark:bg-violet-500/10">
                                     <ShieldCheck className="w-12 h-12 text-violet-200 mx-auto" />
                                     <div className="mt-4 space-y-1">
-                                        <p className="text-sm font-bold text-slate-800">Batch Integrity Enforcement: {product.isBatchRequired ? 'High' : 'Standard'}</p>
-                                        <p className="text-xs text-slate-500">Available units are synchronized across the following active manufacturing batches.</p>
+                                        <p className="text-sm font-bold text-foreground">Batch Integrity Enforcement: {product.isBatchRequired ? 'High' : 'Standard'}</p>
+                                        <p className="text-xs text-muted-foreground">Available units are synchronized across the following active manufacturing batches.</p>
                                     </div>
-                                    <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm max-w-2xl mx-auto">
+                                    <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-sm max-w-2xl mx-auto">
                                         <Table>
-                                            <TableHeader className="bg-slate-50">
+                                            <TableHeader className="bg-muted/50">
                                                 <TableRow>
                                                     <TableHead className="text-[10px] font-black uppercase tracking-widest text-center py-4">Batch ID</TableHead>
                                                     <TableHead className="text-[10px] font-black uppercase tracking-widest text-center py-4">Expiry Timeline</TableHead>
@@ -324,12 +324,12 @@ export default function ProductDetails() {
                                             </TableHeader>
                                             <TableBody>
                                                 <TableRow>
-                                                    <TableCell className="font-mono text-xs font-bold text-slate-600">BT-MASTER-2024-X</TableCell>
-                                                    <TableCell className="text-center font-black text-rose-500 text-xs">
-                                                        <span className="bg-rose-50 px-2 py-1 rounded">12 / 2026</span>
+                                                    <TableCell className="font-mono text-xs font-bold text-muted-foreground">BT-MASTER-2024-X</TableCell>
+                                                    <TableCell className="text-center font-black text-rose-500 dark:text-rose-400 text-xs">
+                                                        <span className="bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded">12 / 2026</span>
                                                     </TableCell>
-                                                    <TableCell className="text-right font-black text-slate-900 pr-8">
-                                                        {product.availableQuantity} <span className="text-[9px] text-slate-400 uppercase ml-1">{product.unitName}</span>
+                                                    <TableCell className="text-right font-black text-foreground pr-8">
+                                                        {product.availableQuantity} <span className="text-[9px] text-muted-foreground/70 uppercase ml-1">{product.unitName}</span>
                                                     </TableCell>
                                                 </TableRow>
                                             </TableBody>
@@ -346,14 +346,14 @@ export default function ProductDetails() {
                     <div className="sticky top-24 space-y-8">
                         {/* Core Stock Metric */}
                         <motion.div variants={itemVariants}>
-                            <Card className="overflow-hidden border-orange-200 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 shadow-xl shadow-orange-100/60 relative">
+                            <Card className="overflow-hidden border-orange-200 dark:border-orange-900/50 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 shadow-xl shadow-orange-100/60 relative">
                                 {/* Decorative background blobs */}
                                 <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-orange-300/20 blur-2xl pointer-events-none" />
                                 <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-amber-300/20 blur-2xl pointer-events-none" />
                                 <div className="absolute -right-4 -bottom-4 opacity-5 rotate-12">
-                                    <Warehouse className="h-48 w-48 text-orange-900" />
+                                    <Warehouse className="h-48 w-48 text-orange-900 dark:text-orange-300" />
                                 </div>
-                                <CardHeader className="border-b border-orange-200/70 pb-4 relative z-10">
+                                <CardHeader className="border-b border-orange-200/70 dark:border-orange-900/50 pb-4 relative z-10">
                                     <div className="flex justify-between items-center">
                                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-500 bg-clip-text text-transparent">
                                             Inventory Equilibrium
@@ -369,7 +369,7 @@ export default function ProductDetails() {
                                         <div className="inline-flex flex-col items-center">
                                             <h2 className={cn(
                                                 "text-7xl font-black tracking-tighter leading-none mb-2",
-                                                product.availableQuantity <= product.reorderLevel ? "text-rose-500" : "text-orange-600"
+                                                product.availableQuantity <= product.reorderLevel ? "text-rose-500 dark:text-rose-400" : "text-orange-600 dark:text-orange-400"
                                             )}>
                                                 {product.availableQuantity}
                                             </h2>
@@ -377,14 +377,14 @@ export default function ProductDetails() {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3 border-t border-orange-200/60 pt-6 text-center px-2">
-                                        <div className="space-y-1.5 p-3 rounded-xl bg-white/60 border border-orange-100 shadow-sm">
+                                    <div className="grid grid-cols-2 gap-3 border-t border-orange-200/60 dark:border-orange-900/50 pt-6 text-center px-2">
+                                        <div className="space-y-1.5 p-3 rounded-xl bg-card/60 border border-orange-100 dark:border-orange-900/50 shadow-sm">
                                             <p className="text-[9px] font-black text-orange-400 uppercase">Reorder Point</p>
-                                            <p className="text-xl font-black text-slate-800">{product.reorderLevel}</p>
+                                            <p className="text-xl font-black text-foreground">{product.reorderLevel}</p>
                                         </div>
-                                        <div className="space-y-1.5 p-3 rounded-xl bg-white/60 border border-orange-100 shadow-sm">
+                                        <div className="space-y-1.5 p-3 rounded-xl bg-card/60 border border-orange-100 dark:border-orange-900/50 shadow-sm">
                                             <p className="text-[9px] font-black text-orange-400 uppercase">Refill Qty</p>
-                                            <p className="text-xl font-black text-slate-800">{product.reorderQuantity}</p>
+                                            <p className="text-xl font-black text-foreground">{product.reorderQuantity}</p>
                                         </div>
                                     </div>
 
@@ -392,12 +392,12 @@ export default function ProductDetails() {
                                         <motion.div
                                             animate={{ scale: [1, 1.03, 1] }}
                                             transition={{ repeat: Infinity, duration: 2 }}
-                                            className="mx-2 p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 shadow-sm"
+                                            className="mx-2 p-3 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-900/50 rounded-2xl flex items-center gap-3 shadow-sm"
                                         >
                                             <div className="h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-lg bg-rose-500 text-white shadow-md">
                                                 <Zap className="w-4 h-4" />
                                             </div>
-                                            <p className="text-xs font-bold text-rose-600 leading-tight">
+                                            <p className="text-xs font-bold text-rose-600 dark:text-rose-400 leading-tight">
                                                 Low stock! Consider reordering soon.
                                             </p>
                                         </motion.div>
@@ -409,31 +409,31 @@ export default function ProductDetails() {
 
                         {/* Pricing Governance Card */}
                         <motion.div variants={itemVariants}>
-                            <Card className="border-slate-200 shadow-xl shadow-slate-200/50">
-                                <CardHeader className="pb-3 border-b bg-slate-50/50">
-                                    <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                        <Calculator className="w-4 h-4 text-emerald-500" /> Pricing Architecture
+                            <Card className="border-border shadow-xl">
+                                <CardHeader className="pb-3 border-b bg-muted/50">
+                                    <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                        <Calculator className="w-4 h-4 text-emerald-500 dark:text-emerald-400" /> Pricing Architecture
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="pt-8 space-y-8">
                                     <div className="flex justify-between items-center group">
                                         <div className="space-y-1">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Base purchase rate (PKR)</p>
-                                            <p className="text-xl font-bold text-slate-800">{formatCurrency(product.standardPurchaseRate)}</p>
+                                            <p className="text-[9px] font-black text-muted-foreground/70 uppercase tracking-widest">Base purchase rate (PKR)</p>
+                                            <p className="text-xl font-bold text-foreground">{formatCurrency(product.standardPurchaseRate)}</p>
                                         </div>
-                                        <div className="h-10 w-1 bg-slate-100 rounded-full group-hover:bg-primary transition-all" />
+                                        <div className="h-10 w-1 bg-muted rounded-full group-hover:bg-primary transition-all" />
                                     </div>
 
                                     <div className="flex justify-between items-center group">
                                         <div className="space-y-1 text-right w-full">
-                                            <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Global sale rate (PKR)</p>
-                                            <p className="text-2xl font-black text-emerald-700">{formatCurrency(product.standardSaleRate)}</p>
+                                            <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Global sale rate (PKR)</p>
+                                            <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400">{formatCurrency(product.standardSaleRate)}</p>
                                         </div>
                                     </div>
 
                                     <div className="pt-6 border-t flex items-center justify-between">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Operating Margin</p>
-                                        <p className="text-lg font-black text-orange-600">
+                                        <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">Operating Margin</p>
+                                        <p className="text-lg font-black text-orange-600 dark:text-orange-400">
                                             {product.standardSaleRate > 0
                                                 ? (((product.standardSaleRate - product.standardPurchaseRate) / product.standardSaleRate) * 100).toFixed(1)
                                                 : 0}%
@@ -445,24 +445,24 @@ export default function ProductDetails() {
 
                         {/* Ancillary Ecosystem Data */}
                         <motion.div variants={itemVariants}>
-                            <Card className="border-slate-200 shadow-none">
-                                <CardHeader className="pb-3 bg-slate-50/30 border-b">
-                                    <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Inventory Ecosystem</CardTitle>
+                            <Card className="border-border shadow-none">
+                                <CardHeader className="pb-3 bg-muted/30 border-b">
+                                    <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">Inventory Ecosystem</CardTitle>
                                 </CardHeader>
                                 <CardContent className="pt-6 space-y-4">
-                                    <div className="p-4 border rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group">
+                                    <div className="p-4 border rounded-2xl flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer group">
                                         <div className="flex items-center gap-4">
-                                            <Store className="w-5 h-5 text-slate-300 group-hover:text-primary" />
-                                            <span className="text-xs font-bold text-slate-600">Master Repository</span>
+                                            <Store className="w-5 h-5 text-muted-foreground/50 group-hover:text-primary" />
+                                            <span className="text-xs font-bold text-muted-foreground">Master Repository</span>
                                         </div>
-                                        <span className="text-xs font-black text-slate-900">{product.availableQuantity}</span>
+                                        <span className="text-xs font-black text-foreground">{product.availableQuantity}</span>
                                     </div>
-                                    <div className="p-4 border rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group">
+                                    <div className="p-4 border rounded-2xl flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer group">
                                         <div className="flex items-center gap-4">
-                                            <Calendar className="w-5 h-5 text-slate-300 group-hover:text-orange-500" />
-                                            <span className="text-xs font-bold text-slate-600">Registry Updated</span>
+                                            <Calendar className="w-5 h-5 text-muted-foreground/50 group-hover:text-orange-500 dark:text-orange-400" />
+                                            <span className="text-xs font-bold text-muted-foreground">Registry Updated</span>
                                         </div>
-                                        <span className="text-xs font-black text-slate-900 capitalize">Recently</span>
+                                        <span className="text-xs font-black text-foreground capitalize">Recently</span>
                                     </div>
                                 </CardContent>
                             </Card>

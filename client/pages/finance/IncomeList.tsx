@@ -236,27 +236,17 @@ export default function IncomeList() {
   const columns: Column<IncomeDto>[] = useMemo(
     () => [
       {
-        header: (
+        header: '',
+        id: 'select',
+        accessor: (row) => (
           <Checkbox
-            checked={allEligibleSelected}
-            onCheckedChange={toggleSelectAllOnPage}
-            disabled={eligibleOnPage.length === 0}
-            aria-label="Select all eligible on page"
+            checked={selectedIds.has(row.id)}
+            onCheckedChange={() => toggleSelect(row)}
+            disabled={!isEligibleForIncomeVoucher(row)}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={isEligibleForIncomeVoucher(row) ? `Select ${row.incomeNumber ?? row.id}` : 'Not eligible'}
           />
         ),
-        id: 'select',
-        accessor: (row) => {
-          const eligible = isEligibleForIncomeVoucher(row);
-          return (
-            <Checkbox
-              checked={selectedIds.has(row.id)}
-              onCheckedChange={() => toggleSelect(row)}
-              disabled={!eligible}
-              onClick={(e) => e.stopPropagation()}
-              aria-label={eligible ? `Select ${row.incomeNumber ?? row.id}` : 'Not eligible'}
-            />
-          );
-        },
         className: 'w-10',
       },
       {

@@ -239,14 +239,7 @@ export default function ExpenseList() {
   const columns: Column<ExpenseDto>[] = useMemo(
     () => [
       {
-        header: (
-          <Checkbox
-            checked={allEligibleSelected}
-            onCheckedChange={toggleSelectAllOnPage}
-            disabled={eligibleOnPage.length === 0}
-            aria-label="Select all eligible on page"
-          />
-        ),
+        header: '',
         id: 'select',
         accessor: (row) => {
           const eligible = isEligibleForExpenseVoucher(row);

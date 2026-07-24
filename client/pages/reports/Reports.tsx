@@ -108,30 +108,6 @@ function defaultDateRange() {
   return { from: startOfDayISO(from), to: startOfDayISO(to) };
 }
 
-// Custom hook to manage account selection with automatic preselect
-function useAccountSelection(
-  reportId: AnalyticsReportId,
-  accounts: Array<{ id: number; accountName: string }>
-): [string, (value: string) => void] {
-  return useMemo(() => {
-    const isPaymentsByAccount = reportId === 'payments-by-account';
-
-    // If there are accounts and this is payments-by-account, preselect the first one
-    const initialValue = isPaymentsByAccount && accounts.length > 0
-      ? String(accounts[0].id)
-      : '';
-
-    // State setter that will be called when the select changes
-    const setter = (value: string) => {
-      // This will be handled by the useState below
-      // We're just returning the initial value and the setter
-      return value;
-    };
-
-    return [initialValue, setter as (value: string) => void];
-  }, [reportId, accounts]);
-}
-
 export default function Reports() {
   const [searchParams, setSearchParams] = useSearchParams();
   const moduleParam = searchParams.get('module');
@@ -158,30 +134,43 @@ export default function Reports() {
   const products = productsData?.items ?? [];
   const accounts = accountsData ?? [];
 
-  const initialAccountId = useMemo(() => {
-    if (reportId === 'payments-by-account' && accounts.length > 0) {
-      return String(accounts[0].id);
+  // Account selection state
+  const [accountId, setAccountId] = useState<string>('');
+
+  // Compute the effective account ID with auto-selection logic
+  const effectiveAccountId = useMemo(() => {
+    const isPaymentsByAccount = reportId === 'payments-by-account';
+
+    // If not payments-by-account, return empty string
+    if (!isPaymentsByAccount) {
+      return '';
     }
-    return '';
-  }, [reportId, accounts]);
 
-  const [accountId, setAccountId] = useState(initialAccountId);
+    // If there are no accounts, return empty string
+    if (accounts.length === 0) {
+      return '';
+    }
 
-  const syncedAccountId = useMemo(() => {
-    if (reportId === 'payments-by-account' && accounts.length > 0) {
-      const firstAccountId = String(accounts[0].id);
-      if (!accountId || accountId !== firstAccountId) {
-        return firstAccountId;
+    // If user has selected an account, use their selection
+    if (accountId) {
+      // Check if the selected account still exists
+      const accountExists = accounts.some(a => String(a.id) === accountId);
+      if (accountExists) {
+        return accountId;
       }
     }
-    return accountId;
+
+    // Auto-select the first account
+    return String(accounts[0].id);
   }, [reportId, accounts, accountId]);
 
-  useMemo(() => {
-    if (syncedAccountId !== accountId) {
-      setAccountId(syncedAccountId);
-    }
-  }, [syncedAccountId, accountId]);
+  // Sync the actual accountId state with the effective value when needed
+  // This is the only place we sync, and it happens during render
+  if (effectiveAccountId && effectiveAccountId !== accountId) {
+    // Only update if the effective account is different from current
+    // This handles the auto-selection case
+    setAccountId(effectiveAccountId);
+  }
 
   const syncUrl = useCallback(
     (m: ReportModuleId, r: AnalyticsReportId) => {
@@ -190,6 +179,7 @@ export default function Reports() {
     [setSearchParams],
   );
 
+  // Sync URL with module/report
   useMemo(() => {
     if (!isModule(moduleParam)) {
       syncUrl('supply-order', defaultReportForModule('supply-order'));
@@ -211,15 +201,12 @@ export default function Reports() {
     if (sid && sid > 0) p.supplierId = sid;
     if (pid && pid > 0) p.productId = pid;
 
-    const effectiveAccountId = reportId === 'payments-by-account' && accounts.length > 0
-      ? (syncedAccountId || String(accounts[0].id))
-      : accountId;
-
+    // Use the effective account ID for API calls
     const aid = effectiveAccountId ? Number(effectiveAccountId) : undefined;
     if (aid && aid > 0) p.accountId = aid;
     if (reportId === 'balance-sheet') p.asOfDate = asOfDate;
     return p;
-  }, [dateFrom, dateTo, hospitalId, supplierId, productId, accountId, syncedAccountId, asOfDate, reportId, accounts]);
+  }, [dateFrom, dateTo, hospitalId, supplierId, productId, effectiveAccountId, asOfDate, reportId]);
 
   const queryFn = useCallback(async () => {
     switch (reportId) {
@@ -276,6 +263,7 @@ export default function Reports() {
     staleTime: 60 * 1000,
   });
 
+  // Handle errors
   useMemo(() => {
     if (error instanceof ApiError) toast.error(error.userMessage || 'Report failed to load');
     else if (error) toast.error('Report failed to load');
@@ -500,7 +488,7 @@ export default function Reports() {
             <div className="space-y-2">
               <Label>Account</Label>
               <Select
-                value={syncedAccountId || accountId}
+                value={accountId || (accounts.length > 0 ? String(accounts[0].id) : '')}
                 onValueChange={(v) => setAccountId(v)}
               >
                 <SelectTrigger className="bg-background">

@@ -257,6 +257,7 @@ export default function ExpenseList() {
       },
       {
         header: 'Expense #',
+        id: 'expenseNumber',
         accessor: (row) => <span className="font-mono text-xs font-semibold">{row.expenseNumber ?? '—'}</span>,
       },
       {
@@ -494,12 +495,11 @@ export default function ExpenseList() {
                 onEdit={canUpdate ? requestEdit : undefined}
                 onDelete={canDelete ? requestDelete : undefined}
                 itemsPerPage={ITEMS_PER_PAGE_TABLE}
+                emptyMessage="No expenses found matching your search."
                 showSearch={false}
-                showToolbar={false}
-                showColumnVisibility={false}
-                preserveServerOrder
                 hidePaginationFooter
                 resetSortTrigger={refreshTrigger}
+                defaultSort={{ id: 'expenseNumber', desc: true }}
               />
             </div>
           </Card>

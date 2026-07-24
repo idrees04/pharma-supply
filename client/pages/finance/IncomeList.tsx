@@ -251,6 +251,7 @@ export default function IncomeList() {
       },
       {
         header: 'Income #',
+        id: 'incomeNumber',
         accessor: (row) => <span className="font-mono text-xs font-semibold">{row.incomeNumber ?? '—'}</span>,
       },
       {
@@ -479,12 +480,11 @@ export default function IncomeList() {
                 onEdit={canUpdate ? requestEdit : undefined}
                 onDelete={canDelete ? requestDelete : undefined}
                 itemsPerPage={ITEMS_PER_PAGE_TABLE}
+                emptyMessage="No income found matching your search."
                 showSearch={false}
-                showToolbar={false}
-                showColumnVisibility={false}
-                preserveServerOrder
                 hidePaginationFooter
                 resetSortTrigger={refreshTrigger}
+                defaultSort={{ id: 'incomeNumber', desc: true }}
               />
             </div>
           </Card>

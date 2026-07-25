@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react';
-import { ChevronDown, ChevronRight, Printer } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -10,6 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { formatCurrency } from '@/lib/utils';
 
 export type VoucherGroupLine = {
@@ -37,6 +43,7 @@ interface FinanceVoucherGroupsTableProps {
   emptyMessage?: string;
   documentHeader?: string;
   onPrint: (voucherNumber: string) => void;
+  onDownload?: (voucherNumber: string) => void;
 }
 
 export function FinanceVoucherGroupsTable({
@@ -45,6 +52,7 @@ export function FinanceVoucherGroupsTable({
   emptyMessage = 'No issued vouchers yet.',
   documentHeader = 'Document',
   onPrint,
+  onDownload,
 }: FinanceVoucherGroupsTableProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -70,7 +78,7 @@ export function FinanceVoucherGroupsTable({
             <TableHead className="text-xs font-bold uppercase">Issued</TableHead>
             <TableHead className="text-xs font-bold uppercase text-center">Lines</TableHead>
             <TableHead className="text-xs font-bold uppercase text-right">Total (PKR)</TableHead>
-            <TableHead className="w-[100px] text-right text-xs font-bold uppercase">Actions</TableHead>
+            <TableHead className="w-[130px] text-right text-xs font-bold uppercase">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -112,16 +120,44 @@ export function FinanceVoucherGroupsTable({
                     {formatCurrency(group.totalAmount)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 gap-1 text-xs"
-                      onClick={() => onPrint(group.voucherNumber)}
-                    >
-                      <Printer className="h-3.5 w-3.5" />
-                      Print
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                              onClick={() => onPrint(group.voucherNumber)}
+                              aria-label="Print voucher"
+                            >
+                              <Printer className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Print voucher</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      {onDownload && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                onClick={() => onDownload(group.voucherNumber)}
+                                aria-label="Download voucher"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Download voucher</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
                 {isOpen && (

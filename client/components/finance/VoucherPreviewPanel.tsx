@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import { PrintSignatureBlock } from '@/components/print/PrintSignatureBlock';
 import { PrintDocumentHeader } from '@/components/print/PrintDocumentHeader';
@@ -62,7 +63,10 @@ function MetaCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function VoucherPreviewPanel({ data }: VoucherPreviewPanelProps) {
+export const VoucherPreviewPanel = forwardRef<HTMLDivElement, VoucherPreviewPanelProps>(function VoucherPreviewPanel(
+  { data },
+  ref,
+) {
   const displayAmount = data.totalAmount ?? data.amount;
   const lines = data.lines ?? [];
   const isMultiLine = lines.length > 1;
@@ -74,6 +78,7 @@ export function VoucherPreviewPanel({ data }: VoucherPreviewPanelProps) {
 
   return (
     <div
+      ref={ref}
       className="voucher-print-sheet mx-auto w-full max-w-full bg-white text-slate-900 shadow-sm"
       style={{
         boxSizing: 'border-box',
@@ -208,4 +213,4 @@ export function VoucherPreviewPanel({ data }: VoucherPreviewPanelProps) {
       <PrintSignatureBlock className="mt-2 gap-3 border-t border-slate-200 pt-2 [&_div.mb-2]:mb-0 [&_div.h-12]:h-5 [&_p.mt-1]:mt-0.5" />
     </div>
   );
-}
+});

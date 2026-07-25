@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Plus,
   Search,
@@ -9,6 +9,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Printer,
+  Download,
+  Loader2,
   Ticket,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -30,6 +32,12 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -48,6 +56,7 @@ import ExpenseForm from './ExpenseForm';
 import BulkExpenseForm from './BulkExpenseForm';
 import { VoucherPreviewPanel, type VoucherPreviewData } from '@/components/finance/VoucherPreviewPanel';
 import { printVoucherSheet } from '@/lib/printVoucherSheet';
+import { downloadElementAsPdf } from '@/lib/downloadPdf';
 import { FinanceVoucherGroupsTable } from '@/components/finance/FinanceVoucherGroupsTable';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
@@ -136,6 +145,9 @@ export default function ExpenseList() {
   const [templateKey, setTemplateKey] = useState('default');
   const [printForId, setPrintForId] = useState<number | null>(null);
   const [printVoucherNumber, setPrintVoucherNumber] = useState<string | null>(null);
+  const [downloadTarget, setDownloadTarget] = useState<{ expenseId?: number; voucherNumber?: string } | null>(
+    null,
+  );
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const canCreate = hasPermission('expenses', 'create');
@@ -157,22 +169,25 @@ export default function ExpenseList() {
 
   const issuedGroups = useMemo(
     () =>
-      issuedGroupList.map((group) => ({
-        voucherNumber: group.voucherNumber,
-        voucherIssuedDate: group.voucherIssuedDate,
-        lineCount: group.lineCount,
-        totalAmount: group.totalAmount,
-        lines: group.expenses.map((expense) => ({
-          id: expense.id,
-          documentNumber: expense.expenseNumber,
-          date: expense.expenseDate,
-          categoryName: expense.expenseCategoryName,
-          accountName: expense.accountName,
-          amount: expense.amount,
-          description: expense.description,
-          extraLabel: expense.payeeName?.trim() || null,
-        })),
-      })),
+      issuedGroupList
+        .map((group) => ({
+          voucherNumber: group.voucherNumber,
+          voucherIssuedDate: group.voucherIssuedDate,
+          lineCount: group.lineCount,
+          totalAmount: group.totalAmount,
+          lines: group.expenses.map((expense) => ({
+            id: expense.id,
+            documentNumber: expense.expenseNumber,
+            date: expense.expenseDate,
+            categoryName: expense.expenseCategoryName,
+            accountName: expense.accountName,
+            amount: expense.amount,
+            description: expense.description,
+            extraLabel: expense.payeeName?.trim() || null,
+          })),
+        }))
+        // Default sort: latest voucher first (matches BankAccountList-style tables)
+        .sort((a, b) => b.voucherNumber.localeCompare(a.voucherNumber, undefined, { numeric: true })),
     [issuedGroupList],
   );
 
@@ -235,6 +250,22 @@ export default function ExpenseList() {
     }
     setDeleteId(row.id);
   }, []);
+
+  const requestVoucherDownload = useCallback(
+    (target: { expenseId?: number; voucherNumber?: string }) => {
+      setDownloadTarget(target);
+    },
+    [],
+  );
+
+  const isDownloadingRow = useCallback(
+    (row: ExpenseDto) => {
+      if (!downloadTarget) return false;
+      if (downloadTarget.voucherNumber) return downloadTarget.voucherNumber === row.voucherNumber;
+      return downloadTarget.expenseId === row.id;
+    },
+    [downloadTarget],
+  );
 
   const columns: Column<ExpenseDto>[] = useMemo(
     () => [
@@ -324,27 +355,70 @@ export default function ExpenseList() {
               </Button>
             ) : null}
             {row.voucherNumber ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1 text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (row.voucherNumber) setPrintVoucherNumber(row.voucherNumber);
-                  else setPrintForId(row.id);
-                }}
-              >
-                <Printer className="h-3.5 w-3.5" />
-                Print
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (row.voucherNumber) setPrintVoucherNumber(row.voucherNumber);
+                        else setPrintForId(row.id);
+                      }}
+                      aria-label="Print voucher"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Print voucher</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : null}
+            {row.voucherNumber ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                      disabled={isDownloadingRow(row)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        requestVoucherDownload(row.voucherNumber ? { voucherNumber: row.voucherNumber } : { expenseId: row.id });
+                      }}
+                      aria-label="Download voucher"
+                    >
+                      {isDownloadingRow(row) ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Download voucher</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             ) : null}
           </div>
         ),
         className: 'w-[1%]',
       },
     ],
-    [statusLabel, selectedIds, allEligibleSelected, eligibleOnPage.length, toggleSelect, toggleSelectAllOnPage],
+    [
+      statusLabel,
+      selectedIds,
+      allEligibleSelected,
+      eligibleOnPage.length,
+      toggleSelect,
+      toggleSelectAllOnPage,
+      requestVoucherDownload,
+      isDownloadingRow,
+    ],
   );
 
   const confirmIssue = () => {
@@ -570,6 +644,7 @@ export default function ExpenseList() {
             documentHeader="Expense #"
             emptyMessage="No issued vouchers yet."
             onPrint={(voucherNumber) => setPrintVoucherNumber(voucherNumber)}
+            onDownload={(voucherNumber) => requestVoucherDownload({ voucherNumber })}
           />
         </TabsContent>
       </Tabs>
@@ -723,6 +798,14 @@ export default function ExpenseList() {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      {downloadTarget ? (
+        <VoucherDownloadWorker
+          expenseId={downloadTarget.expenseId}
+          voucherNumber={downloadTarget.voucherNumber}
+          onDone={() => setDownloadTarget(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -758,6 +841,88 @@ function VoucherPrintBody({
           Print
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Generates the voucher PDF from a static, off-screen render of
+ * VoucherPreviewPanel — the same component and data used for the on-screen
+ * preview, so the PDF always matches it exactly. Rendering off-screen
+ * (rather than capturing the animated preview dialog) avoids the dialog's
+ * open/zoom transition, which otherwise gets rasterized mid-animation and
+ * produces a faded, undersized PDF. No dialog is shown for this action —
+ * it downloads directly in the background.
+ */
+function VoucherDownloadWorker({
+  expenseId,
+  voucherNumber,
+  onDone,
+}: {
+  expenseId?: number;
+  voucherNumber?: string;
+  onDone: () => void;
+}) {
+  const byId = useVoucherPrint(expenseId ?? null);
+  const byNumber = useExpenseVoucherPrintByNumber(voucherNumber ?? null);
+  const useNumber = !!voucherNumber?.trim();
+  const { data: v, isPending, error } = useNumber ? byNumber : byId;
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (startedRef.current || isPending) return;
+
+    if (error || !v) {
+      startedRef.current = true;
+      toast.error('Could not load voucher');
+      onDone();
+      return;
+    }
+
+    startedRef.current = true;
+    let cancelled = false;
+
+    (async () => {
+      // Wait for web fonts to finish loading and for the off-screen node to
+      // be fully painted (two animation frames) before rasterizing it, so
+      // the PDF never captures a half-rendered layout.
+      await (document.fonts?.ready ?? Promise.resolve()).catch(() => undefined);
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      if (cancelled || !sheetRef.current) return;
+
+      try {
+        await downloadElementAsPdf(sheetRef.current, `Voucher_${v.voucherNumber ?? v.expenseNumber ?? 'expense'}`);
+        toast.success('Voucher downloaded');
+      } catch {
+        toast.error('Could not download voucher');
+      } finally {
+        if (!cancelled) onDone();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPending, error, v, onDone]);
+
+  if (!v) return null;
+
+  const preview = mapExpenseVoucherToPreview(v);
+
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: '-10000px',
+        width: '210mm',
+        backgroundColor: '#ffffff',
+        pointerEvents: 'none',
+      }}
+    >
+      <VoucherPreviewPanel ref={sheetRef} data={preview} />
     </div>
   );
 }

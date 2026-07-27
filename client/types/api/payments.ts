@@ -42,6 +42,7 @@ export interface PaymentDto {
     accountName: string | null;
     referenceNumber: string | null;
     notes: string | null;
+    isOpeningBalance?: boolean;
     isActive: boolean;
 }
 
@@ -64,6 +65,31 @@ export interface UpdatePaymentRequest {
     accountId?: number;
     referenceNumber?: string | null;
     notes?: string | null;
+}
+
+export enum OpeningBalancePartyType {
+    Hospital = 1,
+    Supplier = 2,
+}
+
+export interface OpeningBalanceSettlementRequest {
+    partyType: OpeningBalancePartyType;
+    partyId: number;
+    accountId: number;
+    amount: number;
+    paymentDate?: string | null;
+    paymentMode: PaymentMode;
+    referenceNumber?: string | null;
+    notes?: string | null;
+}
+
+export interface OpeningBalanceSuggestionDto {
+    partyType: OpeningBalancePartyType;
+    partyId: number;
+    partyName: string;
+    openingBalance: number;
+    openingBalanceSettled: number;
+    openingBalanceRemaining: number;
 }
 
 // Query parameters

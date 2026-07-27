@@ -104,8 +104,22 @@ export default function PaymentList() {
   };
 
   const columns: Column<PaymentDto>[] = [
-    { header: 'ID', accessor: 'id' },
-    { header: 'Reference', accessor: 'referenceNumber' },
+    { header: 'Payment #', accessor: 'paymentNumber' },
+    {
+      header: 'Type',
+      accessor: (row) =>
+        row.isOpeningBalance ? (
+          <Badge className="bg-amber-100 text-amber-900">Opening</Badge>
+        ) : row.paymentType === 1 ? (
+          <Badge className="bg-emerald-100 text-emerald-800">Receipt</Badge>
+        ) : (
+          <Badge className="bg-slate-100 text-slate-800">Payment</Badge>
+        ),
+    },
+    {
+      header: 'Party',
+      accessor: (row) => row.hospitalName || row.supplierName || '—',
+    },
     {
       header: 'Payment Mode',
       accessor: (row) => (
@@ -115,8 +129,11 @@ export default function PaymentList() {
       ),
     },
     {
-      header: 'Related ID',
-      accessor: (row) => row.purchaseOrderNumber || row.invoiceNumber || 'N/A',
+      header: 'Related',
+      accessor: (row) =>
+        row.isOpeningBalance
+          ? 'Opening balance'
+          : row.purchaseOrderNumber || row.invoiceNumber || row.referenceNumber || '—',
     },
     {
       header: 'Date',
@@ -148,7 +165,7 @@ export default function PaymentList() {
             className="gap-2"
           >
             <Plus className="w-4 h-4" />
-            Record Payment
+            Record Opening Settlement
           </Button>
         )}
       </div>
@@ -253,8 +270,10 @@ export default function PaymentList() {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Record New Payment</DialogTitle>
-            <DialogDescription>Record a new payment transaction</DialogDescription>
+            <DialogTitle>Opening Balance Settlement</DialogTitle>
+            <DialogDescription>
+              Receive from a hospital or pay a vendor against brought-forward opening balance
+            </DialogDescription>
           </DialogHeader>
           <PaymentForm
             onSuccess={() => {

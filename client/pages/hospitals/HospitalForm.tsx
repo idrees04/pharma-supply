@@ -39,6 +39,7 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
       hospitalType: 1,
       creditTermDays: 0,
       creditLimit: 0,
+      openingBalance: 0,
       status: 1,
       isActive: true,
     },
@@ -66,6 +67,7 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
         hospitalType: data.hospitalType,
         creditTermDays: data.creditTermDays,
         creditLimit: data.creditLimit,
+        openingBalance: data.openingBalance ?? 0,
         status: data.status,
         isActive: data.isActive,
       });
@@ -136,6 +138,7 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
         hospitalType: data.hospitalType,
         creditTermDays: data.creditTermDays,
         creditLimit: data.creditLimit,
+        openingBalance: data.openingBalance ?? 0,
         status: data.status || 1,
         isActive: data.isActive,
       });
@@ -155,6 +158,7 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
         hospitalType: data.hospitalType,
         creditTermDays: data.creditTermDays,
         creditLimit: data.creditLimit,
+        openingBalance: data.openingBalance ?? 0,
       });
     }
   };
@@ -370,6 +374,22 @@ export default function HospitalForm({ hospital, onClose }: HospitalFormProps) {
                 <FormControl>
                   <Input type="number" placeholder="e.g., 500000" {...field} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="openingBalance"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Opening Balance</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="e.g., 100000" {...field} />
+                </FormControl>
+                <FormDescription>
+                  Brought-forward AR (no invoice lines). Remaining = opening − settled receipts.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

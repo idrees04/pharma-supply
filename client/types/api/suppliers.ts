@@ -29,6 +29,9 @@ export interface Supplier {
   paymentTermDays: number;
   creditLimit: number;
   outstandingBalance: number;
+  openingBalance: number;
+  openingBalanceSettled: number;
+  openingBalanceRemaining: number;
   status: number;
   notes: string;
   isActive: boolean;
@@ -52,6 +55,7 @@ export interface CreateSupplierRequest {
   licenseNumber: string;
   paymentTermDays: number;
   creditLimit: number;
+  openingBalance?: number;
   notes: string;
 }
 
@@ -73,6 +77,7 @@ export interface UpdateSupplierRequest {
   licenseNumber: string;
   paymentTermDays: number;
   creditLimit: number;
+  openingBalance?: number;
   status: number;
   notes: string;
   isActive: boolean;

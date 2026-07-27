@@ -139,7 +139,7 @@ export default function TaxConfigurationForm({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="rounded-3xl border border-slate-200/80 bg-slate-50/70 p-6 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur-sm"
+      className="rounded-3xl border border-border/80 bg-muted/70 p-6 shadow-lg ring-1 ring-border/70 backdrop-blur-sm"
     >
       <Form {...form}>
         <motion.form
@@ -148,8 +148,8 @@ export default function TaxConfigurationForm({
           layout
         >
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold tracking-tight text-slate-900">Tax Configuration</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">Tax Configuration</h2>
+            <p className="text-sm text-muted-foreground">
               Define tax rates and effective periods for transaction tax calculations.
             </p>
           </div>
@@ -159,7 +159,7 @@ export default function TaxConfigurationForm({
               control={form.control}
               name="taxName"
               render={({ field }) => (
-                <FormItem className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-slate-300 focus-within:border-primary/50">
+                <FormItem className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:border-border focus-within:border-primary/50">
                   <FormLabel>Tax Name *</FormLabel>
                   <FormControl>
                     <Input
@@ -177,7 +177,7 @@ export default function TaxConfigurationForm({
               control={form.control}
               name="taxCode"
               render={({ field }) => (
-                <FormItem className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-slate-300 focus-within:border-primary/50">
+                <FormItem className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:border-border focus-within:border-primary/50">
                   <FormLabel>Tax Code *</FormLabel>
                   <FormControl>
                     <Input
@@ -197,7 +197,7 @@ export default function TaxConfigurationForm({
               control={form.control}
               name="taxPercentage"
               render={({ field }) => (
-                <FormItem className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-slate-300 focus-within:border-primary/50">
+                <FormItem className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:border-border focus-within:border-primary/50">
                   <FormLabel>Tax Percentage (%) *</FormLabel>
                   <FormControl>
                     <Input
@@ -216,7 +216,7 @@ export default function TaxConfigurationForm({
               control={form.control}
               name="isCompound"
               render={({ field }) => (
-                <FormItem className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-slate-300 focus-within:border-primary/50">
+                <FormItem className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:border-border focus-within:border-primary/50">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <FormLabel>Compound Tax</FormLabel>
@@ -237,7 +237,7 @@ export default function TaxConfigurationForm({
               control={form.control}
               name="effectiveFrom"
               render={({ field }) => (
-                <FormItem className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-slate-300 focus-within:border-primary/50">
+                <FormItem className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:border-border focus-within:border-primary/50">
                   <FormLabel>Effective From *</FormLabel>
                   <FormControl>
                     <Input
@@ -255,7 +255,7 @@ export default function TaxConfigurationForm({
               control={form.control}
               name="effectiveTo"
               render={({ field }) => (
-                <FormItem className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-slate-300 focus-within:border-primary/50">
+                <FormItem className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:border-border focus-within:border-primary/50">
                   <FormLabel>Effective To</FormLabel>
                   <FormControl>
                     <Input
@@ -275,7 +275,7 @@ export default function TaxConfigurationForm({
             control={form.control}
             name="description"
             render={({ field }) => (
-              <FormItem className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-slate-300 focus-within:border-primary/50">
+              <FormItem className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:border-border focus-within:border-primary/50">
                 <FormLabel>Description</FormLabel>
                 <FormControl>
                   <Textarea
@@ -294,7 +294,7 @@ export default function TaxConfigurationForm({
               control={form.control}
               name="isActive"
               render={({ field }) => (
-                <FormItem className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-slate-300 focus-within:border-primary/50">
+                <FormItem className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:border-border focus-within:border-primary/50">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <FormLabel>Active</FormLabel>

@@ -8,6 +8,7 @@ import { DataTable, Column } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { TableCard } from '@/components/common/TableCard';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Input } from '@/components/ui/input';
 import {
@@ -174,14 +175,14 @@ export default function PurchaseOrderList() {
       </div>
 
       {/* Control Bar */}
-      <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 items-center bg-card p-4 rounded-xl border shadow-sm">
         <div className="relative flex-1 group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
             placeholder="Search by PO number or supplier..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-10 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+            className="pl-10 h-10 bg-muted/50 border-border focus:bg-card transition-all"
           />
         </div>
         <div className="flex items-center gap-3">
@@ -203,7 +204,13 @@ export default function PurchaseOrderList() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <TableCard
+        icon={<FileText />}
+        title="All purchase orders"
+        count={filteredPOs.length}
+        countLabel={(c) => `${c} order(s)`}
+        contentClassName="overflow-x-auto p-2 sm:p-4"
+      >
         <DataTable
           columns={columns}
           data={filteredPOs}
@@ -217,8 +224,9 @@ export default function PurchaseOrderList() {
           showSearch={false}
           onRowClick={(row) => navigate(`/orders/purchase/view/${row.id}`)}
           resetSortTrigger={refreshTrigger}
+          defaultSort={{ id: 'id', desc: false }}
         />
-      </div>
+      </TableCard>
 
       {/* Delete Confirmation */}
       <ConfirmDialog

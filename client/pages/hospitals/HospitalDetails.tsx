@@ -113,7 +113,7 @@ export default function HospitalDetails() {
                     <AlertCircle className="h-12 w-12 text-destructive" />
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Hospital Not Found</h2>
+                    <h2 className="text-3xl font-black tracking-tight text-foreground uppercase">Hospital Not Found</h2>
                     <p className="text-muted-foreground max-w-sm text-balance">
                         This hospital record may have been removed or you may not have permission to view it.
                     </p>
@@ -145,7 +145,7 @@ export default function HospitalDetails() {
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="font-bold text-slate-900">Hospital Details</BreadcrumbPage>
+                            <BreadcrumbPage className="font-bold text-foreground">Hospital Details</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
@@ -159,14 +159,14 @@ export default function HospitalDetails() {
                     </div>
                     <div className="space-y-1">
                         <div className="flex items-center gap-3 flex-wrap">
-                            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                            <h1 className="text-4xl font-extrabold tracking-tight text-foreground leading-tight">
                                 {hospital.hospitalName}
                             </h1>
                             <Badge className={cn(
                                 "px-3 py-1 capitalize text-[10px] font-black tracking-widest border-2",
                                 hospital.isActive
-                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                                    : "bg-slate-50 text-slate-500 border-slate-100"
+                                    ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50"
+                                    : "bg-muted/50 text-muted-foreground border-border"
                             )}>
                                 {hospital.isActive ? (
                                     <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Active</span>
@@ -175,11 +175,11 @@ export default function HospitalDetails() {
                                 )}
                             </Badge>
                         </div>
-                        <div className="flex items-center gap-3 text-slate-500 text-sm font-medium">
-                            <span className="flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter">
+                        <div className="flex items-center gap-3 text-muted-foreground text-sm font-medium">
+                            <span className="flex items-center gap-1.5 bg-muted px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter">
                                 ID: #HOSP-{hospital.id}
                             </span>
-                            <span className="w-1 h-1 rounded-full bg-slate-300" />
+                            <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
                             <span className="flex items-center gap-1.5">
                                 <MapPin className="w-3.5 h-3.5 text-primary/60" /> {hospital.city}, {hospital.state}
                             </span>
@@ -190,22 +190,22 @@ export default function HospitalDetails() {
                 <div className="flex items-center gap-3">
                     <Button
                         variant="outline"
-                        className="gap-2 h-11 px-5 border-slate-200 hover:bg-slate-50 shadow-sm transition-all hover:scale-[1.02]"
+                        className="gap-2 h-11 px-5 border-border hover:bg-muted/50 shadow-sm transition-all hover:scale-[1.02]"
                         onClick={() => navigate(`/reports/hospital-ledger?hospitalId=${hospital.id}`)}
                     >
-                        <FileText className="w-4 h-4 text-emerald-600" />
+                        <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                         <span className="font-bold">Hospital ledger</span>
                     </Button>
                     {canUpdate && (
                         <Button
                             variant="outline"
-                            className="gap-2 h-11 px-5 border-slate-200 hover:bg-slate-50 shadow-sm transition-all hover:scale-[1.02]"
+                            className="gap-2 h-11 px-5 border-border hover:bg-muted/50 shadow-sm transition-all hover:scale-[1.02]"
                             onClick={() => {
                                 toast.info('Opening hospital editor...');
                                 navigate(`/hospitals?edit=${hospital.id}`);
                             }}
                         >
-                            <Edit2 className="w-4 h-4 text-blue-600" />
+                            <Edit2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                             <span className="font-bold">Edit Hospital</span>
                         </Button>
                     )}
@@ -225,9 +225,9 @@ export default function HospitalDetails() {
                 <div className="lg:col-span-8 space-y-8">
                     {/* Contact Information */}
                     <motion.div variants={itemVariants}>
-                        <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
-                            <CardHeader className="bg-slate-50/80 border-b py-4">
-                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                        <Card className="overflow-hidden border-border shadow-xl">
+                            <CardHeader className="bg-muted/80 border-b py-4">
+                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
                                     <User className="w-4 h-4 text-primary" /> Contact Information
                                 </CardTitle>
                             </CardHeader>
@@ -235,31 +235,31 @@ export default function HospitalDetails() {
                                 <div className="grid md:grid-cols-2 gap-10">
                                     <div className="space-y-6">
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hospital Name</p>
-                                            <p className="text-lg font-bold text-slate-800 tracking-tight">{hospital.hospitalName}</p>
+                                            <p className="text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Hospital Name</p>
+                                            <p className="text-lg font-bold text-foreground tracking-tight">{hospital.hospitalName}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Person</p>
-                                            <p className="text-lg font-bold text-slate-800 tracking-tight">{hospital.contactPerson}</p>
+                                            <p className="text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Contact Person</p>
+                                            <p className="text-lg font-bold text-foreground tracking-tight">{hospital.contactPerson}</p>
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <div className="flex items-center gap-4 group p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                                            <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                        <div className="flex items-center gap-4 group p-3 rounded-xl hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
+                                            <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
                                                 <Phone className="w-5 h-5" />
                                             </div>
                                             <div>
-                                                <p className="text-[9px] font-black text-slate-400 uppercase">Phone Number</p>
-                                                <p className="font-bold text-slate-800">{hospital.phoneNumber}</p>
+                                                <p className="text-[9px] font-black text-muted-foreground/70 uppercase">Phone Number</p>
+                                                <p className="font-bold text-foreground">{hospital.phoneNumber}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-4 group p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                                            <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                                        <div className="flex items-center gap-4 group p-3 rounded-xl hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
+                                            <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                                                 <Mail className="w-5 h-5" />
                                             </div>
                                             <div className="min-w-0">
-                                                <p className="text-[9px] font-black text-slate-400 uppercase">Email Address</p>
-                                                <p className="font-bold text-slate-800 truncate">{hospital.email}</p>
+                                                <p className="text-[9px] font-black text-muted-foreground/70 uppercase">Email Address</p>
+                                                <p className="font-bold text-foreground truncate">{hospital.email}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -270,33 +270,33 @@ export default function HospitalDetails() {
 
                     {/* Address */}
                     <motion.div variants={itemVariants}>
-                        <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
-                            <CardHeader className="bg-slate-50/80 border-b py-4">
-                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                    <MapPin className="w-4 h-4 text-rose-500" /> Address & Location
+                        <Card className="overflow-hidden border-border shadow-xl">
+                            <CardHeader className="bg-muted/80 border-b py-4">
+                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                    <MapPin className="w-4 h-4 text-rose-500 dark:text-rose-400" /> Address & Location
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-8 pb-6">
                                 <div className="space-y-8">
                                     <div className="relative group">
-                                        <div className="absolute left-0 top-0 w-1 h-full bg-slate-200 rounded-full group-hover:bg-rose-500 transition-colors" />
+                                        <div className="absolute left-0 top-0 w-1 h-full bg-muted rounded-full group-hover:bg-rose-500 transition-colors" />
                                         <div className="pl-6 space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Address</p>
-                                            <p className="text-xl font-medium text-slate-800 leading-relaxed italic">{hospital.address}</p>
+                                            <p className="text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Full Address</p>
+                                            <p className="text-xl font-medium text-foreground leading-relaxed italic">{hospital.address}</p>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-6 pt-4 border-t">
                                         <div className="space-y-1">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase">City</p>
-                                            <p className="font-bold text-slate-800">{hospital.city}</p>
+                                            <p className="text-[9px] font-black text-muted-foreground/70 uppercase">City</p>
+                                            <p className="font-bold text-foreground">{hospital.city}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase">Province</p>
-                                            <p className="font-bold text-slate-800">{hospital.state}</p>
+                                            <p className="text-[9px] font-black text-muted-foreground/70 uppercase">Province</p>
+                                            <p className="font-bold text-foreground">{hospital.state}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase">Postal Code</p>
-                                            <p className="font-mono font-bold text-slate-800">{hospital.postalCode}</p>
+                                            <p className="text-[9px] font-black text-muted-foreground/70 uppercase">Postal Code</p>
+                                            <p className="font-mono font-bold text-foreground">{hospital.postalCode}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -306,36 +306,36 @@ export default function HospitalDetails() {
 
                     {/* Order History */}
                     <motion.div variants={itemVariants}>
-                        <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
-                            <CardHeader className="bg-slate-50/80 border-b py-4 flex flex-row items-center justify-between">
-                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                    <History className="w-4 h-4 text-amber-500" /> Order History
+                        <Card className="overflow-hidden border-border shadow-xl">
+                            <CardHeader className="bg-muted/80 border-b py-4 flex flex-row items-center justify-between">
+                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                    <History className="w-4 h-4 text-amber-500 dark:text-amber-400" /> Order History
                                 </CardTitle>
-                                <Badge variant="secondary" className="bg-white border-slate-200 text-slate-600 font-bold">
+                                <Badge variant="secondary" className="bg-card border-border text-muted-foreground font-bold">
                                     {ordersData?.orders?.length || 0} Orders
                                 </Badge>
                             </CardHeader>
                             <CardContent className="p-0">
                                 {isOrdersPending ? (
                                     <div className="p-12 text-center flex flex-col items-center gap-3">
-                                        <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading orders...</p>
+                                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/50" />
+                                        <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest">Loading orders...</p>
                                     </div>
                                 ) : !ordersData?.orders || ordersData.orders.length === 0 ? (
                                     <div className="p-16 text-center space-y-4">
-                                        <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto border border-dashed border-slate-200">
-                                            <FileText className="w-7 h-7 text-slate-300" />
+                                        <div className="h-16 w-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto border border-dashed border-border">
+                                            <FileText className="w-7 h-7 text-muted-foreground/50" />
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-sm font-bold text-slate-600">No Orders Yet</p>
-                                            <p className="text-xs text-slate-400">This hospital has no orders placed in the system.</p>
+                                            <p className="text-sm font-bold text-muted-foreground">No Orders Yet</p>
+                                            <p className="text-xs text-muted-foreground/70">This hospital has no orders placed in the system.</p>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left border-collapse">
                                             <thead>
-                                                <tr className="bg-slate-50/50 border-b text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                <tr className="bg-muted/50 border-b text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">
                                                     <th className="px-6 py-4">Order No.</th>
                                                     <th className="px-6 py-4">Date</th>
                                                     <th className="px-6 py-4">Status</th>
@@ -344,20 +344,20 @@ export default function HospitalDetails() {
                                             </thead>
                                             <tbody className="divide-y text-sm">
                                                 {ordersData.orders.map((order: any) => (
-                                                    <tr key={order.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer">
+                                                    <tr key={order.id} className="hover:bg-muted/50 transition-colors group cursor-pointer">
                                                         <td className="px-6 py-4">
                                                             <div className="font-bold text-primary group-hover:underline">#{order.orderNo}</div>
                                                         </td>
-                                                        <td className="px-6 py-4 text-slate-600 font-medium">
+                                                        <td className="px-6 py-4 text-muted-foreground font-medium">
                                                             {new Date(order.orderDate).toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' })}
                                                         </td>
                                                         <td className="px-6 py-4">
-                                                            <Badge variant="outline" className="text-[9px] uppercase font-black tracking-tighter bg-white">
+                                                            <Badge variant="outline" className="text-[9px] uppercase font-black tracking-tighter bg-card">
                                                                 {order.status}
                                                             </Badge>
                                                         </td>
                                                         <td className="px-6 py-4 text-right">
-                                                            <span className="font-black text-slate-800">{formatCurrency(order.saleTotal)}</span>
+                                                            <span className="font-black text-foreground">{formatCurrency(order.saleTotal)}</span>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -375,14 +375,14 @@ export default function HospitalDetails() {
                     <div className="sticky top-24 space-y-8">
                         {/* Outstanding Balance Card — warm green/teal gradient */}
                         <motion.div variants={itemVariants}>
-                            <Card className="overflow-hidden border-emerald-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 shadow-xl shadow-emerald-100/60 relative">
+                            <Card className="overflow-hidden border-emerald-200 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 shadow-xl shadow-emerald-100/60 relative">
                                 {/* Decorative blobs */}
                                 <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-emerald-300/20 blur-2xl pointer-events-none" />
                                 <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-teal-300/20 blur-2xl pointer-events-none" />
                                 <div className="absolute -right-4 -bottom-4 opacity-5 rotate-12">
-                                    <Banknote className="h-48 w-48 text-emerald-900" />
+                                    <Banknote className="h-48 w-48 text-emerald-900 dark:text-emerald-300" />
                                 </div>
-                                <CardHeader className="border-b border-emerald-200/70 pb-4 relative z-10">
+                                <CardHeader className="border-b border-emerald-200/70 dark:border-emerald-900/50 pb-4 relative z-10">
                                     <div className="flex justify-between items-center">
                                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-500 bg-clip-text text-transparent">
                                             Account Balance
@@ -394,27 +394,27 @@ export default function HospitalDetails() {
                                 </CardHeader>
                                 <CardContent className="pt-10 pb-8 space-y-8 relative z-10">
                                     <div className="space-y-3 text-center">
-                                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">Amount Due (PKR)</p>
+                                        <p className="text-[10px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-[0.3em]">Amount Due (PKR)</p>
                                         <div className="inline-flex flex-col items-center">
-                                            <h2 className="text-5xl font-black tracking-tighter leading-none mb-2 text-emerald-700">
+                                            <h2 className="text-5xl font-black tracking-tighter leading-none mb-2 text-emerald-700 dark:text-emerald-400">
                                                 {formatCurrency(hospital.outstandingBalance || 0)}
                                             </h2>
-                                            <Badge className="bg-rose-100 text-rose-600 border-rose-200 font-black text-[9px] uppercase tracking-widest px-3">
+                                            <Badge className="bg-rose-100 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 font-black text-[9px] uppercase tracking-widest px-3">
                                                 Pending Payment
                                             </Badge>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3 border-t border-emerald-200/60 pt-6 text-center px-2">
-                                        <div className="space-y-1.5 p-3 rounded-xl bg-white/60 border border-emerald-100 shadow-sm">
-                                            <p className="text-[9px] font-black text-emerald-500 uppercase">Credit Used</p>
-                                            <p className="text-xl font-black text-slate-800">
+                                    <div className="grid grid-cols-2 gap-3 border-t border-emerald-200/60 dark:border-emerald-900/50 pt-6 text-center px-2">
+                                        <div className="space-y-1.5 p-3 rounded-xl bg-card/60 border border-emerald-100 dark:border-emerald-900/50 shadow-sm">
+                                            <p className="text-[9px] font-black text-emerald-500 dark:text-emerald-400 uppercase">Credit Used</p>
+                                            <p className="text-xl font-black text-foreground">
                                                 {hospital.creditLimit ? Math.round((hospital.outstandingBalance / hospital.creditLimit) * 100) : 0}%
                                             </p>
                                         </div>
-                                        <div className="space-y-1.5 p-3 rounded-xl bg-white/60 border border-emerald-100 shadow-sm">
-                                            <p className="text-[9px] font-black text-emerald-500 uppercase">Credit Days</p>
-                                            <p className="text-xl font-black text-slate-800">{hospital.creditTermDays} <span className="text-[10px] text-slate-400">days</span></p>
+                                        <div className="space-y-1.5 p-3 rounded-xl bg-card/60 border border-emerald-100 dark:border-emerald-900/50 shadow-sm">
+                                            <p className="text-[9px] font-black text-emerald-500 dark:text-emerald-400 uppercase">Credit Days</p>
+                                            <p className="text-xl font-black text-foreground">{hospital.creditTermDays} <span className="text-[10px] text-muted-foreground/70">days</span></p>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -424,19 +424,19 @@ export default function HospitalDetails() {
 
                         {/* Credit Limit Card */}
                         <motion.div variants={itemVariants}>
-                            <Card className="border-slate-200 shadow-xl shadow-slate-200/50">
-                                <CardHeader className="pb-3 border-b bg-slate-50/50">
-                                    <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                        <CreditCard className="w-4 h-4 text-indigo-500" /> Credit Limit
+                            <Card className="border-border shadow-xl">
+                                <CardHeader className="pb-3 border-b bg-muted/50">
+                                    <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                        <CreditCard className="w-4 h-4 text-indigo-500 dark:text-indigo-400" /> Credit Limit
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="pt-6 space-y-6">
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-end">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase">Total Credit Allowed</p>
-                                            <p className="text-lg font-black text-slate-800">{formatCurrency(hospital.creditLimit || 0)}</p>
+                                            <p className="text-[10px] font-black text-muted-foreground/70 uppercase">Total Credit Allowed</p>
+                                            <p className="text-lg font-black text-foreground">{formatCurrency(hospital.creditLimit || 0)}</p>
                                         </div>
-                                        <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200 shadow-inner">
+                                        <div className="h-3 w-full bg-muted rounded-full overflow-hidden border border-border shadow-inner">
                                             <motion.div
                                                 initial={{ width: 0 }}
                                                 animate={{ width: `${Math.min(100, (hospital.outstandingBalance / (hospital.creditLimit || 1)) * 100)}%` }}
@@ -449,22 +449,22 @@ export default function HospitalDetails() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-slate-100" />
+                                    <Separator className="bg-muted" />
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1">
+                                            <p className="text-[9px] font-black text-muted-foreground/70 uppercase flex items-center gap-1">
                                                 <Calendar className="w-3 h-3" /> Payment Term
                                             </p>
-                                            <div className="text-sm font-bold text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                                            <div className="text-sm font-bold text-foreground/90 bg-muted/50 p-2 rounded-lg border border-border text-center">
                                                 {hospital.creditTermDays} Days
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1">
+                                            <p className="text-[9px] font-black text-muted-foreground/70 uppercase flex items-center gap-1">
                                                 <Building className="w-3 h-3" /> NTN Number
                                             </p>
-                                            <div className="text-[10px] font-black text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-200 text-center truncate uppercase">
+                                            <div className="text-[10px] font-black text-foreground/90 bg-muted/50 p-2 rounded-lg border border-border text-center truncate uppercase">
                                                 {hospital.taxNumber || 'Not Provided'}
                                             </div>
                                         </div>

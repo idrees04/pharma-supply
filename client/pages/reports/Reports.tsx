@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart3, FileDown, Loader2, RefreshCw } from 'lucide-react';
@@ -122,7 +122,6 @@ export default function Reports() {
   const [hospitalId, setHospitalId] = useState<string>('');
   const [supplierId, setSupplierId] = useState<string>('');
   const [productId, setProductId] = useState<string>('');
-  const [accountId, setAccountId] = useState<string>('');
   const [asOfDate, setAsOfDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   const { data: hospitalsData } = useGetHospitals({ pageNumber: 1, pageSize: 500 });
@@ -135,6 +134,44 @@ export default function Reports() {
   const products = productsData?.items ?? [];
   const accounts = accountsData ?? [];
 
+  // Account selection state
+  const [accountId, setAccountId] = useState<string>('');
+
+  // Compute the effective account ID with auto-selection logic
+  const effectiveAccountId = useMemo(() => {
+    const isPaymentsByAccount = reportId === 'payments-by-account';
+
+    // If not payments-by-account, return empty string
+    if (!isPaymentsByAccount) {
+      return '';
+    }
+
+    // If there are no accounts, return empty string
+    if (accounts.length === 0) {
+      return '';
+    }
+
+    // If user has selected an account, use their selection
+    if (accountId) {
+      // Check if the selected account still exists
+      const accountExists = accounts.some(a => String(a.id) === accountId);
+      if (accountExists) {
+        return accountId;
+      }
+    }
+
+    // Auto-select the first account
+    return String(accounts[0].id);
+  }, [reportId, accounts, accountId]);
+
+  // Sync the actual accountId state with the effective value when needed
+  // This is the only place we sync, and it happens during render
+  if (effectiveAccountId && effectiveAccountId !== accountId) {
+    // Only update if the effective account is different from current
+    // This handles the auto-selection case
+    setAccountId(effectiveAccountId);
+  }
+
   const syncUrl = useCallback(
     (m: ReportModuleId, r: AnalyticsReportId) => {
       setSearchParams({ module: m, report: r }, { replace: true });
@@ -142,7 +179,8 @@ export default function Reports() {
     [setSearchParams],
   );
 
-  useEffect(() => {
+  // Sync URL with module/report
+  useMemo(() => {
     if (!isModule(moduleParam)) {
       syncUrl('supply-order', defaultReportForModule('supply-order'));
       return;
@@ -162,11 +200,13 @@ export default function Reports() {
     if (hid && hid > 0) p.hospitalId = hid;
     if (sid && sid > 0) p.supplierId = sid;
     if (pid && pid > 0) p.productId = pid;
-    const aid = accountId ? Number(accountId) : undefined;
+
+    // Use the effective account ID for API calls
+    const aid = effectiveAccountId ? Number(effectiveAccountId) : undefined;
     if (aid && aid > 0) p.accountId = aid;
     if (reportId === 'balance-sheet') p.asOfDate = asOfDate;
     return p;
-  }, [dateFrom, dateTo, hospitalId, supplierId, productId, accountId, asOfDate, reportId]);
+  }, [dateFrom, dateTo, hospitalId, supplierId, productId, effectiveAccountId, asOfDate, reportId]);
 
   const queryFn = useCallback(async () => {
     switch (reportId) {
@@ -223,7 +263,8 @@ export default function Reports() {
     staleTime: 60 * 1000,
   });
 
-  useEffect(() => {
+  // Handle errors
+  useMemo(() => {
     if (error instanceof ApiError) toast.error(error.userMessage || 'Report failed to load');
     else if (error) toast.error('Report failed to load');
   }, [error]);
@@ -446,7 +487,10 @@ export default function Reports() {
           {showAccount ? (
             <div className="space-y-2">
               <Label>Account</Label>
-              <Select value={accountId} onValueChange={setAccountId}>
+              <Select
+                value={accountId || (accounts.length > 0 ? String(accounts[0].id) : '')}
+                onValueChange={(v) => setAccountId(v)}
+              >
                 <SelectTrigger className="bg-background">
                   <SelectValue placeholder="Select account" />
                 </SelectTrigger>

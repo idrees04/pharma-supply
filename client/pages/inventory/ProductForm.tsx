@@ -231,8 +231,8 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
           {/* Section: Basic Info */}
           <motion.div variants={itemVariants} className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <Info className="w-4 h-4 text-blue-600" />
+              <div className="p-2 bg-blue-50 dark:bg-blue-500/10 rounded-lg">
+                <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
               <h3 className="text-lg font-semibold">Basic Information</h3>
             </div>
@@ -379,8 +379,8 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
           {/* Section: Pricing & Margin */}
           <motion.div variants={itemVariants} className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <Calculator className="w-4 h-4 text-green-600" />
+              <div className="p-2 bg-green-50 dark:bg-green-500/10 rounded-lg">
+                <Calculator className="w-4 h-4 text-green-600 dark:text-green-400" />
               </div>
               <h3 className="text-lg font-semibold">Pricing &amp; rates (PKR)</h3>
             </div>
@@ -491,8 +491,8 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
           {/* Section: Inventory */}
           <motion.div variants={itemVariants} className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b">
-              <div className="p-2 bg-orange-50 rounded-lg">
-                <Package className="w-4 h-4 text-orange-600" />
+              <div className="p-2 bg-orange-50 dark:bg-orange-500/10 rounded-lg">
+                <Package className="w-4 h-4 text-orange-600 dark:text-orange-400" />
               </div>
               <h3 className="text-lg font-semibold">Inventory & Ordering</h3>
             </div>
@@ -531,8 +531,8 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
           {/* Section: Compliance & Status */}
           <motion.div variants={itemVariants} className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b">
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <ShieldCheck className="w-4 h-4 text-purple-600" />
+              <div className="p-2 bg-purple-50 dark:bg-purple-500/10 rounded-lg">
+                <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               </div>
               <h3 className="text-lg font-semibold">Compliance & Status</h3>
             </div>
@@ -588,8 +588,8 @@ export default function ProductForm({ productId, onClose }: ProductFormProps) {
           {/* Section: Notes & Storage */}
           <motion.div variants={itemVariants} className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b">
-              <div className="p-2 bg-slate-50 rounded-lg">
-                <FileText className="w-4 h-4 text-slate-600" />
+              <div className="p-2 bg-muted rounded-lg">
+                <FileText className="w-4 h-4 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold">Storage & Notes</h3>
             </div>

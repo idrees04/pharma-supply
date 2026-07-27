@@ -75,15 +75,15 @@ function isEligibleForExpenseVoucher(row: ExpenseDto) {
 function mapExpenseVoucherToPreview(v: ExpenseVoucherPrintDto): VoucherPreviewData {
   const lines = v.lines?.length
     ? v.lines.map((line) => ({
-        documentNumber: line.expenseNumber,
-        date: line.expenseDate,
-        categoryName: line.categoryName,
-        accountName: line.accountName,
-        payeeOrSource: line.payeeName,
-        amount: line.amount,
-        description: line.description,
-        referenceNumber: line.referenceNumber,
-      }))
+      documentNumber: line.expenseNumber,
+      date: line.expenseDate,
+      categoryName: line.categoryName,
+      accountName: line.accountName,
+      payeeOrSource: line.payeeName,
+      amount: line.amount,
+      description: line.description,
+      referenceNumber: line.referenceNumber,
+    }))
     : undefined;
 
   return {
@@ -239,14 +239,7 @@ export default function ExpenseList() {
   const columns: Column<ExpenseDto>[] = useMemo(
     () => [
       {
-        header: (
-          <Checkbox
-            checked={allEligibleSelected}
-            onCheckedChange={toggleSelectAllOnPage}
-            disabled={eligibleOnPage.length === 0}
-            aria-label="Select all eligible on page"
-          />
-        ),
+        header: '',
         id: 'select',
         accessor: (row) => {
           const eligible = isEligibleForExpenseVoucher(row);
@@ -264,6 +257,7 @@ export default function ExpenseList() {
       },
       {
         header: 'Expense #',
+        id: 'expenseNumber',
         accessor: (row) => <span className="font-mono text-xs font-semibold">{row.expenseNumber ?? '—'}</span>,
       },
       {
@@ -447,7 +441,7 @@ export default function ExpenseList() {
                 placeholder="Search expense # or description…"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="h-10 border-slate-200 bg-slate-50 pl-10 focus:bg-background"
+                className="h-10 border-border bg-muted/50 pl-10 focus:bg-background"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -501,12 +495,11 @@ export default function ExpenseList() {
                 onEdit={canUpdate ? requestEdit : undefined}
                 onDelete={canDelete ? requestDelete : undefined}
                 itemsPerPage={ITEMS_PER_PAGE_TABLE}
+                emptyMessage="No expenses found matching your search."
                 showSearch={false}
-                showToolbar={false}
-                showColumnVisibility={false}
-                preserveServerOrder
                 hidePaginationFooter
                 resetSortTrigger={refreshTrigger}
+                defaultSort={{ id: 'expenseNumber', desc: true }}
               />
             </div>
           </Card>

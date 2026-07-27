@@ -19,6 +19,10 @@ import type {
   SupplyOrderFulfillmentSlaReportDto,
   SupplyOrderPipelineReportDto,
   SupplyOrdersByHospitalReportDto,
+  ProfitReportDto,
+  LedgerReportDto,
+  PaymentsByAccountReportDto,
+  BalanceSheetReportDto,
 } from '@/types/api/analyticsReports';
 
 
@@ -396,6 +400,108 @@ function buildSpec(reportId: AnalyticsReportId, data: unknown): TableSpec {
                   formatCurrency(a.daysOver90),
                 ]);
               })
+            : [],
+      };
+    }
+    case 'profit-by-product':
+    case 'profit-by-hospital': {
+      const d = data as ProfitReportDto;
+      return {
+        orientation: 'landscape',
+        summaries: [
+          { label: 'Data rows', value: String(d.rows.length) },
+          { label: 'Total revenue (PKR)', value: formatCurrency(d.totalRevenue) },
+          { label: 'Total cost (PKR)', value: formatCurrency(d.totalCost) },
+          { label: 'Total profit (PKR)', value: formatCurrency(d.totalProfit) },
+        ],
+        headers: ['Code', 'Name', 'Revenue (PKR)', 'Cost (PKR)', 'Profit (PKR)', 'Margin %', 'Lines'],
+        rows:
+          d.rows.length > 0
+            ? d.rows.map((r) =>
+                asStrings([
+                  r.entityCode ?? '—',
+                  r.entityName,
+                  formatCurrency(r.revenue),
+                  formatCurrency(r.cost),
+                  formatCurrency(r.profit),
+                  r.marginPercent == null ? '—' : `${r.marginPercent}%`,
+                  r.lineCount,
+                ]),
+              )
+            : [],
+      };
+    }
+    case 'vendor-ledger':
+    case 'hospital-ledger': {
+      const d = data as LedgerReportDto;
+      return {
+        orientation: 'landscape',
+        summaries: [
+          { label: 'Entity', value: d.entityName },
+          { label: 'View', value: d.view },
+          { label: 'Data rows', value: String(d.rows.length) },
+          { label: 'Closing balance (PKR)', value: formatCurrency(d.closingBalance) },
+        ],
+        headers: ['Date', 'Type', 'Reference', 'Product', 'Qty', 'Debit (PKR)', 'Credit (PKR)', 'Balance (PKR)', 'Notes'],
+        rows:
+          d.rows.length > 0
+            ? d.rows.map((r) =>
+                asStrings([
+                  fmtDisplayDate(r.entryDate),
+                  r.entryType,
+                  r.referenceNumber,
+                  r.productName ?? '—',
+                  r.quantity == null ? '—' : r.quantity,
+                  formatCurrency(r.debit),
+                  formatCurrency(r.credit),
+                  formatCurrency(r.runningBalance),
+                  r.notes ?? '—',
+                ]),
+              )
+            : [],
+      };
+    }
+    case 'payments-by-account': {
+      const d = data as PaymentsByAccountReportDto;
+      return {
+        orientation: 'landscape',
+        summaries: [
+          { label: 'Account', value: d.accountName },
+          { label: 'Data rows', value: String(d.rows.length) },
+          { label: 'Closing balance (PKR)', value: formatCurrency(d.closingBalance) },
+        ],
+        headers: ['Date', 'Type', 'Reference', 'Party', 'Debit (PKR)', 'Credit (PKR)', 'Balance (PKR)', 'Description'],
+        rows:
+          d.rows.length > 0
+            ? d.rows.map((r) =>
+                asStrings([
+                  fmtDisplayDate(r.transactionDate),
+                  r.transactionType,
+                  r.referenceNumber,
+                  r.partyName ?? '—',
+                  formatCurrency(r.debit),
+                  formatCurrency(r.credit),
+                  formatCurrency(r.runningBalance),
+                  r.description ?? '—',
+                ]),
+              )
+            : [],
+      };
+    }
+    case 'balance-sheet': {
+      const d = data as BalanceSheetReportDto;
+      return {
+        orientation: 'portrait',
+        summaries: [
+          { label: 'As of date', value: fmtDisplayDate(d.asOfDate) },
+          { label: 'Total assets (PKR)', value: formatCurrency(d.totalAssets) },
+          { label: 'Total liabilities (PKR)', value: formatCurrency(d.totalLiabilities) },
+          { label: 'Equity (proxy) (PKR)', value: formatCurrency(d.equityProxy) },
+        ],
+        headers: ['Section', 'Label', 'Amount (PKR)'],
+        rows:
+          d.lines.length > 0
+            ? d.lines.map((l) => asStrings([l.section, l.label, formatCurrency(l.amount)]))
             : [],
       };
     }

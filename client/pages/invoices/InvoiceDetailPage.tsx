@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Form,
   FormControl,
@@ -414,6 +415,7 @@ export default function InvoiceDetailPage() {
   const { hasPermission } = useAuth();
   const pdfRef = useRef<HTMLDivElement>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [showWarranty, setShowWarranty] = useState(false);
 
   const invoiceId = useMemo(() => {
     const n = parseInt(id ?? '', 10);
@@ -561,16 +563,26 @@ export default function InvoiceDetailPage() {
             {getInvoiceStatusLabel(invoice.status)}
           </Badge>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="gap-2"
-          disabled={pdfBusy}
-          onClick={handleDownloadPdf}
-        >
-          {pdfBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          Download PDF
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <label className="flex cursor-pointer items-center gap-2 text-sm select-none">
+            <Checkbox
+              id="toggle-warranty"
+              checked={showWarranty}
+              onCheckedChange={(checked) => setShowWarranty(!!checked)}
+            />
+            <span className="text-muted-foreground">Include Warranty</span>
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-2"
+            disabled={pdfBusy}
+            onClick={handleDownloadPdf}
+          >
+            {pdfBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Download PDF
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.85fr)]">
@@ -581,7 +593,7 @@ export default function InvoiceDetailPage() {
           </CardHeader>
           <CardContent className="overflow-x-auto bg-slate-100/80 p-6">
             <div className="flex justify-center">
-              <InvoiceTemplate ref={pdfRef} invoice={invoice} />
+              <InvoiceTemplate ref={pdfRef} invoice={invoice} showWarranty={showWarranty} />
             </div>
           </CardContent>
         </Card>

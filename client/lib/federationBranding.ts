@@ -28,6 +28,7 @@ export function getApiAssetBaseUrl(): string {
 }
 
 export function resolveMediaUrl(path?: string | null, fallback = FALLBACK_LOGO): string {
+  console.log('path:', path)
   if (!path) return fallback;
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   const normalized = path.startsWith('/') ? path : `/${path}`;

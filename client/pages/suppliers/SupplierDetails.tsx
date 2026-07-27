@@ -102,7 +102,7 @@ export default function SupplierDetails() {
                     <AlertCircle className="h-12 w-12 text-destructive" />
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Supplier Not Found</h2>
+                    <h2 className="text-3xl font-black tracking-tight text-foreground uppercase">Supplier Not Found</h2>
                     <p className="text-muted-foreground max-sm text-balance">
                         This supplier record may have been removed or you may not have permission to view it.
                     </p>
@@ -134,7 +134,7 @@ export default function SupplierDetails() {
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="font-bold text-slate-900">Supplier Details</BreadcrumbPage>
+                            <BreadcrumbPage className="font-bold text-foreground">Supplier Details</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
@@ -142,28 +142,28 @@ export default function SupplierDetails() {
             {/* High-Fidelity Header */}
             <motion.div variants={itemVariants} className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-5">
-                    <div className="hidden md:flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 shadow-inner">
+                    <div className="hidden md:flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50 shadow-inner">
                         <Building className="h-8 w-8" />
                     </div>
                     <div className="space-y-1">
                         <div className="flex items-center gap-3 flex-wrap">
-                            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                            <h1 className="text-4xl font-extrabold tracking-tight text-foreground leading-tight">
                                 {supplier.supplierName}
                             </h1>
                             <Badge variant={supplier.isActive ? 'default' : 'secondary'} className={cn(
                                 "px-3 py-1 font-black uppercase tracking-widest text-[10px]",
-                                supplier.isActive ? "bg-emerald-500 hover:bg-emerald-600" : "bg-slate-200 text-slate-500"
+                                supplier.isActive ? "bg-emerald-500 hover:bg-emerald-600" : "bg-muted text-muted-foreground"
                             )}>
                                 {supplier.isActive ? 'Active' : 'Inactive'}
                             </Badge>
                         </div>
-                        <div className="flex items-center gap-3 text-slate-500 text-sm font-medium">
+                        <div className="flex items-center gap-3 text-muted-foreground text-sm font-medium">
                             <span className="flex items-center gap-1.5 font-mono text-[10px]">
-                                <Globe className="w-3.5 h-3.5 text-blue-500/70" /> ID-{supplier.id.toString().padStart(4, '0')}
+                                <Globe className="w-3.5 h-3.5 text-blue-500/70 dark:text-blue-400/70" /> ID-{supplier.id.toString().padStart(4, '0')}
                             </span>
-                            <span className="w-1 h-1 rounded-full bg-slate-300" />
+                            <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
                             <span className="flex items-center gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-rose-500/60" /> {supplier.city}, {supplier.state}
+                                <MapPin className="w-3.5 h-3.5 text-rose-500/60 dark:text-rose-400/60" /> {supplier.city}, {supplier.state}
                             </span>
                         </div>
                     </div>
@@ -172,23 +172,23 @@ export default function SupplierDetails() {
                 <div className="flex items-center gap-3">
                     <Button
                         variant="outline"
-                        className="gap-2 h-11 px-5 border-slate-200 hover:bg-slate-50 shadow-sm transition-all hover:scale-[1.02]"
+                        className="gap-2 h-11 px-5 border-border hover:bg-muted/50 shadow-sm transition-all hover:scale-[1.02]"
                         onClick={() => navigate(`/reports/vendor-ledger?supplierId=${supplier.id}`)}
                     >
-                        <FileText className="w-4 h-4 text-emerald-600" />
-                        <span className="font-bold text-slate-700">Vendor ledger</span>
+                        <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="font-bold text-foreground/90">Vendor ledger</span>
                     </Button>
                     {canUpdate && (
                         <Button
                             variant="outline"
-                            className="gap-2 h-11 px-5 border-slate-200 hover:bg-slate-50 shadow-sm transition-all hover:scale-[1.02]"
+                            className="gap-2 h-11 px-5 border-border hover:bg-muted/50 shadow-sm transition-all hover:scale-[1.02]"
                             onClick={() => {
                                 toast.info('Opening supplier editor...');
                                 navigate(`/suppliers?edit=${supplier.id}`);
                             }}
                         >
-                            <Edit2 className="w-4 h-4 text-blue-600" />
-                            <span className="font-bold text-slate-700">Edit Supplier</span>
+                            <Edit2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <span className="font-bold text-foreground/90">Edit Supplier</span>
                         </Button>
                     )}
                     <Button
@@ -207,47 +207,47 @@ export default function SupplierDetails() {
                 <div className="lg:col-span-8 space-y-8">
                     {/* Core Identity & Contact Card */}
                     <motion.div variants={itemVariants}>
-                        <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
-                            <CardHeader className="bg-slate-50/80 border-b py-4">
-                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                    <Contact className="w-4 h-4 text-blue-500" /> Contact Information
+                        <Card className="overflow-hidden border-border shadow-xl">
+                            <CardHeader className="bg-muted/80 border-b py-4">
+                                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                    <Contact className="w-4 h-4 text-blue-500 dark:text-blue-400" /> Contact Information
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-8 pb-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                     <div className="space-y-6">
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Person</p>
-                                            <p className="text-lg font-bold text-slate-800">{supplier.contactPerson}</p>
+                                            <p className="text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Contact Person</p>
+                                            <p className="text-lg font-bold text-foreground">{supplier.contactPerson}</p>
                                         </div>
                                         <div className="space-y-4">
                                             <div className="flex items-center gap-4 group">
-                                                <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                                                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-blue-50 dark:bg-blue-500/10 group-hover:text-blue-600 dark:text-blue-400 transition-colors">
                                                     <Phone className="w-5 h-5" />
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Phone Number</p>
-                                                    <p className="font-bold text-slate-700">{supplier.phoneNumber}</p>
+                                                    <p className="text-[9px] font-black text-muted-foreground/70 uppercase tracking-widest leading-none">Phone Number</p>
+                                                    <p className="font-bold text-foreground/90">{supplier.phoneNumber}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4 group">
-                                                <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                                                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-blue-50 dark:bg-blue-500/10 group-hover:text-blue-600 dark:text-blue-400 transition-colors">
                                                     <Mail className="w-5 h-5" />
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Email Address</p>
-                                                    <p className="font-bold text-slate-700">{supplier.email}</p>
+                                                    <p className="text-[9px] font-black text-muted-foreground/70 uppercase tracking-widest leading-none">Email Address</p>
+                                                    <p className="font-bold text-foreground/90">{supplier.email}</p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-6 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+                                    <div className="space-y-6 bg-muted/50 p-6 rounded-2xl border border-border">
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Address</p>
+                                            <p className="text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Address</p>
                                             <div className="flex items-start gap-3 pt-2">
                                                 <MapPin className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-                                                <p className="text-sm font-medium text-slate-600 leading-relaxed">
+                                                <p className="text-sm font-medium text-muted-foreground leading-relaxed">
                                                     {supplier.address},<br />
                                                     {supplier.city}, {supplier.state} {supplier.postalCode},<br />
                                                     {supplier.country}
@@ -260,11 +260,11 @@ export default function SupplierDetails() {
                                 <Separator className="my-8" />
 
                                 <div className="space-y-4">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                        <FileText className="w-3 h-3 text-blue-500" /> Notes
+                                    <p className="text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest flex items-center gap-2">
+                                        <FileText className="w-3 h-3 text-blue-500 dark:text-blue-400" /> Notes
                                     </p>
-                                    <div className="bg-slate-50 p-5 rounded-2xl border border-dashed border-slate-200">
-                                        <p className="text-sm text-slate-600 leading-relaxed italic">
+                                    <div className="bg-muted/50 p-5 rounded-2xl border border-dashed border-border">
+                                        <p className="text-sm text-muted-foreground leading-relaxed italic">
                                             {supplier.notes || "No notes added for this supplier yet."}
                                         </p>
                                     </div>
@@ -277,8 +277,8 @@ export default function SupplierDetails() {
                     <motion.div variants={itemVariants} className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Linked Products</h3>
-                                <p className="text-sm text-slate-500 font-medium">Products supplied by this supplier.</p>
+                                <h3 className="text-xl font-bold text-foreground tracking-tight">Linked Products</h3>
+                                <p className="text-sm text-muted-foreground font-medium">Products supplied by this supplier.</p>
                             </div>
                             <Button
                                 onClick={() => setIsLinkModalOpen(true)}
@@ -287,7 +287,7 @@ export default function SupplierDetails() {
                                 <Zap className="w-4 h-4 mr-2" /> Link Product
                             </Button>
                         </div>
-                        <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
+                        <Card className="overflow-hidden border-border shadow-xl">
                             <LinkedProductsTable supplierId={supplierId!} />
                         </Card>
                     </motion.div>
@@ -306,14 +306,14 @@ export default function SupplierDetails() {
                     <div className="sticky top-24 space-y-8">
                         {/* Financial Equilibrium Card */}
                         <motion.div variants={itemVariants}>
-                            <Card className="overflow-hidden border-blue-200 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 shadow-xl shadow-blue-100/60 relative">
+                            <Card className="overflow-hidden border-blue-200 dark:border-blue-900/50 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 shadow-xl shadow-blue-100/60 relative">
                                 {/* Decorative blobs */}
                                 <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" />
                                 <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-indigo-300/20 blur-2xl pointer-events-none" />
                                 <div className="absolute -right-4 -bottom-4 opacity-5 rotate-12">
-                                    <TrendingUp className="h-48 w-48 text-blue-900" />
+                                    <TrendingUp className="h-48 w-48 text-blue-900 dark:text-blue-300" />
                                 </div>
-                                <CardHeader className="border-b border-blue-200/70 pb-4 relative z-10">
+                                <CardHeader className="border-b border-blue-200/70 dark:border-blue-900/50 pb-4 relative z-10">
                                     <div className="flex justify-between items-center">
                                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 bg-clip-text text-transparent">
                                             Account Balance
@@ -325,22 +325,22 @@ export default function SupplierDetails() {
                                 </CardHeader>
                                 <CardContent className="pt-10 pb-8 space-y-8 relative z-10">
                                     <div className="space-y-3 text-center">
-                                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">Amount Payable (PKR)</p>
+                                        <p className="text-[10px] font-black text-blue-500 dark:text-blue-400 uppercase tracking-[0.3em]">Amount Payable (PKR)</p>
                                         <h2 className={cn(
                                             "text-5xl font-black tracking-tighter leading-none mb-2",
-                                            payable > creditLimit ? "text-rose-500" : "text-blue-700"
+                                            payable > creditLimit ? "text-rose-500 dark:text-rose-400" : "text-blue-700 dark:text-blue-400"
                                         )}>
                                             {formatCurrency(payable)}
                                         </h2>
                                     </div>
 
-                                    <div className="grid grid-cols-1 gap-3 border-t border-blue-200/60 pt-6 px-2">
-                                        <div className="flex items-center justify-between p-4 rounded-xl bg-white/60 border border-blue-100 shadow-sm">
+                                    <div className="grid grid-cols-1 gap-3 border-t border-blue-200/60 dark:border-blue-900/50 pt-6 px-2">
+                                        <div className="flex items-center justify-between p-4 rounded-xl bg-card/60 border border-blue-100 dark:border-blue-900/50 shadow-sm">
                                             <div className="space-y-0.5">
-                                                <p className="text-[9px] font-black text-blue-500 uppercase">Credit limit (PKR)</p>
-                                                <p className="text-lg font-black text-slate-800">{formatCurrency(creditLimit)}</p>
+                                                <p className="text-[9px] font-black text-blue-500 dark:text-blue-400 uppercase">Credit limit (PKR)</p>
+                                                <p className="text-lg font-black text-foreground">{formatCurrency(creditLimit)}</p>
                                             </div>
-                                            <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                                            <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:text-blue-400">
                                                 <CreditCard className="w-5 h-5" />
                                             </div>
                                         </div>
@@ -368,26 +368,26 @@ export default function SupplierDetails() {
                                             Loading balance analytics…
                                         </p>
                                     ) : balanceDetail ? (
-                                        <div className="space-y-3 border-t border-blue-200/60 pt-6 px-2 text-left">
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-blue-500">
+                                        <div className="space-y-3 border-t border-blue-200/60 dark:border-blue-900/50 pt-6 px-2 text-left">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-blue-500 dark:text-blue-400">
                                                 From balance API
                                             </p>
                                             <div className="grid grid-cols-2 gap-2 text-xs">
-                                                <div className="rounded-lg bg-white/70 border border-blue-100 p-3">
+                                                <div className="rounded-lg bg-card/70 border border-blue-100 dark:border-blue-900/50 p-3">
                                                     <p className="text-[9px] font-bold text-muted-foreground uppercase">Available credit (PKR)</p>
-                                                    <p className="font-black tabular-nums text-slate-800">{formatCurrency(balanceDetail.availableCredit)}</p>
+                                                    <p className="font-black tabular-nums text-foreground">{formatCurrency(balanceDetail.availableCredit)}</p>
                                                 </div>
-                                                <div className="rounded-lg bg-white/70 border border-blue-100 p-3">
+                                                <div className="rounded-lg bg-card/70 border border-blue-100 dark:border-blue-900/50 p-3">
                                                     <p className="text-[9px] font-bold text-muted-foreground uppercase">Total PO value (PKR)</p>
-                                                    <p className="font-black tabular-nums text-slate-800">{formatCurrency(balanceDetail.totalPurchaseAmount)}</p>
+                                                    <p className="font-black tabular-nums text-foreground">{formatCurrency(balanceDetail.totalPurchaseAmount)}</p>
                                                 </div>
-                                                <div className="rounded-lg bg-white/70 border border-blue-100 p-3">
+                                                <div className="rounded-lg bg-card/70 border border-blue-100 dark:border-blue-900/50 p-3">
                                                     <p className="text-[9px] font-bold text-muted-foreground uppercase">Total paid (PKR)</p>
-                                                    <p className="font-black tabular-nums text-emerald-700">{formatCurrency(balanceDetail.totalPaidAmount)}</p>
+                                                    <p className="font-black tabular-nums text-emerald-700 dark:text-emerald-400">{formatCurrency(balanceDetail.totalPaidAmount)}</p>
                                                 </div>
-                                                <div className="rounded-lg bg-white/70 border border-blue-100 p-3">
+                                                <div className="rounded-lg bg-card/70 border border-blue-100 dark:border-blue-900/50 p-3">
                                                     <p className="text-[9px] font-bold text-muted-foreground uppercase">PO counts</p>
-                                                    <p className="font-bold text-slate-800">
+                                                    <p className="font-bold text-foreground">
                                                         {balanceDetail.pendingOrders} pending · {balanceDetail.completedOrders} done
                                                     </p>
                                                 </div>
@@ -401,24 +401,24 @@ export default function SupplierDetails() {
 
                         {/* Regulatory Governance Card */}
                         <motion.div variants={itemVariants}>
-                            <Card className="border-slate-200 shadow-xl shadow-slate-200/50">
-                                <CardHeader className="pb-3 border-b bg-slate-50/50">
-                                    <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                        <Banknote className="w-4 h-4 text-emerald-500" /> Business Details
+                            <Card className="border-border shadow-xl">
+                                <CardHeader className="pb-3 border-b bg-muted/50">
+                                    <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                        <Banknote className="w-4 h-4 text-emerald-500 dark:text-emerald-400" /> Business Details
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="pt-8 space-y-6">
                                     <div className="flex justify-between items-center">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">NTN Number</p>
-                                        <p className="font-mono text-sm font-bold text-slate-800">{supplier.taxNumber}</p>
+                                        <p className="text-[9px] font-black text-muted-foreground/70 uppercase tracking-widest">NTN Number</p>
+                                        <p className="font-mono text-sm font-bold text-foreground">{supplier.taxNumber}</p>
                                     </div>
                                     <div className="flex justify-between items-center border-t pt-6">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">License Number</p>
-                                        <p className="text-sm font-bold text-slate-800">{supplier.licenseNumber || 'N/A'}</p>
+                                        <p className="text-[9px] font-black text-muted-foreground/70 uppercase tracking-widest">License Number</p>
+                                        <p className="text-sm font-bold text-foreground">{supplier.licenseNumber || 'N/A'}</p>
                                     </div>
                                     <div className="flex justify-between items-center border-t pt-6">
-                                        <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Payment Days</p>
-                                        <Badge className="bg-blue-50 text-blue-600 border-blue-100 font-black text-[10px]">
+                                        <p className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Payment Days</p>
+                                        <Badge className="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/50 font-black text-[10px]">
                                             {supplier.paymentTermDays} Days
                                         </Badge>
                                     </div>
@@ -428,9 +428,9 @@ export default function SupplierDetails() {
 
                         {/* Balance API shortcuts */}
                         <motion.div variants={itemVariants}>
-                            <Card className="border-slate-200 shadow-none">
-                                <CardHeader className="pb-3 bg-slate-50/30 border-b">
-                                    <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                            <Card className="border-border shadow-none">
+                                <CardHeader className="pb-3 bg-muted/30 border-b">
+                                    <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                                         Activity
                                     </CardTitle>
                                 </CardHeader>
@@ -444,8 +444,8 @@ export default function SupplierDetails() {
                                         }
                                     >
                                         <span className="flex items-center gap-3">
-                                            <History className="w-5 h-5 text-blue-500" />
-                                            <span className="text-xs font-bold text-slate-700 text-left">Purchase order list</span>
+                                            <History className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                                            <span className="text-xs font-bold text-foreground/90 text-left">Purchase order list</span>
                                         </span>
                                         <span className="text-[10px] font-black text-muted-foreground uppercase">View</span>
                                     </Button>

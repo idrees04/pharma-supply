@@ -24,6 +24,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Card } from '@/components/ui/card';
+import { TableCard } from '@/components/common/TableCard';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -349,6 +350,7 @@ export default function InvoiceList() {
       accessor: (row) => formatDate(row.invoiceDate),
       mobileHidden: true,
       className: 'w-24',
+      id: 'invoiceDate',
     },
     {
       header: 'Due Date',
@@ -458,41 +460,43 @@ export default function InvoiceList() {
       />
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="overflow-hidden border-border/70 shadow-sm">
-          <div className="flex flex-col gap-1 border-b bg-muted/30 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div>
-              <h2 className="text-base font-semibold tracking-tight">All invoices</h2>
-              <p className="text-xs text-muted-foreground">Click any row to open the preview drawer.</p>
-            </div>
-            {(isLoadingOutstanding || isLoadingOverdue) ? (
+        <TableCard
+          icon={<ReceiptText />}
+          title="All invoices"
+          description="Click any row to open the preview drawer."
+          count={invoicesResponse?.data.totalCount ?? invoices.length}
+          countLabel={(c) => `${c} invoice(s)`}
+          actions={
+            (isLoadingOutstanding || isLoadingOverdue) ? (
               <Badge variant="outline" className="w-fit text-xs font-normal">
                 Refreshing insights…
               </Badge>
-            ) : null}
-          </div>
-          <div className="p-2 sm:p-4">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={debouncedSearch || 'all-invoices'}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <DataTable
-                  columns={columns}
-                  data={invoices}
-                  isLoading={isLoadingInvoices}
-                  itemsPerPage={ITEMS_PER_PAGE}
-                  emptyMessage="No invoices match your search."
-                  showSearch={false}
-                  showColumnVisibility={false}
-                  showToolbar={false}
-                  onRowClick={handleRowClick}
-                />
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </Card>
+            ) : null
+          }
+          contentClassName="p-2 sm:p-4 pt-2 sm:pt-4"
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={debouncedSearch || 'all-invoices'}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <DataTable
+                columns={columns}
+                data={invoices}
+                isLoading={isLoadingInvoices}
+                itemsPerPage={ITEMS_PER_PAGE}
+                emptyMessage="No invoices match your search."
+                showSearch={false}
+                showColumnVisibility={false}
+                showToolbar={false}
+                defaultSort={{ id: 'invoiceDate', desc: false }}
+                onRowClick={handleRowClick}
+              />
+            </motion.div>
+          </AnimatePresence>
+        </TableCard>
       </motion.div>
 
       <Sheet open={selectedInvoiceId !== null} onOpenChange={(open) => !open && setSelectedInvoiceId(null)}>

@@ -3,7 +3,8 @@ import { useStore, DeliveryChallan } from '@/hooks/useStore';
 import { useAuth } from '@/context/AuthContext';
 import { DataTable, Column } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Truck } from 'lucide-react';
+import { TableCard } from '@/components/common/TableCard';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import DeliveryChallanForm from './DeliveryChallanForm';
@@ -107,7 +108,13 @@ export default function DeliveryChallanList() {
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-lg border border-border">
+      <TableCard
+        icon={<Truck />}
+        title="All delivery challans"
+        count={filteredDCs.length}
+        countLabel={(c) => `${c} challan(s)`}
+        contentClassName="p-2 sm:p-4"
+      >
         <DataTable
           columns={columns}
           data={filteredDCs}
@@ -118,8 +125,9 @@ export default function DeliveryChallanList() {
           onDelete={canDelete ? (dc) => setIsDeleteConfirming(dc.id) : undefined}
           emptyMessage="No delivery challans found. Create your first DC to get started."
           resetSortTrigger={refreshTrigger}
+          defaultSort={{ id: 'id', desc: false }}
         />
-      </div>
+      </TableCard>
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

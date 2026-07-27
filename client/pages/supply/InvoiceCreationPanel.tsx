@@ -118,6 +118,7 @@ export function InvoiceCreationPanel({
   const invoiceTemplateRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<'form' | 'preview' | 'generating'>('form');
   const [generatedInvoiceData, setGeneratedInvoiceData] = useState<InvoiceDto | null>(null);
+  const [showWarranty, setShowWarranty] = useState(false);
 
   const { data: deliveryChallans = [], isPending: loadingChallans } =
     useSupplyOrderDeliveryChallans(supplyOrderId);
@@ -545,6 +546,27 @@ export function InvoiceCreationPanel({
               )}
             />
 
+            <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <Checkbox
+                id="invoice-show-warranty"
+                checked={showWarranty}
+                onCheckedChange={(checked) => setShowWarranty(!!checked)}
+                className="mt-0.5 shrink-0"
+              />
+              <div>
+                <label
+                  htmlFor="invoice-show-warranty"
+                  className="cursor-pointer text-sm font-semibold text-slate-700"
+                >
+                  Include Warranty declaration on invoice
+                </label>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  When checked, the statutory drugs warranty clause (Drugs Act 1976 §23) will appear
+                  on the printed invoice and PDF.
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-3">
               <Label className="text-sm font-semibold text-slate-800">Invoice lines</Label>
               <p className="text-xs text-muted-foreground">
@@ -670,7 +692,7 @@ export function InvoiceCreationPanel({
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
         <div className="max-h-[600px] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-8">
-          <InvoiceTemplate ref={invoiceTemplateRef} invoice={generatedInvoiceData} />
+          <InvoiceTemplate ref={invoiceTemplateRef} invoice={generatedInvoiceData} showWarranty={showWarranty} />
         </div>
 
         <div className="flex justify-end gap-3 border-t pt-6">

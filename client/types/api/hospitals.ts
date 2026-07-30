@@ -27,6 +27,9 @@ export interface Hospital {
   creditTermDays: number;
   creditLimit: number;
   outstandingBalance: number;
+  openingBalance: number;
+  openingBalanceSettled: number;
+  openingBalanceRemaining: number;
   status: number;
   isActive: boolean;
 }
@@ -49,6 +52,7 @@ export interface CreateHospitalRequest {
   hospitalType: number;
   creditTermDays: number;
   creditLimit: number;
+  openingBalance?: number;
 }
 
 /**
@@ -69,6 +73,7 @@ export interface UpdateHospitalRequest {
   hospitalType: number;
   creditTermDays: number;
   creditLimit: number;
+  openingBalance?: number;
   status: number;
   isActive: boolean;
 }

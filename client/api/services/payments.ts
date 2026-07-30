@@ -9,8 +9,10 @@ import {
     CreatePaymentResponse,
     UpdatePaymentResponse,
     DeletePaymentResponse,
+    OpeningBalanceSettlementRequest,
+    OpeningBalanceSuggestionDto,
 } from '@/types/api/payments';
-import { PaginatedResponse } from '@/types/api/common';
+import { PaginatedResponse, ApiResponse } from '@/types/api/common';
 import { useGetQuery, usePostMutation, usePutMutation, useDeleteMutation } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -82,6 +84,30 @@ export const paymentService = {
     deletePayment: async (id: number, config?: RequestConfig): Promise<void> => {
         await deleteRequest<DeletePaymentResponse>(`/api/Payments/${id}`, config);
     },
+
+    getOpeningBalanceSuggestion: async (
+        partyType: number,
+        partyId: number,
+        config?: RequestConfig
+    ): Promise<OpeningBalanceSuggestionDto> => {
+        const response = await get<ApiResponse<OpeningBalanceSuggestionDto>>(
+            `/api/Payments/opening-balance-suggestion?partyType=${partyType}&partyId=${partyId}`,
+            config
+        );
+        return response.data;
+    },
+
+    settleOpeningBalance: async (
+        data: OpeningBalanceSettlementRequest,
+        config?: RequestConfig
+    ): Promise<PaymentDto> => {
+        const response = await post<CreatePaymentResponse, OpeningBalanceSettlementRequest>(
+            '/api/Payments/opening-balance',
+            data,
+            config
+        );
+        return response.data;
+    },
 };
 
 /**
@@ -140,6 +166,32 @@ export function useDeletePayment() {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: ['payments'] });
+            },
+        }
+    );
+}
+
+export function useOpeningBalanceSuggestion(partyType: number | null, partyId: number | null) {
+    return useGetQuery<OpeningBalanceSuggestionDto>(
+        ['payments', 'opening-balance-suggestion', partyType, partyId],
+        () => paymentService.getOpeningBalanceSuggestion(partyType!, partyId!),
+        {
+            enabled: partyType != null && partyId != null && partyId > 0,
+            staleTime: 30 * 1000,
+        }
+    );
+}
+
+export function useSettleOpeningBalance() {
+    const queryClient = useQueryClient();
+    return usePostMutation<PaymentDto, OpeningBalanceSettlementRequest>(
+        (data) => paymentService.settleOpeningBalance(data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['payments'] });
+                queryClient.invalidateQueries({ queryKey: ['hospitals'] });
+                queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+                queryClient.invalidateQueries({ queryKey: ['accounts'] });
             },
         }
     );

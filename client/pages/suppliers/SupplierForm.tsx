@@ -48,6 +48,7 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
           licenseNumber: supplier.licenseNumber,
           paymentTermDays: supplier.paymentTermDays,
           creditLimit: supplier.creditLimit,
+          openingBalance: supplier.openingBalance ?? 0,
           notes: supplier.notes,
           status: supplier.status,
           isActive: supplier.isActive,
@@ -55,6 +56,7 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
       : {
           paymentTermDays: 0,
           creditLimit: 0,
+          openingBalance: 0,
           notes: '',
           status: 1,
           isActive: true,
@@ -81,6 +83,7 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
         licenseNumber: data.licenseNumber,
         paymentTermDays: data.paymentTermDays,
         creditLimit: data.creditLimit,
+        openingBalance: data.openingBalance ?? 0,
         status: data.status || 1,
         notes: data.notes,
         isActive: data.isActive,
@@ -111,6 +114,7 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
         licenseNumber: data.licenseNumber,
         paymentTermDays: data.paymentTermDays,
         creditLimit: data.creditLimit,
+        openingBalance: data.openingBalance ?? 0,
         notes: data.notes,
       };
 
@@ -319,6 +323,19 @@ export default function SupplierForm({ supplier, onClose }: SupplierFormProps) {
                 <FormLabel>Credit Limit</FormLabel>
                 <FormControl>
                   <Input type="number" placeholder="e.g., 100000" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="openingBalance"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Opening Balance</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="e.g., 50000" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -59,6 +59,7 @@ export const supplierSchema = z.object({
     .int()
     .min(0, "Payment Term Days must be non-negative"),
   creditLimit: z.coerce.number().min(0, "Credit Limit must be non-negative"),
+  openingBalance: z.coerce.number().min(0, "Opening Balance must be non-negative").optional().default(0),
   notes: z.string().optional().default(""),
   status: z.coerce
     .number()
@@ -89,6 +90,7 @@ export const hospitalSchema = z.object({
     .int()
     .min(0, "Credit Term Days must be non-negative"),
   creditLimit: z.coerce.number().min(0, "Credit Limit must be non-negative"),
+  openingBalance: z.coerce.number().min(0, "Opening Balance must be non-negative").optional().default(0),
   status: z.coerce
     .number()
     .int()

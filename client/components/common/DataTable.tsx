@@ -49,6 +49,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, RefreshCcw } from 'lucide-react';
 
 export interface Column<T> {
   header: string;
@@ -56,6 +59,21 @@ export interface Column<T> {
   className?: string;
   id?: string;
   mobileHidden?: boolean;
+  /** Explicit min column width (e.g. '80px'). Falls back to an auto-estimate from the header length. */
+  minWidth?: string;
+  /** Explicit max column width (e.g. '320px'). Only constrains growth; content can still wrap/truncate. */
+  maxWidth?: string;
+  /** Text alignment for both header and cell content. Defaults to 'left'. */
+  align?: 'left' | 'center' | 'right';
+}
+
+/** Enterprise-standard page size choices; itemsPerPage is always included even if not in this list. */
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 150, 200];
+
+/** Rough content-aware width estimate so short columns (e.g. "Status") don't reserve as much space as long ones. */
+function estimateMinWidth(header: string): string {
+  const px = Math.min(220, Math.max(88, header.length * 9 + 48));
+  return `${px}px`;
 }
 
 interface DataTableProps<T> {
@@ -82,6 +100,16 @@ interface DataTableProps<T> {
    * the standardized table convention used across the app.
    */
   defaultSort?: { id: string; desc?: boolean };
+  /** Show a "Rows" page-size selector in the pagination footer. Defaults to true (ignored if hidePaginationFooter is set). */
+  showPageSizeSelector?: boolean;
+  /** Options for the page-size selector. Defaults to [10, 20, 50, 100, 150, 200]. */
+  pageSizeOptions?: number[];
+  /** Called when the user changes the page size via the selector. */
+  onPageSizeChange?: (size: number) => void;
+  /** Error message to display instead of the table body. When set (and isLoading is false), the table renders an error state. */
+  error?: string | null;
+  /** Retry handler shown alongside the error state, when provided. */
+  onRetry?: () => void;
 }
 
 export function DataTable<T extends { id?: string | number }>({
@@ -101,6 +129,11 @@ export function DataTable<T extends { id?: string | number }>({
   preserveServerOrder = false,
   hidePaginationFooter = false,
   defaultSort,
+  showPageSizeSelector = true,
+  pageSizeOptions,
+  onPageSizeChange,
+  error = null,
+  onRetry,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = React.useState<SortingState>(() =>
     defaultSort ? [{ id: defaultSort.id, desc: defaultSort.desc ?? false }] : [],
@@ -108,6 +141,11 @@ export function DataTable<T extends { id?: string | number }>({
   const [globalFilter, setGlobalFilter] = React.useState('');
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [expandedRows, setExpandedRows] = React.useState<Record<string | number, boolean>>({});
+
+  const resolvedPageSizeOptions = React.useMemo(() => {
+    const opts = pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS;
+    return opts.includes(itemsPerPage) ? opts : [...opts, itemsPerPage].sort((a, b) => a - b);
+  }, [pageSizeOptions, itemsPerPage]);
 
   React.useEffect(() => {
     if (resetSortTrigger && resetSortTrigger > 0) {
@@ -133,13 +171,18 @@ export function DataTable<T extends { id?: string | number }>({
         id,
         meta: {
           label: col.header,
-        } satisfies { label: string },
+          minWidth: col.minWidth ?? estimateMinWidth(col.header),
+          maxWidth: col.maxWidth,
+          align: col.align ?? 'left',
+        } satisfies { label: string; minWidth: string; maxWidth?: string; align: 'left' | 'center' | 'right' },
         header: ({ column }) => {
           return (
             <div
               className={cn(
                 'flex items-center gap-1 select-none group',
                 preserveServerOrder ? 'cursor-default' : 'cursor-pointer',
+                col.align === 'right' && 'justify-end',
+                col.align === 'center' && 'justify-center',
                 col.className,
                 col.mobileHidden && 'hidden md:flex',
               )}
@@ -190,6 +233,7 @@ export function DataTable<T extends { id?: string | number }>({
     if (renderExpandedRow) {
       cols.unshift({
         id: 'expander',
+        meta: { label: '', minWidth: '48px', maxWidth: '48px' } satisfies { label: string; minWidth: string; maxWidth?: string },
         header: () => <div className="w-8 md:hidden" />,
         cell: ({ row }) => (
           <Button
@@ -212,6 +256,11 @@ export function DataTable<T extends { id?: string | number }>({
     if (onEdit || onDelete) {
       cols.push({
         id: 'actions',
+        meta: {
+          label: 'Actions',
+          minWidth: onEdit && onDelete ? '96px' : '64px',
+          maxWidth: onEdit && onDelete ? '96px' : '64px',
+        } satisfies { label: string; minWidth: string; maxWidth?: string },
         header: () => <div className="text-right">Actions</div>,
         cell: ({ row }) => (
           <div className="flex justify-end gap-1">
@@ -268,6 +317,8 @@ export function DataTable<T extends { id?: string | number }>({
     return copy;
   }, [data, sorting, preserveServerOrder]);
 
+  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: itemsPerPage });
+
   const table = useReactTable({
     data: sortedData,
     columns,
@@ -275,28 +326,75 @@ export function DataTable<T extends { id?: string | number }>({
       sorting,
       globalFilter,
       columnVisibility,
+      pagination,
     },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: setPagination,
     enableSorting: !preserveServerOrder,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    initialState: {
-      pagination: {
-        pageSize: itemsPerPage,
-      },
-    },
   });
+
+  const handlePageSizeChange = (size: number) => {
+    table.setPageSize(size);
+    onPageSizeChange?.(size);
+  };
+
+  const columnCount = columns.length;
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="text-sm text-muted-foreground animate-pulse">Loading data records...</p>
+      <div className="space-y-4">
+        <div className="border border-border rounded-xl overflow-hidden bg-background shadow-sm w-full">
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow className="bg-muted/30 hover:bg-muted/30 border-b">
+                {Array.from({ length: columnCount }).map((_, i) => (
+                  <TableHead key={i} className="h-11 px-4">
+                    <Skeleton className="h-4 w-16" />
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 8 }).map((_, rowIdx) => (
+                <TableRow key={rowIdx} className="border-b last:border-0">
+                  {Array.from({ length: columnCount }).map((_, colIdx) => (
+                    <TableCell key={colIdx} className="py-3 px-4">
+                      <Skeleton
+                        className="h-4"
+                        style={{ width: colIdx === 0 ? '60%' : `${70 - (rowIdx % 3) * 10}%` }}
+                      />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="text-center text-sm text-muted-foreground animate-pulse">Loading data records...</p>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="flex flex-col items-start gap-3">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </div>
+        {onRetry && (
+          <Button variant="outline" size="sm" onClick={onRetry} className="gap-2">
+            <RefreshCcw className="h-3.5 w-3.5" />
+            Retry
+          </Button>
+        )}
+      </Alert>
     );
   }
 
@@ -354,13 +452,22 @@ export function DataTable<T extends { id?: string | number }>({
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="bg-muted/30 hover:bg-muted/30 border-b">
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="h-11 font-bold text-foreground whitespace-nowrap min-w-[120px] px-4 sticky top-0 bg-muted/90 backdrop-blur-sm z-10 before:absolute before:inset-0 before:-z-10 before:bg-background/50">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const meta = header.column.columnDef.meta as
+                    | { label?: string; minWidth?: string; maxWidth?: string }
+                    | undefined;
+                  return (
+                    <TableHead
+                      key={header.id}
+                      className="h-11 font-bold text-foreground whitespace-nowrap px-4 sticky top-0 bg-muted/90 backdrop-blur-sm z-10 before:absolute before:inset-0 before:-z-10 before:bg-background/50"
+                      style={{ minWidth: meta?.minWidth, maxWidth: meta?.maxWidth }}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             ))}
           </TableHeader>
@@ -376,11 +483,23 @@ export function DataTable<T extends { id?: string | number }>({
                     )}
                     onClick={() => onRowClick?.(row.original)}
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-3 px-4">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const meta = cell.column.columnDef.meta as
+                        | { align?: 'left' | 'center' | 'right' }
+                        | undefined;
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            'py-3 px-4',
+                            meta?.align === 'right' && 'text-right',
+                            meta?.align === 'center' && 'text-center',
+                          )}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
 
                   {/* Expanded Content for Mobile */}
@@ -454,6 +573,26 @@ export function DataTable<T extends { id?: string | number }>({
           </span> of {' '}
           <span className="text-foreground">{table.getFilteredRowModel().rows.length}</span> results
         </div>
+        <div className="flex items-center gap-4">
+          {showPageSizeSelector && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase text-muted-foreground hidden sm:inline">
+                Rows
+              </span>
+              <select
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs font-medium"
+                value={table.getState().pagination.pageSize}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                aria-label="Rows per page"
+              >
+                {resolvedPageSizeOptions.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
@@ -494,6 +633,7 @@ export function DataTable<T extends { id?: string | number }>({
           >
             <ChevronLast className="h-4 w-4" />
           </Button>
+        </div>
         </div>
       </div>
       ) : null}

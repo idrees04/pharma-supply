@@ -14,14 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { DataTable, type Column } from '@/components/common/DataTable';
 import { formatCurrency } from '@/lib/utils';
 import { analyticsReportService } from '@/api/services/analyticsReports';
 import type {
@@ -990,38 +983,41 @@ function SummaryStrip({ items }: { items: { label: string; value: string }[] }) 
 }
 
 function DataCardTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+  // Right-align columns whose values are consistently numeric/currency-like (e.g. "1,234.00", "42%", "—").
+  const isNumericColumn = (colIndex: number) => {
+    const values = rows.map((r) => r[colIndex]).filter((v) => v && v !== '—');
+    if (values.length === 0) return false;
+    return values.every((v) => /^-?[\d,]+(\.\d+)?%?$/.test(v.trim()));
+  };
+
+  const tableRows = useMemo(
+    () => rows.map((row, i) => ({ id: i, cells: row })),
+    [rows],
+  );
+
+  const columns: Column<{ id: number; cells: string[] }>[] = useMemo(
+    () =>
+      headers.map((h, colIndex) => ({
+        header: h,
+        id: `col-${colIndex}`,
+        accessor: (row: { id: number; cells: string[] }) => row.cells[colIndex] ?? '—',
+        align: isNumericColumn(colIndex) ? 'right' : 'left',
+        // First column is usually the record's name/identifier; give it room to breathe.
+        minWidth: colIndex === 0 ? '160px' : undefined,
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [headers, rows],
+  );
+
   return (
-    <Card className="overflow-hidden shadow-sm">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {headers.map((h) => (
-                <TableHead key={h}>{h}</TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={headers.length} className="text-muted-foreground">
-                  No rows
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((row, i) => (
-                <TableRow key={i}>
-                  {row.map((cell, j) => (
-                    <TableCell key={j} className="max-w-[280px] truncate">
-                      {cell}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+    <Card className="overflow-hidden shadow-sm p-4">
+      <DataTable
+        columns={columns}
+        data={tableRows}
+        itemsPerPage={20}
+        emptyMessage="No rows for the selected filters."
+        showColumnVisibility={headers.length > 5}
+      />
     </Card>
   );
 }

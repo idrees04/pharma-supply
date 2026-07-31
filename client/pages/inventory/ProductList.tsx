@@ -228,7 +228,9 @@ export default function ProductList() {
     {
       header: 'ID',
       accessor: 'id',
-      className: 'w-16 text-muted-foreground',
+      className: 'text-muted-foreground',
+      minWidth: '56px',
+      maxWidth: '64px',
     },
     {
       header: 'Product',
@@ -238,6 +240,8 @@ export default function ProductList() {
           <div className="text-xs text-muted-foreground">{row.genericName}</div>
         </div>
       ),
+      minWidth: '260px',
+      maxWidth: '420px',
     },
     {
       header: 'Manufacturer',
@@ -246,8 +250,9 @@ export default function ProductList() {
     {
       header: 'Type',
       accessor: (row) => (
-        <Badge variant="outline" className="text-[10px] font-semibold bg-muted">{row.productTypeName || '—'}</Badge>
+        <Badge variant="outline" className="text-[10px] font-semibold bg-muted whitespace-nowrap">{row.productTypeName || '—'}</Badge>
       ),
+      minWidth: '120px',
     },
     {
       header: 'Unit',

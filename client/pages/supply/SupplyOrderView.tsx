@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSupplyOrder, useSupplyOrderStatuses, useSupplyOrderDeliveryChallans } from '@/api/services/supplyOrders.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,7 @@ import {
   Printer,
   Paperclip,
   Download,
+  Link2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -371,6 +372,36 @@ export default function SupplyOrderView() {
                     </p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="print:hidden">
+            <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50">
+              <CardHeader className="bg-slate-50/80 border-b py-4">
+                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-primary" /> Linked purchase orders
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6 pb-6">
+                {(so.linkedPurchaseOrders ?? []).length === 0 ? (
+                  <p className="text-sm text-slate-500 italic">No purchase orders linked for reference.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {(so.linkedPurchaseOrders ?? []).map((po) => (
+                      <Link
+                        key={po.id}
+                        to={`/orders/purchase/view/${po.id}`}
+                        className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+                      >
+                        <span className="font-mono">{po.purchaseOrderNumber}</span>
+                        {po.supplierName ? (
+                          <span className="text-xs font-medium text-slate-500">{po.supplierName}</span>
+                        ) : null}
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

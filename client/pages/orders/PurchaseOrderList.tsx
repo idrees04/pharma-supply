@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Eye, Trash2, Plus, Filter, FileText, CheckCircle, Clock, XCircle, DollarSign, Package, Search } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Filter, FileText, CheckCircle, Clock, XCircle, DollarSign, Search, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -50,7 +50,12 @@ export default function PurchaseOrderList() {
       const matchesStatus = statusFilter === 'all' || po.status.toString() === statusFilter;
       const matchesSearch =
         po.purchaseOrderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        po.supplierName.toLowerCase().includes(searchTerm.toLowerCase());
+        po.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (po.linkedSupplyOrders ?? []).some(
+          (so) =>
+            so.supplyOrderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (so.hospitalName ?? '').toLowerCase().includes(searchTerm.toLowerCase()),
+        );
       return matchesStatus && matchesSearch;
     });
   }, [allPOs, statusFilter, searchTerm]);
@@ -124,6 +129,36 @@ export default function PurchaseOrderList() {
       accessor: 'supplierName',
     },
     {
+      header: 'Supply order / Hospital',
+      accessor: (row) => {
+        const links = row.linkedSupplyOrders ?? [];
+        if (links.length === 0) {
+          return <span className="text-muted-foreground text-sm">—</span>;
+        }
+        return (
+          <div className="flex flex-col gap-1 min-w-[10rem] max-w-[16rem]">
+            {links.map((so) => (
+              <Link
+                key={so.id}
+                to={`/supply-orders/view/${so.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex flex-col rounded-md border border-primary/15 bg-primary/5 px-2 py-1 hover:bg-primary/10 transition-colors"
+              >
+                <span className="font-mono text-xs font-semibold text-primary flex items-center gap-1">
+                  <Link2 className="h-3 w-3 shrink-0" />
+                  {so.supplyOrderNumber}
+                </span>
+                {so.hospitalName ? (
+                  <span className="text-[11px] text-muted-foreground truncate">{so.hospitalName}</span>
+                ) : null}
+              </Link>
+            ))}
+          </div>
+        );
+      },
+      id: 'linkedSupplyOrders',
+    },
+    {
       header: 'Order Date',
       accessor: (row) => new Date(row.orderDate).toLocaleDateString(),
       mobileHidden: true,
@@ -179,7 +214,7 @@ export default function PurchaseOrderList() {
         <div className="relative flex-1 group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
-            placeholder="Search by PO number or supplier..."
+            placeholder="Search by PO, supplier, supply order, or hospital..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 h-10 bg-muted/50 border-border focus:bg-card transition-all"

@@ -66,6 +66,14 @@ export interface SupplyOrder {
   attachmentFileName?: string | null;
   invoiceId: number | null;
   items: SupplyOrderItem[] | null;
+  /** Distinct linked purchase orders (PO number + supplier). */
+  linkedPurchaseOrders?: LinkedPurchaseOrder[];
+}
+
+export interface LinkedPurchaseOrder {
+  id: number;
+  purchaseOrderNumber: string;
+  supplierName?: string | null;
 }
 
 /**

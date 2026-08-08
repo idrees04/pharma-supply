@@ -76,6 +76,22 @@ export default function HospitalLedgerReport() {
     }
     cols.push(
       {
+        header: 'Cheque No',
+        accessor: (r) =>
+          r.chequeNumber ? (
+            <span className="font-mono text-xs">{r.chequeNumber}</span>
+          ) : (
+            '—'
+          ),
+        id: 'chequeNumber',
+      },
+      {
+        header: 'Mode',
+        accessor: (r) => r.paymentMode ?? '—',
+        id: 'paymentMode',
+        mobileHidden: true,
+      },
+      {
         header: 'Debit',
         accessor: (r) => <div className="text-right tabular-nums">{formatCurrency(r.debit)}</div>,
         id: 'debit',
@@ -115,6 +131,8 @@ export default function HospitalLedgerReport() {
       cols.push({ header: 'Product', render: (r) => r.productName ?? '—' });
     }
     cols.push(
+      { header: 'Cheque No', render: (r) => r.chequeNumber ?? '—' },
+      { header: 'Mode', render: (r) => r.paymentMode ?? '—' },
       { header: 'Debit', align: 'right', render: (r) => formatCurrency(r.debit) },
       { header: 'Credit', align: 'right', render: (r) => formatCurrency(r.credit) },
       { header: 'Balance', align: 'right', render: (r) => formatCurrency(r.runningBalance) },

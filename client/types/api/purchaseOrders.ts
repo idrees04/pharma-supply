@@ -58,6 +58,14 @@ export interface PurchaseOrder {
   isActive: boolean;
   createdAt: string;
   items: PurchaseOrderItem[];
+  /** Distinct linked supply orders (SO number + hospital). */
+  linkedSupplyOrders?: LinkedSupplyOrder[];
+}
+
+export interface LinkedSupplyOrder {
+  id: number;
+  supplyOrderNumber: string;
+  hospitalName?: string | null;
 }
 
 /**

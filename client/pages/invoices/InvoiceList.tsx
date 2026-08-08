@@ -382,7 +382,7 @@ export default function InvoiceList() {
       className: 'w-24 text-right',
     },
     {
-      header: 'Due ex. tax (PKR)',
+      header: 'Due with GST (PKR)',
       accessor: (row) => (
         <span className={cn('font-semibold', row.outstandingAmount > 0 ? 'text-amber-700' : 'text-emerald-700')}>
           {formatCurrency(row.outstandingAmount)}

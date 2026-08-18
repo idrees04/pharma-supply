@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import {
   useExpenseList,
   useIssuedVoucherExpenseGroups,
@@ -262,7 +263,7 @@ export default function ExpenseList() {
       },
       {
         header: 'Date',
-        accessor: (row) => new Date(row.expenseDate).toLocaleDateString(),
+        accessor: (row) => formatAppDate(row.expenseDate),
         className: 'whitespace-nowrap',
       },
       {

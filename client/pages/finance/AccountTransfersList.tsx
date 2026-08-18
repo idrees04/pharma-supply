@@ -38,32 +38,17 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import AccountTransferForm from './AccountTransferForm';
 import { cn, formatCurrency } from '@/lib/utils';
+import { formatAppDate, formatAppDateTime } from '@/lib/dates';
 
 const ITEMS_PER_PAGE = 10;
 const PAGE_SIZE = 1000;
 
 function formatDate(value: string | null): string {
-  if (!value) return 'N/A';
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('en-PK', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatAppDate(value, 'N/A');
 }
 
 function formatDateTime(value: string | null): string {
-  if (!value) return 'N/A';
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return value;
-  return date.toLocaleString('en-PK', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatAppDateTime(value, 'N/A');
 }
 
 function useDebouncedValue<T>(value: T, delay: number): T {

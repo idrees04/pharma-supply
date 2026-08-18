@@ -29,6 +29,7 @@ import {
 } from '@/types/api/inventory';
 import { AlertCircle, Loader2, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 
 interface InventoryAdjustmentFormProps {
   inventoryItem: InventoryStockDto;
@@ -90,7 +91,7 @@ const emptyLine = (type: 'stock_in' | 'stock_out'): AdjustmentData['batches'][nu
 
 const formatBatchLabel = (batch: ProductBatchDto) => {
   const expiry = batch.expiryDate
-    ? ` · exp ${new Date(batch.expiryDate).toLocaleDateString()}`
+    ? ` · exp ${formatAppDate(batch.expiryDate)}`
     : '';
   return `${batch.batchNumber ?? `Batch #${batch.id}`} (${batch.currentQuantity} avail${expiry})`;
 };

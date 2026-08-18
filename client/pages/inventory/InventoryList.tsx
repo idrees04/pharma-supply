@@ -45,6 +45,7 @@ import { useInventoryStocks, useExpiringBatches } from '@/api/services/inventory
 import { useLowStockProducts } from '@/api/services/products';
 import { InventoryStockDto } from '@/types/api/inventory';
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import type { InventoryListQueryParams } from '@/types/api/inventory';
 
 function useDebouncedValue<T>(value: T, delay: number): T {
@@ -210,13 +211,13 @@ export default function InventoryList() {
       {
         header: 'Restock',
         accessor: (row) =>
-          row.lastRestockedDate ? new Date(row.lastRestockedDate).toLocaleDateString() : '—',
+          row.lastRestockedDate ? formatAppDate(row.lastRestockedDate) : '—',
         mobileHidden: true,
       },
       {
         header: 'Dispatch',
         accessor: (row) =>
-          row.lastDispatchedDate ? new Date(row.lastDispatchedDate).toLocaleDateString() : '—',
+          row.lastDispatchedDate ? formatAppDate(row.lastDispatchedDate) : '—',
         mobileHidden: true,
       },
       {

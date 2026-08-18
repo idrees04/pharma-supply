@@ -35,6 +35,7 @@ import {
 } from "@/types/api/payments";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
+import { todayInputValue } from "@/lib/dates";
 
 const openingSchema = z.object({
   partyType: z.coerce.number().min(1),
@@ -66,7 +67,7 @@ export default function PaymentForm({ onSuccess }: PaymentFormProps) {
     defaultValues: {
       partyType: OpeningBalancePartyType.Hospital,
       paymentMode: PaymentMode.BankTransfer,
-      paymentDate: new Date().toISOString().split("T")[0],
+      paymentDate: todayInputValue(),
       amount: 0,
       notes: "",
       referenceNumber: "",

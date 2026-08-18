@@ -22,6 +22,7 @@ import {
 import { PurchaseOrder, PurchaseOrderStatus } from '@/types/api/purchaseOrders';
 import { purchaseOrderService, usePurchaseOrderStatuses, useDeletePurchaseOrder, usePurchaseOrderList } from '@/api/services/purchaseOrders';
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import { getPurchaseOrderStatusClassName, getPurchaseOrderStatusLabel } from '@/lib/purchaseOrderStatusDisplay';
 const ITEMS_PER_PAGE = 10;
 
@@ -160,12 +161,12 @@ export default function PurchaseOrderList() {
     },
     {
       header: 'Order Date',
-      accessor: (row) => new Date(row.orderDate).toLocaleDateString(),
+      accessor: (row) => formatAppDate(row.orderDate),
       mobileHidden: true,
     },
     {
       header: 'Expected Delivery',
-      accessor: (row) => new Date(row.expectedDeliveryDate).toLocaleDateString(),
+      accessor: (row) => formatAppDate(row.expectedDeliveryDate),
       mobileHidden: true,
     },
     {

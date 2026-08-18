@@ -1,5 +1,4 @@
 import { useMemo, useState, useEffect } from 'react';
-import { formatDistanceToNow } from 'date-fns';
 import {
   Bell,
   CheckCheck,
@@ -44,6 +43,7 @@ import {
 } from '@/hooks/notifications';
 import { NotificationDto, NotificationType } from '@/types/api/notifications';
 import { cn } from '@/lib/utils';
+import { formatAppRelative } from '@/lib/dates';
 
 const statusOptions = [
   { value: 'all', label: 'All notifications' },
@@ -153,7 +153,7 @@ function NotificationRow({
         </Badge>
       </TableCell>
       <TableCell>{notification.userName || 'System'}</TableCell>
-      <TableCell>{formatDistanceToNow(new Date(notification.createdDate), { addSuffix: true })}</TableCell>
+      <TableCell>{formatAppRelative(notification.createdDate)}</TableCell>
       <TableCell>
         <Badge variant={notification.isRead ? 'secondary' : 'default'}>
           {notification.isRead ? 'Read' : 'Unread'}
@@ -523,7 +523,7 @@ export default function NotificationsPage() {
                       <div>
                         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Created</div>
                         <div className="mt-1 text-sm">
-                          {formatDistanceToNow(new Date(selectedNotification.createdDate), { addSuffix: true })}
+                          {formatAppRelative(selectedNotification.createdDate)}
                         </div>
                       </div>
                     </div>

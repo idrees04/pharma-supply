@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import {
   useIncomeList,
   useIssuedVoucherIncomeGroups,
@@ -256,7 +257,7 @@ export default function IncomeList() {
       },
       {
         header: 'Date',
-        accessor: (row) => new Date(row.incomeDate).toLocaleDateString(),
+        accessor: (row) => formatAppDate(row.incomeDate),
         className: 'whitespace-nowrap',
       },
       {

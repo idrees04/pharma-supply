@@ -2,6 +2,7 @@ import React from 'react';
 import { PrintDocumentHeader } from '@/components/print/PrintDocumentHeader';
 import { PrintSignatureBlock } from '@/components/print/PrintSignatureBlock';
 import { cn } from '@/lib/utils';
+import { formatAppDateTime } from '@/lib/dates';
 
 export interface LedgerPrintColumn<T> {
   header: string;
@@ -159,7 +160,7 @@ function LedgerPrintTemplateInner<T>(
       ) : null}
 
       <p className="mt-3 text-[8px] text-slate-400">
-        Generated on {new Date().toLocaleString()} — this is a system-generated report.
+        Generated on {formatAppDateTime(new Date())} — this is a system-generated report.
       </p>
 
       {showSignatureBlock ? <PrintSignatureBlock className="mt-8" /> : null}

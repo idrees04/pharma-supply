@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pencil } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { numberToWords } from '@/lib/numberToWords';
+import { formatAppDate } from '@/lib/dates';
 import { InvoiceDto } from '@/types/api/invoices';
 import { PrintDocumentHeader } from '@/components/print/PrintDocumentHeader';
 import { PrintFederationFromBlock } from '@/components/print/PrintFederationFromBlock';
@@ -20,11 +21,7 @@ interface InvoiceTemplateProps {
 }
 
 function formatShortDate(value: string): string {
-  return new Date(value).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatAppDate(value);
 }
 
 /**
@@ -390,7 +387,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
         <div className="mt-3 border-t border-slate-200 pt-2 text-center space-y-1">
           <p className="text-[9px] text-slate-500">
             Computer-generated invoice · #{invoiceNumber || invoice.id} ·{' '}
-            {new Date().toLocaleDateString('en-GB')}
+            {formatAppDate(new Date())}
           </p>
           <p className="text-[10px] font-medium text-amber-900">
             Previous balance (PKR):{' '}

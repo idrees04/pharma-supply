@@ -14,6 +14,7 @@ import {
 import { useExpenseCategories } from '@/api/services/expenseCategories';
 import { useAccountList } from '@/api/services/accounts';
 import { post } from '@/api/requests';
+import { todayInputValue } from '@/lib/dates';
 import type { ApiResponse } from '@/types/api/common';
 import type {
   BulkCreateExpensesRequest,
@@ -34,7 +35,7 @@ interface BulkExpenseFormProps {
 export default function BulkExpenseForm({ onSuccess, onCancel }: BulkExpenseFormProps) {
   const { data: categories } = useExpenseCategories();
   const { data: accounts } = useAccountList();
-  const [sharedDate, setSharedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [sharedDate, setSharedDate] = useState(todayInputValue());
   const [sharedAccountId, setSharedAccountId] = useState('');
   const [createVoucher, setCreateVoucher] = useState(false);
   const [lines, setLines] = useState<BulkLine[]>([

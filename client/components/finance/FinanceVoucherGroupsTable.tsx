@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 
 export type VoucherGroupLine = {
   id: number;
@@ -104,7 +105,7 @@ export function FinanceVoucherGroupsTable({
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">
                     {group.voucherIssuedDate
-                      ? new Date(group.voucherIssuedDate).toLocaleDateString()
+                      ? formatAppDate(group.voucherIssuedDate)
                       : '—'}
                   </TableCell>
                   <TableCell className="text-center tabular-nums">{group.lineCount}</TableCell>
@@ -143,7 +144,7 @@ export function FinanceVoucherGroupsTable({
                             <TableRow key={line.id}>
                               <TableCell className="font-mono text-xs">{line.documentNumber ?? '—'}</TableCell>
                               <TableCell className="text-xs whitespace-nowrap">
-                                {new Date(line.date).toLocaleDateString()}
+                                {formatAppDate(line.date)}
                               </TableCell>
                               <TableCell className="text-xs">{line.categoryName ?? '—'}</TableCell>
                               <TableCell className="text-xs max-w-[220px]">

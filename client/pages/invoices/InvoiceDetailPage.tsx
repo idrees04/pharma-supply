@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { downloadElementAsPdf } from '@/lib/downloadPdf';
 import { outstandingExTaxForInvoice, outstandingTaxExclusive, taxExclusiveCollectible, totalInvoiceDeductions } from '@/lib/invoiceReceivable';
 import { cn, formatCurrency } from '@/lib/utils';
+import { formatAppDate, todayInputValue } from '@/lib/dates';
 import { useInvoice, useProcessInvoicePayment } from '@/hooks/invoices';
 import { usePaymentModeEnumOptions } from '@/hooks/dropdown';
 import { useAccountList } from '@/api/services/accounts';
@@ -41,14 +42,7 @@ import { PaymentMode } from '@/types/api/payments';
 import { useAuth } from '@/context/AuthContext';
 
 function formatDate(value: string | null): string {
-  if (!value) return 'N/A';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('en-PK', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatAppDate(value, 'N/A');
 }
 
 const paymentFieldsSchema = z.object({
@@ -138,7 +132,7 @@ function RecordPaymentCard({
       incomeTaxDeduction: defaultsIncome,
       salesTaxDeduction: defaultsSales,
       paymentMode: PaymentMode.BankTransfer,
-      paymentDate: new Date().toISOString().split('T')[0],
+      paymentDate: todayInputValue(),
       referenceNumber: '',
       notes: '',
     },

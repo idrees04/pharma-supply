@@ -16,6 +16,7 @@ import { SupplyOrder, SupplyOrderItem } from '@/types/api/supplyOrders';
 import { CreateInvoiceFromSupplyOrderRequest, InvoiceDto } from '@/types/api/invoices';
 import { InvoiceTemplate } from './InvoiceTemplate';
 import { downloadElementAsPdf } from '@/lib/downloadPdf';
+import { addDaysInputValue, formatAppDate, todayInputValue } from '@/lib/dates';
 import {
   Form,
   FormControl,
@@ -149,8 +150,8 @@ export function InvoiceCreationPanel({
     defaultValues: {
       deliveryChallanId:
         initialDeliveryChallanId && initialDeliveryChallanId > 0 ? initialDeliveryChallanId : 0,
-      invoiceDate: new Date().toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      invoiceDate: todayInputValue(),
+      dueDate: addDaysInputValue(30),
       shippingCharges: 0,
       adjustmentAmount: 0,
       notes: defaultInvoiceNotesForSupplyOrder(supplyOrder),
@@ -187,8 +188,8 @@ export function InvoiceCreationPanel({
 
     form.reset({
       deliveryChallanId,
-      invoiceDate: new Date().toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      invoiceDate: todayInputValue(),
+      dueDate: addDaysInputValue(30),
       shippingCharges: 0,
       adjustmentAmount: 0,
       notes: defaultInvoiceNotesForSupplyOrder(supplyOrder),
@@ -216,7 +217,7 @@ export function InvoiceCreationPanel({
   const deliveryChallanSelectItems = useMemo(() => {
     const rows = deliveryChallans.map((c) => ({
       value: c.id,
-      label: `${c.challanNumber} · ${new Date(c.dispatchDate).toLocaleDateString()}`,
+      label: `${c.challanNumber} · ${formatAppDate(c.dispatchDate)}`,
     }));
     if (requireDeliveryChallan) return rows;
     return [{ value: 0, label: 'None (optional)' }, ...rows];
@@ -226,7 +227,7 @@ export function InvoiceCreationPanel({
     if (!initialDeliveryChallanId) return '';
     const found = deliveryChallans.find((c) => c.id === initialDeliveryChallanId);
     return found
-      ? `${found.challanNumber} · ${new Date(found.dispatchDate).toLocaleDateString()}`
+      ? `${found.challanNumber} · ${formatAppDate(found.dispatchDate)}`
       : `Challan #${initialDeliveryChallanId}`;
   }, [deliveryChallans, initialDeliveryChallanId]);
 

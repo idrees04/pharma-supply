@@ -38,6 +38,7 @@ import {
 import { useReceiveItems } from '@/api/services/purchaseOrders';
 import { PurchaseOrder, ReceivePurchaseOrderRequest } from '@/types/api/purchaseOrders';
 import { cn } from '@/lib/utils';
+import { todayInputValue } from '@/lib/dates';
 import { isApiError } from '@/api/errors';
 
 interface ReceiveItemsFormProps {
@@ -404,7 +405,7 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
         mode: 'onChange',
         defaultValues: {
             purchaseOrderId: purchaseOrder.id,
-            actualDeliveryDate: new Date().toISOString().split('T')[0],
+            actualDeliveryDate: todayInputValue(),
             items: purchaseOrder.items.map((item) => {
                 const remaining = Math.max(0, item.remainingQuantity);
                 return {
@@ -414,10 +415,10 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                     previouslyReceived: item.receivedQuantity,
                     batches: [
                         {
-                            receivedQuantity: remaining,
-                            batchNumber: '',
-                            manufactureDate: remaining > 0 ? mfgDateDefault : '',
-                            expiryDate: remaining > 0 ? expDateDefault : '',
+                    receivedQuantity: remaining,
+                    batchNumber: '',
+                    manufactureDate: remaining > 0 ? mfgDateDefault : '',
+                    expiryDate: remaining > 0 ? expDateDefault : '',
                             notes: '',
                         },
                     ],
@@ -465,7 +466,7 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                 actualDeliveryDate: new Date(`${data.actualDeliveryDate}T12:00:00`).toISOString(),
                 items: data.items
                     .map((item) => ({
-                        purchaseOrderItemId: item.purchaseOrderItemId,
+                    purchaseOrderItemId: item.purchaseOrderItemId,
                         batches: item.batches
                             .filter((batch) => Math.trunc(Number(batch.receivedQuantity)) > 0)
                             .map((batch) => ({
@@ -583,7 +584,7 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                                         >
                                             <ReceiveLineCard
                                                 lineIndex={index}
-                                                control={form.control}
+                                                            control={form.control}
                                                 lineRow={lineRow}
                                                 mfgDateDefault={mfgDateDefault}
                                                 expDateDefault={expDateDefault}
@@ -649,32 +650,32 @@ export const ReceiveItemsForm: React.FC<ReceiveItemsFormProps> = ({
                             </div>
                         )}
                         <div className="flex gap-3">
-                            <Button
-                                type="submit"
-                                className="flex-1 h-12 text-base font-bold gap-2"
-                                disabled={submitBlocked}
-                            >
-                                {receiveItemsMutation.isPending ? (
-                                    <>
-                                        <Loader2 className="h-5 w-5 animate-spin" />
-                                        Processing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <CheckCircle2 className="h-5 w-5" />
-                                        Receive Goods
-                                    </>
-                                )}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="h-12 px-8 font-bold"
-                                onClick={onCancel}
-                                disabled={receiveItemsMutation.isPending}
-                            >
-                                Cancel
-                            </Button>
+                        <Button
+                            type="submit"
+                            className="flex-1 h-12 text-base font-bold gap-2"
+                            disabled={submitBlocked}
+                        >
+                            {receiveItemsMutation.isPending ? (
+                                <>
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    Processing...
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle2 className="h-5 w-5" />
+                                    Receive Goods
+                                </>
+                            )}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="h-12 px-8 font-bold"
+                            onClick={onCancel}
+                            disabled={receiveItemsMutation.isPending}
+                        >
+                            Cancel
+                        </Button>
                         </div>
                     </motion.div>
                 </motion.div>

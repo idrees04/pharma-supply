@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate, toDateInputValue, todayInputValue } from '@/lib/dates';
 import { analyticsReportService } from '@/api/services/analyticsReports';
 import type {
   AnalyticsReportId,
@@ -91,7 +92,7 @@ function parseReport(module: ReportModuleId, r: string | null): AnalyticsReportI
 }
 
 function startOfDayISO(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return toDateInputValue(d);
 }
 
 function defaultDateRange() {
@@ -115,7 +116,7 @@ export default function Reports() {
   const [hospitalId, setHospitalId] = useState<string>('');
   const [supplierId, setSupplierId] = useState<string>('');
   const [productId, setProductId] = useState<string>('');
-  const [asOfDate, setAsOfDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [asOfDate, setAsOfDate] = useState(() => todayInputValue());
 
   const { data: hospitalsData } = useGetHospitals({ pageNumber: 1, pageSize: 500 });
   const { data: suppliersData } = useSupplierList({ pageNumber: 1, pageSize: 500 });
@@ -1025,7 +1026,7 @@ function DataCardTable({ headers, rows }: { headers: string[]; rows: string[][] 
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleDateString();
+    return formatAppDate(iso);
   } catch {
     return iso;
   }

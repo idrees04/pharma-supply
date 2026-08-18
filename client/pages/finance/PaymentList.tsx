@@ -21,6 +21,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import PaymentForm from './PaymentForm';
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import { usePaymentList, useDeletePayment } from '@/api/services/payments';
 import { PaymentDto, PaymentListQueryParams, PaymentMode } from '@/types/api/payments';
 
@@ -137,7 +138,7 @@ export default function PaymentList() {
     },
     {
       header: 'Date',
-      accessor: (row) => new Date(row.paymentDate).toLocaleDateString(),
+      accessor: (row) => formatAppDate(row.paymentDate),
     },
     {
       header: 'Amount (PKR)',

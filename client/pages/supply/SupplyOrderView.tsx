@@ -26,6 +26,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency, cn } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import { resolveMediaUrl } from '@/lib/federationBranding';
 import { motion, Variants } from 'framer-motion';
 import {
@@ -235,7 +236,7 @@ export default function SupplyOrderView() {
               <span className="w-1 h-1 rounded-full bg-slate-300" />
               <span className="flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-orange-500/70" />{' '}
-                {new Date(so.orderDate).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                {formatAppDate(so.orderDate)}
               </span>
             </div>
           </div>
@@ -345,7 +346,7 @@ export default function SupplyOrderView() {
                       <div className="space-y-1">
                         <p className="text-[9px] font-black text-slate-400 uppercase">Required by</p>
                         <p className="font-bold text-slate-800">
-                          {new Date(so.requiredByDate).toLocaleDateString()}
+                          {formatAppDate(so.requiredByDate)}
                         </p>
                       </div>
                       <div className="space-y-1">
@@ -357,7 +358,7 @@ export default function SupplyOrderView() {
                           )}
                         >
                           {so.fulfilledDate
-                            ? new Date(so.fulfilledDate).toLocaleDateString()
+                            ? formatAppDate(so.fulfilledDate)
                             : 'Not fulfilled yet'}
                         </p>
                       </div>
@@ -593,7 +594,7 @@ export default function SupplyOrderView() {
                       <p className="text-sm font-bold text-emerald-600">{so.approvedBy}</p>
                       {so.approvedDate && (
                         <p className="text-[10px] text-slate-400">
-                          {new Date(so.approvedDate).toLocaleDateString()}
+                          {formatAppDate(so.approvedDate)}
                         </p>
                       )}
                     </div>

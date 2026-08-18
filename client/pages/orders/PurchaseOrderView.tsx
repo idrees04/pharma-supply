@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency, cn } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import {
   Sheet,
   SheetContent,
@@ -271,7 +272,7 @@ export default function PurchaseOrderView() {
               </span>
               <span className="w-1 h-1 rounded-full bg-slate-300" />
               <span className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-orange-500/70" /> {new Date(po.orderDate).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                <Calendar className="w-3.5 h-3.5 text-orange-500/70" /> {formatAppDate(po.orderDate)}
               </span>
             </div>
           </div>
@@ -404,12 +405,12 @@ export default function PurchaseOrderView() {
                     <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-1">
                         <p className="text-[9px] font-black text-slate-400 uppercase">Expected delivery</p>
-                        <p className="font-bold text-slate-800">{new Date(po.expectedDeliveryDate).toLocaleDateString()}</p>
+                        <p className="font-bold text-slate-800">{formatAppDate(po.expectedDeliveryDate)}</p>
                       </div>
                       <div className="space-y-1">
                         <p className="text-[9px] font-black text-slate-400 uppercase">Actual delivery</p>
                         <p className={cn("font-bold", po.actualDeliveryDate ? "text-emerald-600" : "text-slate-400 italic")}>
-                          {po.actualDeliveryDate ? new Date(po.actualDeliveryDate).toLocaleDateString() : 'Not recorded'}
+                          {po.actualDeliveryDate ? formatAppDate(po.actualDeliveryDate) : 'Not recorded'}
                         </p>
                       </div>
                     </div>

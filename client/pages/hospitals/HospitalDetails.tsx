@@ -34,6 +34,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency, cn } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Variants } from 'framer-motion';
@@ -349,7 +350,7 @@ export default function HospitalDetails() {
                                                             <div className="font-bold text-primary group-hover:underline">#{order.orderNo}</div>
                                                         </td>
                                                         <td className="px-6 py-4 text-muted-foreground font-medium">
-                                                            {new Date(order.orderDate).toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                            {formatAppDate(order.orderDate)}
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             <Badge variant="outline" className="text-[9px] uppercase font-black tracking-tighter bg-card">

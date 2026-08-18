@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import { getPurchaseOrderStatusLabel } from '@/lib/purchaseOrderStatusDisplay';
 import type { PurchaseOrder } from '@/types/api/purchaseOrders';
 import { PrintSignatureBlock } from '@/components/print/PrintSignatureBlock';
@@ -51,7 +52,7 @@ export const PurchaseOrderTemplate = React.forwardRef<HTMLDivElement, PurchaseOr
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Order date</p>
             <p className="font-semibold">
               {purchaseOrder.orderDate
-                ? new Date(purchaseOrder.orderDate).toLocaleDateString()
+                ? formatAppDate(purchaseOrder.orderDate)
                 : '—'}
             </p>
           </div>
@@ -59,7 +60,7 @@ export const PurchaseOrderTemplate = React.forwardRef<HTMLDivElement, PurchaseOr
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Expected delivery</p>
             <p className="font-semibold">
               {purchaseOrder.expectedDeliveryDate
-                ? new Date(purchaseOrder.expectedDeliveryDate).toLocaleDateString()
+                ? formatAppDate(purchaseOrder.expectedDeliveryDate)
                 : '—'}
             </p>
           </div>

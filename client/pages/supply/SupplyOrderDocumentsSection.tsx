@@ -16,15 +16,15 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate, formatAppDateTime } from '@/lib/dates';
 import { motion } from 'framer-motion';
 
 import { useSupplyOrderDeliveryChallans } from '@/api/services/supplyOrders.service';
 import { useInvoicesBySupplyOrder, useInvoice } from '@/hooks/invoices';
-import { useDeliveryChallan } from '@/hooks/deliveryChallans';
 import type { InvoiceDto } from '@/types/api/invoices';
 import type { DeliveryChallanSummary } from '@/types/api/supplyOrders';
 import { InvoiceTemplate } from './InvoiceTemplate';
-import { DeliveryChallanTemplate } from './DeliveryChallanTemplate';
+import { DeliveryChallanPreviewDialog } from '@/components/delivery/DeliveryChallanPreviewDialog';
 import { downloadElementAsPdf } from '@/lib/downloadPdf';
 
 const itemVariants = {
@@ -65,15 +65,12 @@ export function SupplyOrderDocumentsSection({ supplyOrderId }: SupplyOrderDocume
 
   const [invoicePreviewId, setInvoicePreviewId] = useState<number | null>(null);
   const [dcPreviewId, setDcPreviewId] = useState<number | null>(null);
-  const [pdfBusy, setPdfBusy] = useState<'inv' | 'dc' | null>(null);
+  const [pdfBusy, setPdfBusy] = useState<'inv' | null>(null);
 
   const invoicePrintRef = useRef<HTMLDivElement>(null);
-  const dcPrintRef = useRef<HTMLDivElement>(null);
 
   const { data: invoiceDetailRes, isPending: loadingInvoiceDetail } = useInvoice(invoicePreviewId);
   const invoiceDetail = invoiceDetailRes?.data;
-
-  const { data: dcDetail, isPending: loadingDcDetail } = useDeliveryChallan(dcPreviewId);
 
   const handleDownloadInvoice = async () => {
     if (!invoicePrintRef.current || !invoiceDetail) return;
@@ -84,19 +81,6 @@ export function SupplyOrderDocumentsSection({ supplyOrderId }: SupplyOrderDocume
         `Invoice_${invoiceDetail.invoiceNumber ?? invoiceDetail.id}`
       );
       toast.success('Invoice PDF downloaded');
-    } catch {
-      toast.error('Could not generate PDF');
-    } finally {
-      setPdfBusy(null);
-    }
-  };
-
-  const handleDownloadDc = async () => {
-    if (!dcPrintRef.current || !dcDetail) return;
-    setPdfBusy('dc');
-    try {
-      await downloadElementAsPdf(dcPrintRef.current, `DC_${dcDetail.challanNumber ?? dcDetail.id}`);
-      toast.success('Delivery challan PDF downloaded');
     } catch {
       toast.error('Could not generate PDF');
     } finally {
@@ -139,7 +123,7 @@ export function SupplyOrderDocumentsSection({ supplyOrderId }: SupplyOrderDocume
                     <TableRow key={c.id} className="hover:bg-slate-50/30 border-b border-slate-100">
                       <TableCell className="px-6 py-4 font-mono font-semibold text-primary">{c.challanNumber}</TableCell>
                       <TableCell className="text-sm">
-                        {c.dispatchDate ? new Date(c.dispatchDate).toLocaleString() : '—'}
+                        {c.dispatchDate ? formatAppDateTime(c.dispatchDate) : '—'}
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="text-[10px]">
@@ -201,7 +185,7 @@ export function SupplyOrderDocumentsSection({ supplyOrderId }: SupplyOrderDocume
                         {inv.invoiceNumber ?? `#${inv.id}`}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString() : '—'}
+                        {inv.invoiceDate ? formatAppDate(inv.invoiceDate) : '—'}
                       </TableCell>
                       <TableCell className="text-right font-semibold tabular-nums">
                         {formatCurrency(inv.totalAmount)}
@@ -277,45 +261,7 @@ export function SupplyOrderDocumentsSection({ supplyOrderId }: SupplyOrderDocume
         </DialogContent>
       </Dialog>
 
-      <Dialog open={dcPreviewId !== null} onOpenChange={(o) => !o && setDcPreviewId(null)}>
-        <DialogContent className="flex max-h-[92vh] max-w-4xl flex-col gap-0 overflow-hidden p-0 border-none shadow-2xl">
-          <DialogHeader className="border-b bg-muted/20 px-6 py-4">
-            <DialogTitle>Delivery challan preview</DialogTitle>
-            <DialogDescription>
-              {dcDetail?.challanNumber ? (
-                <span className="font-mono font-semibold">{dcDetail.challanNumber}</span>
-              ) : (
-                'Loading…'
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[62vh] overflow-y-auto bg-slate-100 px-4 py-6">
-            {loadingDcDetail || !dcDetail ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <div className="flex justify-center">
-                <DeliveryChallanTemplate ref={dcPrintRef} challan={dcDetail} />
-              </div>
-            )}
-          </div>
-          <DialogFooter className="border-t px-6 py-4">
-            <Button type="button" variant="outline" onClick={() => setDcPreviewId(null)}>
-              Close
-            </Button>
-            <Button
-              type="button"
-              disabled={!dcDetail || pdfBusy === 'dc'}
-              onClick={handleDownloadDc}
-              className="gap-2"
-            >
-              {pdfBusy === 'dc' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Download PDF
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeliveryChallanPreviewDialog challanId={dcPreviewId} onClose={() => setDcPreviewId(null)} />
     </>
   );
 }

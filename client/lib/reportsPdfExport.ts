@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate, formatAppDateTime } from '@/lib/dates';
 import { getResolvedFederationBranding, loadLogoDataUrl } from '@/lib/federationBranding';
 import type { AnalyticsReportId } from '@/types/api/analyticsReports';
 import type {
@@ -42,7 +43,7 @@ export type AnalyticsReportPdfMeta = {
 function fmtDisplayDate(iso: string | null | undefined): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleDateString();
+    return formatAppDate(iso);
   } catch {
     return String(iso);
   }
@@ -578,7 +579,7 @@ function addFooters(doc: jsPDF, reportTitle: string, companyName: string): void 
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const total = doc.getNumberOfPages();
-  const generated = new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  const generated = formatAppDateTime(new Date());
   const shortTitle = reportTitle.length > 42 ? `${reportTitle.slice(0, 40)}…` : reportTitle;
 
   for (let i = 1; i <= total; i++) {

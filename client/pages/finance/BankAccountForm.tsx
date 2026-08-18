@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { useCreateAccount, useUpdateAccount, accountService } from "@/api/services/accounts";
 import { AccountDto, CreateAccountRequest, UpdateAccountRequest, AccountType } from "@/types/api/accounts";
 import { bankAccountSchema, BankAccountFormData } from "@/lib/schemas";
+import { todayInputValue } from '@/lib/dates';
 import { useGetQuery } from "@/api/hooks";
 import { ApiError } from "@/api/errors";
 
@@ -44,7 +45,7 @@ export default function BankAccountForm({ account, onClose }: BankAccountFormPro
       accountType: AccountType.Bank,
       isActive: true,
       openingBalance: 0,
-      openingBalanceDate: new Date().toISOString().split('T')[0],
+      openingBalanceDate: todayInputValue(),
       description: '',
       accountName: '',
       accountNumber: '',

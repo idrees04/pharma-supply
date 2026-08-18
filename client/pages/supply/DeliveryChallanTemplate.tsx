@@ -1,5 +1,6 @@
 import React from 'react';
 import type { DeliveryChallan } from '@/types/api/deliveryChallans';
+import { formatAppDate } from '@/lib/dates';
 import { PrintSignatureBlock } from '@/components/print/PrintSignatureBlock';
 import { PrintDocumentHeader } from '@/components/print/PrintDocumentHeader';
 
@@ -60,7 +61,7 @@ export const DeliveryChallanTemplate = React.forwardRef<HTMLDivElement, Delivery
             <div>
               <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Dispatch date</p>
               <p className="font-bold text-slate-900">
-                {challan.dispatchDate ? new Date(challan.dispatchDate).toLocaleDateString() : '—'}
+                {challan.dispatchDate ? formatAppDate(challan.dispatchDate) : '—'}
               </p>
             </div>
           </div>
@@ -89,7 +90,7 @@ export const DeliveryChallanTemplate = React.forwardRef<HTMLDivElement, Delivery
                 <td className="px-2 py-2 text-center tabular-nums">{line.quantityDispatched}</td>
                 <td className="px-2 py-2 font-mono text-xs text-slate-600">{line.batchNumber ?? '—'}</td>
                 <td className="px-2 py-2 text-right text-xs text-slate-600">
-                  {line.batchExpiryDate ? new Date(line.batchExpiryDate).toLocaleDateString() : '—'}
+                  {line.batchExpiryDate ? formatAppDate(line.batchExpiryDate) : '—'}
                 </td>
               </tr>
             ))}

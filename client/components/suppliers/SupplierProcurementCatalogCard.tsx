@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import { useSupplierProducts } from '@/api/services/suppliers';
 
 interface SupplierProcurementCatalogCardProps {
@@ -76,7 +77,7 @@ export function SupplierProcurementCatalogCard({ supplierId }: SupplierProcureme
                       <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                         {r.lastPurchaseDate ? (
                           <span>
-                            {new Date(r.lastPurchaseDate).toLocaleDateString()}
+                            {formatAppDate(r.lastPurchaseDate)}
                             {r.lastPurchaseRate != null ? (
                               <span className="block text-xs">{formatCurrency(r.lastPurchaseRate)}</span>
                             ) : null}

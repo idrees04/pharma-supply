@@ -29,6 +29,7 @@ import {
 import { useActiveSuppliers, useSupplierProducts } from '@/api/services/suppliers';
 import { productService } from '@/api/services/products';
 import { formatCurrency, cn } from '@/lib/utils';
+import { addDaysInputValue, todayInputValue } from '@/lib/dates';
 import { canFullyEditPurchaseOrder } from '@/lib/purchaseOrderStatusDisplay';
 import { CreatePurchaseOrderRequest, UpdatePurchaseOrderRequest } from '@/types/api/purchaseOrders';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
@@ -58,8 +59,8 @@ export default function PurchaseOrderForm() {
     resolver: zodResolver(purchaseOrderSchema),
     defaultValues: {
       supplierId: 0,
-      orderDate: new Date().toISOString().split('T')[0],
-      expectedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      orderDate: todayInputValue(),
+      expectedDeliveryDate: addDaysInputValue(7),
       hospitalOrderNumber: '',
       deliveryAddress: '',
       notes: '',

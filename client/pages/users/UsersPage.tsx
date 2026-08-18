@@ -83,6 +83,7 @@ import {
   Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatAppDate } from "@/lib/dates";
 
 /**
  * Form Dialog Component
@@ -519,7 +520,7 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {user.lastLoginDate
-                          ? new Date(user.lastLoginDate).toLocaleDateString()
+                          ? formatAppDate(user.lastLoginDate)
                           : "Never"}
                       </TableCell>
                       <TableCell className="text-right">

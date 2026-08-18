@@ -22,6 +22,7 @@ import {
 import { SupplyOrder, SupplyOrderStatus } from '@/types/api/supplyOrders';
 import { useSupplyOrderList, useSupplyOrderStatuses, useDeleteSupplyOrder } from '@/api/services/supplyOrders.service';
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import {
   getSupplyOrderStatusClassName,
   getSupplyOrderStatusLabel,
@@ -162,12 +163,12 @@ export default function SupplyOrderList() {
       },
       {
         header: 'Order Date',
-        accessor: (row) => new Date(row.orderDate).toLocaleDateString(),
+        accessor: (row) => formatAppDate(row.orderDate),
         mobileHidden: true,
       },
       {
         header: 'Required By',
-        accessor: (row) => new Date(row.requiredByDate).toLocaleDateString(),
+        accessor: (row) => formatAppDate(row.requiredByDate),
         mobileHidden: true,
       },
       {

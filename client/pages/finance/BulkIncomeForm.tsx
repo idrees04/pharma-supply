@@ -14,6 +14,7 @@ import {
 import { useIncomeCategories } from '@/api/services/incomeCategories';
 import { useAccountList } from '@/api/services/accounts';
 import { post } from '@/api/requests';
+import { todayInputValue } from '@/lib/dates';
 import type { ApiResponse } from '@/types/api/common';
 import type {
   BulkCreateIncomesRequest,
@@ -34,7 +35,7 @@ interface BulkIncomeFormProps {
 export default function BulkIncomeForm({ onSuccess, onCancel }: BulkIncomeFormProps) {
   const { data: categories } = useIncomeCategories();
   const { data: accounts } = useAccountList();
-  const [sharedDate, setSharedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [sharedDate, setSharedDate] = useState(todayInputValue());
   const [sharedAccountId, setSharedAccountId] = useState('');
   const [createVoucher, setCreateVoucher] = useState(false);
   const [lines, setLines] = useState<BulkLine[]>([

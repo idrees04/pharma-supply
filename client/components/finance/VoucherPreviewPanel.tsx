@@ -1,4 +1,5 @@
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import { PrintSignatureBlock } from '@/components/print/PrintSignatureBlock';
 import { PrintDocumentHeader } from '@/components/print/PrintDocumentHeader';
 
@@ -35,14 +36,7 @@ interface VoucherPreviewPanelProps {
 }
 
 function formatShortDate(value?: string | null): string {
-  if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatAppDate(value);
 }
 
 /** Compact amount for dense table cells (PKR shown in header/total). */

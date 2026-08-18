@@ -3,6 +3,7 @@ import { Loader2, FileText, PackageCheck, CreditCard, XCircle, History } from 'l
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn, formatCurrency } from '@/lib/utils';
+import { formatAppDateTime } from '@/lib/dates';
 import type { PurchaseOrderTimelineEvent } from '@/types/api/purchaseOrders';
 
 interface PurchaseOrderTimelineProps {
@@ -41,11 +42,7 @@ function eventAccent(type: string) {
 }
 
 function formatWhen(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
+  return formatAppDateTime(iso);
 }
 
 export function PurchaseOrderTimeline({ events, isLoading = false }: PurchaseOrderTimelineProps) {

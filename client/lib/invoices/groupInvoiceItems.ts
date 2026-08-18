@@ -1,4 +1,5 @@
 import type { InvoiceItemDto } from '@/types/api/invoices';
+import { formatAppDate } from '@/lib/dates';
 
 export type InvoiceLineBatchSlice = {
   batchNumber: string | null;
@@ -75,11 +76,7 @@ export function formatInvoiceBatchSlice(slice: InvoiceLineBatchSlice): string {
   if (slice.batchNumber?.trim()) parts.push(`Batch ${slice.batchNumber.trim()}`);
   if (slice.expiryDate) {
     parts.push(
-      `Exp ${new Date(slice.expiryDate).toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      })}`
+      `Exp ${formatAppDate(slice.expiryDate)}`
     );
   }
   return parts.join(' · ');

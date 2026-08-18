@@ -31,6 +31,7 @@ import {
   useSupplyOrderDispatchSuggestion,
 } from '@/api/services/supplyOrders.service';
 import { useToast } from '@/components/ui/use-toast';
+import { todayInputValue } from '@/lib/dates';
 const dcLineSchema = z.object({
   supplyOrderItemId: z.number().int(),
   quantityToDispatch: z.coerce.number().int().min(0),
@@ -95,7 +96,7 @@ export function DeliveryChallanFromSupplyOrderPanel({
   const form = useForm<DcFromSupplyOrderFormValues>({
     resolver: zodResolver(dcFromSupplyOrderSchema),
     defaultValues: {
-      dispatchDate: new Date().toISOString().split('T')[0],
+      dispatchDate: todayInputValue(),
       notes: '',
       lines: [],
     },
@@ -120,7 +121,7 @@ export function DeliveryChallanFromSupplyOrderPanel({
       });
 
     form.reset({
-      dispatchDate: new Date().toISOString().split('T')[0],
+      dispatchDate: todayInputValue(),
       notes: '',
       lines,
     });

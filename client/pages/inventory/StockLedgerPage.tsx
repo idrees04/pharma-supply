@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ClipboardList, Loader2, Package2 } from 'lucide-react';
 
@@ -11,7 +11,9 @@ import { LedgerPrintTemplate, type LedgerPrintColumn } from '@/components/print/
 import { PrintActionsToolbar } from '@/components/print/PrintActionsToolbar';
 import { useInventoryStockLedger } from '@/api/services/inventory';
 import { formatCurrency, cn } from '@/lib/utils';
+import { formatAppDate, formatAppDateTime } from '@/lib/dates';
 import { BatchStatus, InventoryMovementType, type InventoryStockMovementDto, type ProductBatchDto } from '@/types/api/inventory';
+import { DeliveryChallanPreviewDialog } from '@/components/delivery/DeliveryChallanPreviewDialog';
 
 function batchStatusLabel(status: BatchStatus): string {
   switch (status) {
@@ -45,6 +47,7 @@ export default function StockLedgerPage() {
   const { productId } = useParams<{ productId: string }>();
   const movementsPrintRef = useRef<HTMLDivElement>(null);
   const batchesPrintRef = useRef<HTMLDivElement>(null);
+  const [dcPreviewId, setDcPreviewId] = useState<number | null>(null);
 
   const pid = useMemo(() => {
     const n = parseInt(productId ?? '', 10);
@@ -66,7 +69,7 @@ export default function StockLedgerPage() {
   const movementColumns: Column<MovementRow>[] = [
     {
       header: 'Date',
-      accessor: (m) => (m.movementDate ? new Date(m.movementDate).toLocaleString() : '—'),
+      accessor: (m) => formatAppDateTime(m.movementDate),
       id: 'movementDate',
     },
     {
@@ -101,20 +104,39 @@ export default function StockLedgerPage() {
     },
     {
       header: 'PO',
-      accessor: (m) => (
-        <div className="text-right font-mono text-xs text-muted-foreground">{m.purchaseOrderId ?? '—'}</div>
-      ),
+      accessor: (m) =>
+        m.purchaseOrderId ? (
+          <div className="text-right">
+            <Link
+              to={`/orders/purchase/view/${m.purchaseOrderId}`}
+              className="font-mono text-xs font-semibold text-primary hover:underline"
+            >
+              #{m.purchaseOrderId}
+            </Link>
+          </div>
+        ) : (
+          <div className="text-right font-mono text-xs text-muted-foreground">—</div>
+        ),
       id: 'purchaseOrderId',
       className: 'justify-end',
       mobileHidden: true,
     },
     {
       header: 'DC',
-      accessor: (m) => (
-        <div className="text-right font-mono text-xs text-muted-foreground">
-          {m.deliveryChallanId ? `#${m.deliveryChallanId}` : '—'}
-        </div>
-      ),
+      accessor: (m) =>
+        m.deliveryChallanId ? (
+          <div className="text-right">
+            <button
+              type="button"
+              onClick={() => setDcPreviewId(m.deliveryChallanId)}
+              className="font-mono text-xs font-semibold text-primary hover:underline"
+            >
+              #{m.deliveryChallanId}
+            </button>
+          </div>
+        ) : (
+          <div className="text-right font-mono text-xs text-muted-foreground">—</div>
+        ),
       id: 'deliveryChallanId',
       className: 'justify-end',
       mobileHidden: true,
@@ -150,12 +172,12 @@ export default function StockLedgerPage() {
     },
     {
       header: 'Received date',
-      accessor: (b) => (b.receivedDate ? new Date(b.receivedDate).toLocaleDateString() : '—'),
+      accessor: (b) => formatAppDate(b.receivedDate),
       id: 'receivedDate',
     },
     {
       header: 'Expiry',
-      accessor: (b) => (b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : '—'),
+      accessor: (b) => formatAppDate(b.expiryDate),
       id: 'expiryDate',
     },
     {
@@ -182,7 +204,7 @@ export default function StockLedgerPage() {
   ];
 
   const movementPrintColumns: LedgerPrintColumn<MovementRow>[] = [
-    { header: 'Date', render: (m) => (m.movementDate ? new Date(m.movementDate).toLocaleString() : '—') },
+    { header: 'Date', render: (m) => formatAppDateTime(m.movementDate) },
     { header: 'Type', render: (m) => movementTypeLabel(m.type) },
     { header: 'In', align: 'right', render: (m) => String(m.quantityIn || 0) },
     { header: 'Out', align: 'right', render: (m) => String(m.quantityOut || 0) },
@@ -197,8 +219,8 @@ export default function StockLedgerPage() {
     { header: 'Received', align: 'right', render: (b) => String(b.receivedQuantity) },
     { header: 'Current', align: 'right', render: (b) => String(b.currentQuantity) },
     { header: 'Dispatched', align: 'right', render: (b) => String(b.dispatchedQuantity) },
-    { header: 'Received date', render: (b) => (b.receivedDate ? new Date(b.receivedDate).toLocaleDateString() : '—') },
-    { header: 'Expiry', render: (b) => (b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : '—') },
+    { header: 'Received date', render: (b) => formatAppDate(b.receivedDate) },
+    { header: 'Expiry', render: (b) => formatAppDate(b.expiryDate) },
     { header: 'Rate', align: 'right', render: (b) => formatCurrency(Number(b.purchaseRate)) },
     { header: 'Status', render: (b) => batchStatusLabel(b.status) },
   ];
@@ -386,6 +408,8 @@ export default function StockLedgerPage() {
           rowKey={(b) => b.id}
         />
       </div>
+
+      <DeliveryChallanPreviewDialog challanId={dcPreviewId} onClose={() => setDcPreviewId(null)} />
     </div>
   );
 }

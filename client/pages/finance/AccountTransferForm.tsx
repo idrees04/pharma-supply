@@ -1,7 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState, useMemo } from 'react';
-import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
@@ -33,8 +32,8 @@ import { useAccountList } from '@/hooks/accounts';
 import { useCreateAccountTransfer } from '@/hooks/accountTransfers';
 import { CreateAccountTransferRequest } from '@/types/api/accountTransfers';
 import { AccountTypeLabels } from '@/types/api/accounts';
-import { cn } from '@/lib/utils';
-import { formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
+import { formatAppDate, todayInputValue } from '@/lib/dates';
 import { AccountTransferFormData, accountTransferSchema } from '@/lib/schemas';
 
 interface AccountTransferFormProps {
@@ -63,7 +62,7 @@ export default function AccountTransferForm({
   const form = useForm<AccountTransferFormData>({
     resolver: zodResolver(accountTransferSchema),
     defaultValues: {
-      transferDate: initialData?.transferDate || format(new Date(), 'yyyy-MM-dd'),
+      transferDate: initialData?.transferDate || todayInputValue(),
       fromAccountId: initialData?.fromAccountId,
       toAccountId: initialData?.toAccountId,
       amount: initialData?.amount || 0,
@@ -453,7 +452,7 @@ export default function AccountTransferForm({
                   {fromAccount && toAccount && amount > 0 && (
                     <>
                       <p>Transferring {formatCurrency(amount)} from {fromAccount.accountName} to {toAccount.accountName}</p>
-                      <p>Date: {new Date(transferDate).toLocaleDateString()}</p>
+                      <p>Date: {formatAppDate(transferDate)}</p>
                     </>
                   )}
                 </div>

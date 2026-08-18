@@ -29,6 +29,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
+import { addDaysInputValue, todayInputValue } from '@/lib/dates';
 import type { CreateInvoiceRequest } from '@/types/api/invoices';
 
 const invoiceItemSchema = z.object({
@@ -67,13 +68,11 @@ interface InvoiceFormProps {
 }
 
 function getTodayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayInputValue();
 }
 
 function getDefaultDueDate(): string {
-  const date = new Date();
-  date.setDate(date.getDate() + 30);
-  return date.toISOString().slice(0, 10);
+  return addDaysInputValue(30);
 }
 
 function buildCreateInvoicePayload(values: InvoiceFormValues): CreateInvoiceRequest {

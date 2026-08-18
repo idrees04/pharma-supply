@@ -22,18 +22,14 @@ import {
 } from "@/api/services/taxConfiguration";
 import { toast } from "sonner";
 import { useEffect } from "react";
+import { fromDateTimeLocalValue, toDateTimeLocalValue } from "@/lib/dates";
 
 const formatDateTimeLocal = (value: string | null | undefined) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toISOString().slice(0, 16);
+  return toDateTimeLocalValue(value);
 };
 
 const toIsoDateTime = (value: string) => {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  return fromDateTimeLocalValue(value);
 };
 
 const taxSchema = z.object({

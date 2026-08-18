@@ -18,12 +18,13 @@ import { DataTable, type Column } from '@/components/common/DataTable';
 import { LedgerPrintTemplate, type LedgerPrintColumn } from '@/components/print/LedgerPrintTemplate';
 import { PrintActionsToolbar } from '@/components/print/PrintActionsToolbar';
 import { formatCurrency } from '@/lib/utils';
+import { formatAppDate, toDateInputValue, todayInputValue } from '@/lib/dates';
 import { analyticsReportService } from '@/api/services/analyticsReports';
 import { useSupplierList } from '@/api/services/suppliers';
 import type { LedgerEntryRowDto } from '@/types/api/analyticsReports';
 
 function fmtDate(value: string) {
-  return value ? new Date(value).toLocaleDateString() : '—';
+  return formatAppDate(value);
 }
 
 type LedgerRow = LedgerEntryRowDto & { id: number };
@@ -36,9 +37,9 @@ export default function VendorLedgerReport() {
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 3);
-    return d.toISOString().slice(0, 10);
+    return toDateInputValue(d);
   });
-  const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dateTo, setDateTo] = useState(() => todayInputValue());
   const printRef = useRef<HTMLDivElement>(null);
 
   const { data: suppliersData } = useSupplierList({ pageNumber: 1, pageSize: 500 });

@@ -1,6 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
 import { 
   Bell, 
   CheckCheck, 
@@ -47,6 +46,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { formatAppRelative } from '@/lib/dates';
 import { NotificationType, NotificationDto } from '@/types/api/notifications';
 
 function formatNotificationType(type: NotificationType) {
@@ -224,7 +224,7 @@ function NotificationItem({
                     {formatNotificationType(notification.type)}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(notification.createdDate), { addSuffix: true })}
+                    {formatAppRelative(notification.createdDate)}
                   </span>
                 </div>
               </div>

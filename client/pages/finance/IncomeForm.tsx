@@ -27,6 +27,7 @@ import { useAccountList } from '@/api/services/accounts';
 import type { CreateIncomeRequest, UpdateIncomeRequest } from '@/types/api/incomes';
 import { IncomeStatus } from '@/types/api/incomes';
 import { toast } from 'sonner';
+import { todayInputValue, toDateInputValue } from '@/lib/dates';
 import { AlertCircle } from 'lucide-react';
 
 const createSchema = z.object({
@@ -72,7 +73,7 @@ export default function IncomeForm({ incomeId, onSuccess, onCancel }: IncomeForm
     defaultValues: {
       incomeCategoryId: 0,
       accountId: 0,
-      incomeDate: new Date().toISOString().split('T')[0],
+      incomeDate: todayInputValue(),
       amount: 0,
       referenceNumber: '',
       description: '',
@@ -85,7 +86,7 @@ export default function IncomeForm({ incomeId, onSuccess, onCancel }: IncomeForm
     defaultValues: {
       incomeCategoryId: 0,
       accountId: 0,
-      incomeDate: new Date().toISOString().split('T')[0],
+      incomeDate: todayInputValue(),
       amount: 0,
       description: '',
       notes: '',
@@ -96,7 +97,7 @@ export default function IncomeForm({ incomeId, onSuccess, onCancel }: IncomeForm
   useEffect(() => {
     if (!income || !isEdit) return;
     if (income.status !== IncomeStatus.Pending) return;
-    const d = income.incomeDate ? new Date(income.incomeDate).toISOString().split('T')[0] : '';
+    const d = income.incomeDate ? toDateInputValue(income.incomeDate) : '';
     editForm.reset({
       incomeCategoryId: income.incomeCategoryId,
       accountId: income.accountId,

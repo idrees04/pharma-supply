@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { motion } from 'framer-motion';
 import { formatCurrency, formatRelativeDays } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Clock } from 'lucide-react';
@@ -78,7 +79,7 @@ const PendingPaymentsTable: React.FC = () => {
                                         >
                                             <TableCell>
                                                 <div className="font-medium">{payment.invoiceNumber}</div>
-                                                <div className="text-xs text-muted-foreground">{new Date(payment.dueDate).toLocaleDateString()}</div>
+                                                <div className="text-xs text-muted-foreground">{formatAppDate(payment.dueDate)}</div>
                                             </TableCell>
                                             <TableCell className="max-w-[150px] truncate">{payment.hospitalName}</TableCell>
                                             <TableCell className="text-right font-mono font-bold text-foreground">
@@ -123,7 +124,7 @@ const PendingPaymentsTable: React.FC = () => {
                                     <div className="flex justify-between items-end pt-2 border-t border-dashed">
                                         <div className="text-xs text-muted-foreground flex items-center gap-1">
                                             <Clock className="w-3 h-3" />
-                                            {new Date(payment.dueDate).toLocaleDateString()}
+                                            {formatAppDate(payment.dueDate)}
                                         </div>
                                         <div className="font-mono font-bold text-primary">
                                             {formatCurrency(payment.outstandingAmount)}

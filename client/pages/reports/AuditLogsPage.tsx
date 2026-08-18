@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { formatDistanceToNow } from 'date-fns';
 import {
   ArrowDownUp,
   ArrowUpDown,
@@ -36,6 +35,7 @@ import {
 import { useAuditLogs } from '@/hooks/auditLogs';
 import { AuditLogDto } from '@/types/api/auditLogs';
 import { cn } from '@/lib/utils';
+import { formatAppDateTime, formatAppRelative, parseApiDate } from '@/lib/dates';
 
 const actionOptions = [
   { value: 'all', label: 'All actions' },
@@ -153,12 +153,16 @@ export default function AuditLogsPage() {
         return false;
       }
 
-      if (startDate && new Date(log.timestamp) < new Date(startDate)) {
-        return false;
+      if (startDate) {
+        const ts = parseApiDate(log.timestamp);
+        const from = parseApiDate(`${startDate}T00:00:00+05:00`);
+        if (ts && from && ts < from) return false;
       }
 
-      if (endDate && new Date(log.timestamp) > new Date(`${endDate}T23:59:59.999`)) {
-        return false;
+      if (endDate) {
+        const ts = parseApiDate(log.timestamp);
+        const to = parseApiDate(`${endDate}T23:59:59.999+05:00`);
+        if (ts && to && ts > to) return false;
       }
 
       return true;
@@ -346,8 +350,8 @@ export default function AuditLogsPage() {
                     >
                       <TableCell>
                         <div className="space-y-1">
-                          <p className="font-medium">{formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(log.timestamp).toLocaleString()}</p>
+                          <p className="font-medium">{formatAppRelative(log.timestamp)}</p>
+                          <p className="text-xs text-muted-foreground">{formatAppDateTime(log.timestamp)}</p>
                         </div>
                       </TableCell>
                       <TableCell>{log.userName || 'Unknown'}</TableCell>
@@ -406,7 +410,7 @@ export default function AuditLogsPage() {
                       </div>
                       <div>
                         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Timestamp</div>
-                        <div className="mt-1 text-sm">{new Date(selectedLog.timestamp).toLocaleString()}</div>
+                        <div className="mt-1 text-sm">{formatAppDateTime(selectedLog.timestamp)}</div>
                       </div>
                       <div>
                         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Entity ID</div>

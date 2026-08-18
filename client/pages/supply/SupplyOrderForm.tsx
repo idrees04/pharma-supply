@@ -33,6 +33,7 @@ import { useProductSuppliersByProduct } from '@/api/services/productSuppliers';
 import { useGetHospitals } from '@/hooks/useHospitals';
 import { useProductList } from '@/api/services/products';
 import { formatCurrency, cn } from '@/lib/utils';
+import { addDaysInputValue, todayInputValue } from '@/lib/dates';
 import { CreateSupplyOrderRequest, UpdateSupplyOrderRequest, SupplyOrderStatus } from '@/types/api/supplyOrders';
 import { Product } from '@/types/api/products';
 
@@ -338,8 +339,8 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
     resolver: zodResolver(supplyOrderSchema),
     defaultValues: {
       hospitalId: 0,
-      orderDate: new Date().toISOString().split('T')[0],
-      requiredByDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      orderDate: todayInputValue(),
+      requiredByDate: addDaysInputValue(7),
       requestedBy: '',
       shippingAddress: '',
       notes: '',

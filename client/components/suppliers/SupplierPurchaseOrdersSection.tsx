@@ -20,6 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn, formatCurrency } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import { getPurchaseOrderStatusClassName, getPurchaseOrderStatusLabel } from '@/lib/purchaseOrderStatusDisplay';
 import { useSupplierPurchaseOrders } from '@/api/services/suppliers';
 
@@ -88,11 +89,11 @@ export function SupplierPurchaseOrdersSection({ supplierId }: SupplierPurchaseOr
                       <TableRow key={po.id}>
                         <TableCell className="font-mono text-xs font-semibold">{po.purchaseOrderNumber}</TableCell>
                         <TableCell className="whitespace-nowrap text-sm">
-                          {new Date(po.orderDate).toLocaleDateString()}
+                          {formatAppDate(po.orderDate)}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                           {po.expectedDeliveryDate
-                            ? new Date(po.expectedDeliveryDate).toLocaleDateString()
+                            ? formatAppDate(po.expectedDeliveryDate)
                             : '—'}
                         </TableCell>
                         <TableCell>

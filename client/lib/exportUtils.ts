@@ -1,3 +1,5 @@
+import { formatAppDateTime } from '@/lib/dates';
+
 export function downloadCSV(data: any[], filename: string) {
   if (data.length === 0) {
     console.warn('No data to export');
@@ -186,7 +188,7 @@ export function generatePDFContent(title: string, data: any): string {
       </head>
       <body>
         <h1>${title}</h1>
-        <div class="generated">Generated on ${new Date().toLocaleString()}</div>
+        <div class="generated">Generated on ${formatAppDateTime(new Date())}</div>
         ${data}
       </body>
     </html>

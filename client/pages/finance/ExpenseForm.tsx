@@ -27,6 +27,7 @@ import { useAccountList } from '@/api/services/accounts';
 import type { CreateExpenseRequest, UpdateExpenseRequest } from '@/types/api/expenses';
 import { ExpenseStatus } from '@/types/api/expenses';
 import { toast } from 'sonner';
+import { todayInputValue, toDateInputValue } from '@/lib/dates';
 import { AlertCircle } from 'lucide-react';
 
 const createSchema = z.object({
@@ -74,7 +75,7 @@ export default function ExpenseForm({ expenseId, onSuccess, onCancel }: ExpenseF
     defaultValues: {
       expenseCategoryId: 0,
       accountId: 0,
-      expenseDate: new Date().toISOString().split('T')[0],
+      expenseDate: todayInputValue(),
       amount: 0,
       payeeName: '',
       referenceNumber: '',
@@ -88,7 +89,7 @@ export default function ExpenseForm({ expenseId, onSuccess, onCancel }: ExpenseF
     defaultValues: {
       expenseCategoryId: 0,
       accountId: 0,
-      expenseDate: new Date().toISOString().split('T')[0],
+      expenseDate: todayInputValue(),
       amount: 0,
       description: '',
       notes: '',
@@ -99,7 +100,7 @@ export default function ExpenseForm({ expenseId, onSuccess, onCancel }: ExpenseF
   useEffect(() => {
     if (!expense || !isEdit) return;
     if (expense.status !== ExpenseStatus.Pending) return;
-    const d = expense.expenseDate ? new Date(expense.expenseDate).toISOString().split('T')[0] : '';
+    const d = expense.expenseDate ? toDateInputValue(expense.expenseDate) : '';
     editForm.reset({
       expenseCategoryId: expense.expenseCategoryId,
       accountId: expense.accountId,

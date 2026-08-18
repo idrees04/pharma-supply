@@ -28,6 +28,7 @@ import { TableCard } from '@/components/common/TableCard';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { cn, formatCurrency } from '@/lib/utils';
+import { formatAppDate } from '@/lib/dates';
 import {
   formatInvoiceBatchSlice,
   groupInvoiceItemsByProduct,
@@ -37,20 +38,7 @@ const ITEMS_PER_PAGE = 10;
 const PAGE_SIZE = 1000;
 
 function formatDate(value: string | null): string {
-  if (!value) {
-    return 'N/A';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString('en-PK', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatAppDate(value, 'N/A');
 }
 
 function getDaysPastDue(dueDate: string): number {

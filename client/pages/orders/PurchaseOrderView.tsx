@@ -487,7 +487,7 @@ export default function PurchaseOrderView() {
                                 <span className="font-bold text-slate-800 leading-tight group-hover:text-primary transition-colors cursor-default">
                                   {item.productName}
                                 </span>
-                                <span className="font-mono text-[10px] text-slate-400 bg-slate-100 w-fit px-1.5 rounded uppercase tracking-tighter">
+                                <span className="font-mono text-[12px] text-slate-400 bg-slate-100 w-fit px-1.5 rounded uppercase tracking-tighter">
                                   {item.productCode}
                                 </span>
                               </div>
@@ -496,8 +496,8 @@ export default function PurchaseOrderView() {
                               <div className="flex flex-col items-center">
                                 <span className="font-black text-slate-900 text-sm">{item.orderedQuantity.toLocaleString()}</span>
                                 <div className="flex gap-1.5 mt-1">
-                                  <Badge variant="outline" className="text-[8px] px-1 h-4 border-emerald-100 text-emerald-600 bg-emerald-50/30">R: {item.receivedQuantity}</Badge>
-                                  <Badge variant="outline" className="text-[8px] px-1 h-4 border-rose-100 text-rose-600 bg-rose-50/30">M: {item.remainingQuantity}</Badge>
+                                  <Badge variant="outline" className="text-[12px] px-1 h-4 border-emerald-100 text-emerald-600 bg-emerald-50/30">R: {item.receivedQuantity}</Badge>
+                                  <Badge variant="outline" className="text-[12px] px-1 h-4 border-rose-100 text-rose-600 bg-rose-50/30">M: {item.remainingQuantity}</Badge>
                                 </div>
                               </div>
                             </TableCell>
@@ -507,7 +507,7 @@ export default function PurchaseOrderView() {
                             <TableCell className="px-6 py-5 text-right">
                               <div className="flex flex-col items-end">
                                 <span className="font-black text-slate-900">{formatCurrency(lineTotal)}</span>
-                                <span className="text-[9px] text-slate-400 font-bold">Tax: {item.taxPercentage}% | Disc: {item.discountPercentage}%</span>
+                                <span className="text-[12px] text-slate-400 font-bold">Tax: {item.taxPercentage}% | Disc: {item.discountPercentage}%</span>
                               </div>
                             </TableCell>
                           </TableRow>

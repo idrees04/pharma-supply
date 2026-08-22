@@ -420,7 +420,7 @@ export default function SupplyOrderView() {
                                   {item.productCode}
                                 </span>
                                 {item.supplierName && (
-                                  <span className="text-[9px] text-muted-foreground font-semibold italic">
+                                  <span className="text-[12px] text-muted-foreground font-semibold italic">
                                     Supplier: {item.supplierName}
                                   </span>
                                 )}
@@ -435,13 +435,13 @@ export default function SupplyOrderView() {
                               <div className="flex gap-1.5 mt-1">
                                 <Badge
                                   variant="outline"
-                                  className="text-[8px] px-1 h-4 border-emerald-100 text-emerald-600 bg-emerald-50/30"
+                                  className="text-[12px] px-1 h-4 border-emerald-100 text-emerald-600 bg-emerald-50/30"
                                 >
                                   F: {item.fulfilledQuantity}
                                 </Badge>
                                 <Badge
                                   variant="outline"
-                                  className="text-[8px] px-1 h-4 border-rose-100 text-rose-600 bg-rose-50/30"
+                                  className="text-[12px] px-1 h-4 border-rose-100 text-rose-600 bg-rose-50/30"
                                 >
                                   M: {item.remainingQuantity}
                                 </Badge>
@@ -454,7 +454,7 @@ export default function SupplyOrderView() {
                           <TableCell className="px-6 py-5 text-right">
                             <div className="flex flex-col items-end">
                               <span className="font-black text-slate-900">{formatCurrency(item.totalAmount)}</span>
-                              <span className="text-[9px] text-slate-400 font-bold">
+                              <span className="text-[12px] text-slate-400 font-bold">
                                 Tax: {item.taxPercentage}% | Disc: {item.discountPercentage}%
                               </span>
                             </div>

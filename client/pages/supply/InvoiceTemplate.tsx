@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { numberToWords } from '@/lib/numberToWords';
 import { InvoiceDto } from '@/types/api/invoices';
 import { PrintDocumentHeader } from '@/components/print/PrintDocumentHeader';
 import { PrintFederationFromBlock } from '@/components/print/PrintFederationFromBlock';
@@ -13,6 +14,8 @@ interface InvoiceTemplateProps {
   invoice: InvoiceDto;
   /** When true, renders the statutory Warranty declaration below the Notes section. */
   showWarranty?: boolean;
+  /** When true, renders "Sales Tax Invoice" instead of "Invoice" as the title. */
+  showSalesTaxInvoice?: boolean;
 }
 
 function formatShortDate(value: string): string {
@@ -24,7 +27,7 @@ function formatShortDate(value: string): string {
 }
 
 export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateProps>(
-  ({ invoice, showWarranty = false }, ref) => {
+  ({ invoice, showWarranty = false, showSalesTaxInvoice = false }, ref) => {
     const subtotal = invoice.subTotal;
     const tax = invoice.taxAmount;
     const discount = invoice.discountAmount;
@@ -36,10 +39,19 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
     const salesDed = invoice.salesTaxDeduction ?? 0;
     const notes = invoice.notes?.trim() ?? '';
     const terms = invoice.termsAndConditions?.trim() ?? '';
+    
+    // Determine the title based on the checkbox state
+    const title = showSalesTaxInvoice ? 'Sales Tax Invoice' : 'Invoice';
+    
     const productLines = useMemo(
       () => groupInvoiceItemsByProduct(invoice.items ?? []),
       [invoice.items]
     );
+
+    // Generate amount in words from the total amount
+    const amountInWords = useMemo(() => {
+      return numberToWords(total);
+    }, [total]);
 
     return (
       <div
@@ -54,7 +66,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
         }}
       >
         <PrintDocumentHeader
-          title="INVOICE"
+          title={title}
           subtitle={`#${invoice.invoiceNumber || 'TBD'}`}
           className="mb-3 border-b border-slate-200 pb-3 [&_img]:h-10 [&_img]:max-w-[100px] [&_h1]:text-xl sm:[&_h1]:text-xl [&_.text-sm]:text-xs"
         />
@@ -230,6 +242,16 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
             <div className="mt-1 flex justify-between bg-primary/10 px-2 py-1.5">
               <span className="text-[10px] font-black uppercase tracking-wide text-slate-900">Total</span>
               <span className="font-black tabular-nums text-primary">{formatCurrency(total)}</span>
+            </div>
+            
+            {/* Amount in Words - positioned below the total */}
+            <div className="mt-2 border-t border-slate-200 pt-2">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                Amount in Words
+              </p>
+              <p className="text-[10px] font-medium leading-tight text-slate-800">
+                {amountInWords}
+              </p>
             </div>
           </div>
         </div>

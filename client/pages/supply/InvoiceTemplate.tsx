@@ -300,7 +300,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
               {formatCurrency(invoice.previousBalance ?? 0)}
             </span>
             <span className="ml-1 text-[9px] font-normal text-slate-500">
-              (amount owed before this invoice, ex. tax)
+              (amount owed before this invoice, with GST)
             </span>
           </p>
         </div>

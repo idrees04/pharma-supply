@@ -68,13 +68,13 @@ type PaymentFormValues = z.infer<typeof paymentFieldsSchema>;
 const AMOUNT_CHECK_EPS = 0.01;
 
 function buildPaymentSchema(invoice: InvoiceDto) {
-  const maxDed = invoice.totalAmount - invoice.taxAmount;
+  const maxDed = invoice.totalAmount;
   return paymentFieldsSchema.superRefine((data, ctx) => {
     const totalDed = totalInvoiceDeductions(data);
     if (totalDed > maxDed + AMOUNT_CHECK_EPS) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Total deductions cannot exceed tax-exclusive invoice total (${formatCurrency(maxDed)})`,
+        message: `Total deductions cannot exceed invoice total (${formatCurrency(maxDed)})`,
         path: ['lateDeliveryDeduction'],
       });
     }
@@ -87,7 +87,7 @@ function buildPaymentSchema(invoice: InvoiceDto) {
     if (data.amount > maxPay + AMOUNT_CHECK_EPS) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Amount cannot exceed tax-exclusive outstanding (${formatCurrency(maxPay)})`,
+        message: `Amount cannot exceed remaining payable with GST (${formatCurrency(maxPay)})`,
         path: ['amount'],
       });
     }
@@ -113,8 +113,15 @@ function RecordPaymentCard({
 }) {
   const defaultsLate = invoice.lateDeliveryDeduction ?? 0;
   const defaultsIncome = invoice.incomeTaxDeduction ?? 0;
-  const defaultsSales = invoice.salesTaxDeduction ?? 0;
-  const defaultTotalDed = totalInvoiceDeductions(invoice);
+  // Prefill with invoice GST until a sales-tax deduction has been saved (still editable).
+  const savedSales = invoice.salesTaxDeduction ?? 0;
+  const defaultsSales =
+    savedSales > 0 || invoice.paidAmount > 0 ? savedSales : invoice.taxAmount ?? 0;
+  const defaultTotalDed = totalInvoiceDeductions({
+    lateDeliveryDeduction: defaultsLate,
+    incomeTaxDeduction: defaultsIncome,
+    salesTaxDeduction: defaultsSales,
+  });
   const defaultOutstanding = outstandingTaxExclusive(
     invoice.totalAmount,
     invoice.taxAmount,
@@ -341,17 +348,21 @@ function RecordPaymentCard({
                           ref={field.ref}
                         />
                       </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Prefills with invoice GST ({formatCurrency(invoice.taxAmount)}); adjust if hospital
+                        withholds a different amount, or set 0 to collect GST in cash.
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Combined deductions (max {formatCurrency(invoice.totalAmount - invoice.taxAmount)} ex. tax):{' '}
+                Combined deductions (max {formatCurrency(invoice.totalAmount)}):{' '}
                 <span className="font-medium text-foreground">{formatCurrency(liveTotalDeduction)}</span>
               </p>
               <div className="flex items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
-                <span className="font-medium text-amber-900">Remaining payable (ex. tax)</span>
+                <span className="font-medium text-amber-900">Remaining payable (with GST)</span>
                 <span className="font-bold tabular-nums text-amber-900">{formatCurrency(liveExTaxDue)}</span>
               </div>
             </div>
@@ -361,7 +372,7 @@ function RecordPaymentCard({
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Cash received (ex. tax, PKR) *</FormLabel>
+                  <FormLabel>Cash received (PKR) *</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" min={0} {...field} />
                   </FormControl>
@@ -672,7 +683,7 @@ function SummaryCard({ invoice }: { invoice: InvoiceDto }) {
           <span className="font-semibold tabular-nums text-blue-700">{formatCurrency(invoice.taxAmount)}</span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">Collectible (ex. tax)</span>
+          <span className="text-muted-foreground">Collectible (with GST)</span>
           <span className="font-semibold tabular-nums">{formatCurrency(collectible)}</span>
         </div>
         {lateDed > 0 ? (
@@ -694,11 +705,11 @@ function SummaryCard({ invoice }: { invoice: InvoiceDto }) {
           </div>
         ) : null}
         <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">Received (ex. tax)</span>
+          <span className="text-muted-foreground">Received</span>
           <span className="font-semibold tabular-nums text-emerald-700">{formatCurrency(invoice.paidAmount)}</span>
         </div>
         <div className="flex justify-between gap-4 border-t pt-3">
-          <span className="text-muted-foreground">Outstanding (ex. tax)</span>
+          <span className="text-muted-foreground">Outstanding (with GST)</span>
           <span
             className={cn(
               'font-bold tabular-nums',

@@ -442,7 +442,7 @@ function buildSpec(reportId: AnalyticsReportId, data: unknown): TableSpec {
           { label: 'Data rows', value: String(d.rows.length) },
           { label: 'Closing balance (PKR)', value: formatCurrency(d.closingBalance) },
         ],
-        headers: ['Date', 'Type', 'Reference', 'Product', 'Qty', 'Debit (PKR)', 'Credit (PKR)', 'Balance (PKR)', 'Notes'],
+        headers: ['Date', 'Type', 'Reference', 'Cheque No', 'Mode', 'Product', 'Qty', 'Debit (PKR)', 'Credit (PKR)', 'Balance (PKR)', 'Notes'],
         rows:
           d.rows.length > 0
             ? d.rows.map((r) =>
@@ -450,6 +450,8 @@ function buildSpec(reportId: AnalyticsReportId, data: unknown): TableSpec {
                   fmtDisplayDate(r.entryDate),
                   r.entryType,
                   r.referenceNumber,
+                  r.chequeNumber ?? '—',
+                  r.paymentMode ?? '—',
                   r.productName ?? '—',
                   r.quantity == null ? '—' : r.quantity,
                   formatCurrency(r.debit),

@@ -317,6 +317,9 @@ export interface LedgerEntryRowDto {
   entryDate: string;
   entryType: string;
   referenceNumber: string;
+  /** Cheque / transaction ref from the payment */
+  chequeNumber?: string | null;
+  paymentMode?: string | null;
   productId?: number | null;
   productName?: string | null;
   quantity?: number | null;

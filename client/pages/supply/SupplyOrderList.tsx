@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Filter, FileText, CheckCircle, Clock, XCircle, DollarSign, Search, PackageCheck, TrendingUp, Zap } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Filter, FileText, CheckCircle, Clock, XCircle, DollarSign, Search, PackageCheck, TrendingUp, Zap, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -52,7 +52,12 @@ export default function SupplyOrderList() {
       const matchesStatus = statusFilter === 'all' || so.status.toString() === statusFilter;
       const matchesSearch =
         so.supplyOrderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        so.hospitalName.toLowerCase().includes(searchTerm.toLowerCase());
+        so.hospitalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (so.linkedPurchaseOrders ?? []).some(
+          (po) =>
+            po.purchaseOrderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (po.supplierName ?? '').toLowerCase().includes(searchTerm.toLowerCase()),
+        );
       return matchesStatus && matchesSearch;
     });
   }, [allSOs, statusFilter, searchTerm]);
@@ -126,6 +131,36 @@ export default function SupplyOrderList() {
         accessor: 'hospitalName',
       },
       {
+        header: 'Purchase order / Supplier',
+        accessor: (row) => {
+          const links = row.linkedPurchaseOrders ?? [];
+          if (links.length === 0) {
+            return <span className="text-muted-foreground text-sm">—</span>;
+          }
+          return (
+            <div className="flex flex-col gap-1 min-w-[10rem] max-w-[16rem]">
+              {links.map((po) => (
+                <Link
+                  key={po.id}
+                  to={`/orders/purchase/view/${po.id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex flex-col rounded-md border border-primary/15 bg-primary/5 px-2 py-1 hover:bg-primary/10 transition-colors"
+                >
+                  <span className="font-mono text-xs font-semibold text-primary flex items-center gap-1">
+                    <Link2 className="h-3 w-3 shrink-0" />
+                    {po.purchaseOrderNumber}
+                  </span>
+                  {po.supplierName ? (
+                    <span className="text-[11px] text-muted-foreground truncate">{po.supplierName}</span>
+                  ) : null}
+                </Link>
+              ))}
+            </div>
+          );
+        },
+        id: 'linkedPurchaseOrders',
+      },
+      {
         header: 'Order Date',
         accessor: (row) => new Date(row.orderDate).toLocaleDateString(),
         mobileHidden: true,
@@ -197,7 +232,7 @@ export default function SupplyOrderList() {
         <div className="relative flex-1 group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
-            placeholder="Search by SO number or hospital..."
+            placeholder="Search by SO, hospital, purchase order, or supplier..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 h-10 bg-muted/50 border-border focus:bg-card transition-all"

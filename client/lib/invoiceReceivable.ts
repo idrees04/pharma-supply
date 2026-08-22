@@ -1,9 +1,13 @@
-/** Round to 2 decimal places (currency); avoids float noise in tax-exclusive math. */
+/** Round to 2 decimal places (currency); avoids float noise in receivable math. */
 export function roundMoney2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-/** Mirrors backend `InvoiceReceivableHelper`: legal total is gross; collections use ex-tax net. */
+/**
+ * Mirrors backend `InvoiceReceivableHelper`:
+ * collectible = Total − deductions (GST inclusive; taxAmount is not auto-stripped).
+ * Sales tax deduction is the manual GST/withholding adjustment.
+ */
 
 export function totalInvoiceDeductions(d: {
   lateDeliveryDeduction?: number | null;
@@ -20,7 +24,8 @@ export function taxExclusiveCollectible(
   taxAmount: number,
   totalDeduction: number
 ): number {
-  const v = totalAmount - taxAmount - totalDeduction;
+  void taxAmount;
+  const v = totalAmount - totalDeduction;
   const x = v > 0 ? v : 0;
   return roundMoney2(x);
 }
@@ -36,7 +41,7 @@ export function outstandingTaxExclusive(
   return roundMoney2(x);
 }
 
-/** Use for UI / payment gates when API `outstandingAmount` may not match ex-tax receivable rules. */
+/** Use for UI / payment gates when API `outstandingAmount` may not match receivable rules. */
 export function outstandingExTaxForInvoice(d: {
   totalAmount: number;
   taxAmount: number;

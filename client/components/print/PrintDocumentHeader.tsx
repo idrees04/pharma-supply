@@ -4,7 +4,8 @@ import { cn } from '@/lib/utils';
 
 interface PrintDocumentHeaderProps {
   title: string;
-  subtitle?: string;
+  /** Plain text, or a custom node (e.g. an inline-editable field) rendered at the same size/color. */
+  subtitle?: string | ReactNode;
   rightSlot?: ReactNode;
   className?: string;
 }

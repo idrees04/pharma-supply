@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Pencil } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { numberToWords } from '@/lib/numberToWords';
 import { InvoiceDto } from '@/types/api/invoices';
@@ -26,6 +27,95 @@ function formatShortDate(value: string): string {
   });
 }
 
+/**
+ * Inline-editable invoice number shown in the print header.
+ * Renders as plain text (identical look to a static <span>) until clicked;
+ * only then does it become an input. This keeps the printed/PDF output
+ * pixel-identical to before whenever it isn't actively being edited.
+ * invoice.id, invoice.invoiceNumber and state invoiceNumber wiil remvoe
+ * temporary solution will be resmove this portion in futre and use the invoice number from the invoice object directly.
+ *------------------------------------------------------------------------------------------------------------
+*/
+function EditableInvoiceNumber({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Keep the draft in sync if the underlying value changes elsewhere while not editing.
+  useEffect(() => {
+    if (!isEditing) setDraft(value);
+  }, [value, isEditing]);
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [isEditing]);
+
+  const commit = () => {
+    setIsEditing(false);
+    const next = draft.trim();
+    if (next !== value) onChange(next);
+  };
+
+  const cancel = () => {
+    setDraft(value);
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancel();
+          }
+        }}
+        className="w-28 rounded border border-primary/40 bg-white px-1 text-xs font-medium text-slate-700 outline-none ring-1 ring-primary/30 print:hidden"
+      />
+    );
+  }
+
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      title="Click to edit invoice number"
+      onClick={() => setIsEditing(true)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setIsEditing(true);
+        }
+      }}
+      className="group -mx-0.5 inline-flex cursor-text items-center gap-1 rounded-sm px-0.5 hover:bg-slate-100 print:cursor-default print:hover:bg-transparent"
+    >
+      {`#${value || 'TBD'}`}
+      <Pencil className="h-2.5 w-2.5 shrink-0 text-slate-400 opacity-0 transition-opacity group-hover:opacity-100 print:hidden" />
+    </span>
+  );
+}
+
+/**
+ * temporary solution will be resmove the above portion in future and use the invoice number from the invoice object directly.
+ *------------------------------------------------------------------------------------------------------------
+*/
+
 export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateProps>(
   ({ invoice, showWarranty = false, showSalesTaxInvoice = false }, ref) => {
     const subtotal = invoice.subTotal;
@@ -42,6 +132,13 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
     
     // Determine the title based on the checkbox state
     const title = showSalesTaxInvoice ? 'Sales Tax Invoice' : 'Invoice';
+
+    // Locally-editable override for the displayed invoice number (print header + footer).
+    // Resets whenever a different invoice is loaded; everything else on the invoice is untouched.
+    const [invoiceNumber, setInvoiceNumber] = useState(invoice.invoiceNumber ?? '');
+    useEffect(() => {
+      setInvoiceNumber(invoice.invoiceNumber ?? '');
+    }, [invoice.id, invoice.invoiceNumber]);
     
     const productLines = useMemo(
       () => groupInvoiceItemsByProduct(invoice.items ?? []),
@@ -67,7 +164,8 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
       >
         <PrintDocumentHeader
           title={title}
-          subtitle={`#${invoice.invoiceNumber || 'TBD'}`}
+          subtitle={<EditableInvoiceNumber value={invoiceNumber} onChange={setInvoiceNumber} />}
+          // subtitle={`#${invoice.invoiceNumber || 'TBD'}`}
           className="mb-3 border-b border-slate-200 pb-3 [&_img]:h-10 [&_img]:max-w-[100px] [&_h1]:text-xl sm:[&_h1]:text-xl [&_.text-sm]:text-xs"
         />
 
@@ -291,7 +389,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
 
         <div className="mt-3 border-t border-slate-200 pt-2 text-center space-y-1">
           <p className="text-[9px] text-slate-500">
-            Computer-generated invoice · #{invoice.invoiceNumber || invoice.id} ·{' '}
+            Computer-generated invoice · #{invoiceNumber || invoice.id} ·{' '}
             {new Date().toLocaleDateString('en-GB')}
           </p>
           <p className="text-[10px] font-medium text-amber-900">

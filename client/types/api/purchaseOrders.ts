@@ -49,6 +49,8 @@ export interface PurchaseOrder {
   actualDeliveryDate: string;
   status: number;
   totalAmount: number;
+  /** Cumulative payment adjustments. Does not change totalAmount. */
+  totalAdjustmentAmount?: number;
   paidAmount?: number;
   outstandingAmount?: number;
   hospitalOrderNumber?: string | null;

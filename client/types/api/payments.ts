@@ -37,6 +37,8 @@ export interface PaymentDto {
     supplierId: number | null;
     supplierName: string | null;
     amount: number;
+    adjustmentAmount?: number;
+    adjustmentReason?: string | null;
     paymentMode: PaymentMode;
     accountId: number;
     accountName: string | null;
@@ -106,6 +108,10 @@ export interface SuggestedPaymentData {
     purchaseOrderId: number;
     purchaseOrderNumber: string | null;
     agreedOrderTotal: number;
+    /** Cumulative adjustments already applied (cash separate). */
+    totalAdjustmentAmount?: number;
+    /** agreedOrderTotal + totalAdjustmentAmount */
+    effectiveTotal?: number;
     goodsReceivedValue: number;
     previouslyPaidAmount: number;
     totalOutstanding: number;
@@ -124,6 +130,10 @@ export interface SuggestedPaymentResponse {
 export interface ProcessPaymentRequest {
     accountId: number;
     amount: number;
+    /** Reconciliation only; does not change PO TotalAmount. Default 0. */
+    adjustmentAmount?: number;
+    /** Required when adjustmentAmount !== 0. */
+    adjustmentReason?: string | null;
     paymentDate?: string | null; // ISO date-time, nullable
     paymentMode: PaymentMode; // Enum 1-5
     referenceNumber?: string | null;
@@ -135,7 +145,9 @@ export interface ProcessPaymentResponseData {
     paymentNumber: string | null;
     purchaseOrderId: number;
     amountPaid: number;
+    adjustmentAmount?: number;
     newPaidAmount: number;
+    newTotalAdjustmentAmount?: number;
     newOutstandingAmount: number;
     newStatus: number; // Status enum (2..9)
 }

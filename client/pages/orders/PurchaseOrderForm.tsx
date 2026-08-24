@@ -234,9 +234,9 @@ export default function PurchaseOrderForm() {
   const calculations = useMemo(() => {
     const rowTotals = (watchedItems || []).map((item) => {
       const subtotal = (item.orderedQuantity || 0) * (item.unitPrice || 0);
-      const taxAmount = subtotal * ((item.taxPercentage || 0) / 100);
       const discountAmount = subtotal * ((item.discountPercentage || 0) / 100);
-      const total = subtotal + taxAmount - discountAmount;
+      const taxAmount = (subtotal - discountAmount) * ((item.taxPercentage || 0) / 100);
+      const total = subtotal - discountAmount + taxAmount;
       return { subtotal, taxAmount, discountAmount, total };
     });
 

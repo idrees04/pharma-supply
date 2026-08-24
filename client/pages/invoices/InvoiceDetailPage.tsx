@@ -725,11 +725,17 @@ function SummaryCard({ invoice }: { invoice: InvoiceDto }) {
           <div className="flex justify-between gap-4 pt-1">
             <span className="text-muted-foreground">Supply order</span>
             <Link
-              className="font-medium text-primary hover:underline"
+              className="font-medium text-primary hover:underline font-mono"
               to={`/supply-orders/view/${invoice.supplyOrderId}`}
             >
-              #{invoice.supplyOrderId}
+              {invoice.supplyOrderNumber || `#${invoice.supplyOrderId}`}
             </Link>
+          </div>
+        ) : null}
+        {invoice.hospitalSupplyOrderNumber?.trim() ? (
+          <div className="flex justify-between gap-4 pt-1">
+            <span className="text-muted-foreground">Hospital supply order no</span>
+            <span className="font-medium font-mono text-right">{invoice.hospitalSupplyOrderNumber.trim()}</span>
           </div>
         ) : null}
       </CardContent>

@@ -65,6 +65,8 @@ export interface InvoiceDto {
     estimatedContributionMargin?: number | null;
     paymentReceivedDate: string | null; // ISO date-time
     supplyOrderId: number | null;
+    supplyOrderNumber?: string | null;
+    hospitalSupplyOrderNumber?: string | null;
     deliveryChallanId: number | null;
     notes: string | null;
     termsAndConditions?: string | null;

@@ -188,8 +188,20 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
               {invoice.hospitalPhone ? (
                 <p className="text-[10px] text-slate-600">Tel: {invoice.hospitalPhone}</p>
               ) : null}
-              {invoice.supplyOrderId ? (
+              {invoice.supplyOrderNumber ? (
+                <p className="text-[10px] text-slate-500">
+                  Supply order: <span className="font-mono">{invoice.supplyOrderNumber}</span>
+                </p>
+              ) : invoice.supplyOrderId ? (
                 <p className="text-[10px] text-slate-500">Supply Order: #{invoice.supplyOrderId}</p>
+              ) : null}
+              {invoice.hospitalSupplyOrderNumber?.trim() ? (
+                <p className="text-[10px] text-slate-600">
+                  Hospital SO no:{' '}
+                  <span className="font-mono font-semibold text-slate-800">
+                    {invoice.hospitalSupplyOrderNumber.trim()}
+                  </span>
+                </p>
               ) : null}
             </div>
           </div>

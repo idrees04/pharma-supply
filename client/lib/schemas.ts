@@ -118,6 +118,7 @@ export const supplyOrderSchema = z.object({
   hospitalId: z.coerce.number().int().min(1, "Hospital is required"),
   orderDate: z.string().min(1, "Order Date is required"),
   requiredByDate: z.string().min(1, "Required By Date is required"),
+  hospitalSupplyOrderNumber: z.string().trim().max(100).optional().nullable(),
   requestedBy: z.string().max(100).optional().default(""),
   shippingAddress: z.string().max(500).optional().default(""),
   notes: z.string().max(1000).optional().default(""),
@@ -127,6 +128,7 @@ export const supplyOrderSchema = z.object({
 
 export const updateSupplyOrderSchema = z.object({
   requiredByDate: z.string().min(1, "Required By Date is required"),
+  hospitalSupplyOrderNumber: z.string().trim().max(100).optional().nullable(),
   requestedBy: z.string().max(100).optional().default(""),
   shippingAddress: z.string().max(500).optional().default(""),
   notes: z.string().max(1000).optional().default(""),
@@ -316,17 +318,34 @@ export const paymentSchema = z.object({
 export type PaymentFormData = z.infer<typeof paymentSchema>;
 
 // Purchase Order Payment Schema
-export const poPaymentSchema = z.object({
-  accountId: z.coerce.number().int().min(1, "Account is required"),
-  amount: z.coerce.number().positive("Amount must be greater than 0"),
-  paymentDate: z.string().optional().nullable().default(null),
-  paymentMode: z.coerce.number().int().min(1).max(5, "Payment Mode is required"),
-  referenceNumber: z.string().optional().default(""),
-  notes: z.string().optional().default(""),
-}).refine((data) => {
-  // Will be validated against outstanding balance at form level
-  return true;
-});
+export const poPaymentSchema = z
+  .object({
+    accountId: z.coerce.number().int().min(1, "Account is required"),
+    amount: z.coerce.number().positive("Amount must be greater than 0"),
+    adjustmentAmount: z.coerce.number().default(0),
+    adjustmentReason: z.string().optional().default(""),
+    paymentDate: z.string().optional().nullable().default(null),
+    paymentMode: z.coerce.number().int().min(1).max(5, "Payment Mode is required"),
+    referenceNumber: z.string().optional().default(""),
+    notes: z.string().optional().default(""),
+  })
+  .superRefine((data, ctx) => {
+    const adj = Number(data.adjustmentAmount) || 0;
+    if (adj !== 0 && !String(data.adjustmentReason ?? "").trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Adjustment reason is required when adjustment is not zero",
+        path: ["adjustmentReason"],
+      });
+    }
+    if (String(data.adjustmentReason ?? "").trim().length > 500) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Adjustment reason cannot exceed 500 characters",
+        path: ["adjustmentReason"],
+      });
+    }
+  });
 
 export type POPaymentFormData = z.infer<typeof poPaymentSchema>;
 

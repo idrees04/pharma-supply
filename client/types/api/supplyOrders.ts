@@ -47,6 +47,7 @@ export interface SupplyOrderItem {
 export interface SupplyOrder {
   id: number;
   supplyOrderNumber: string;
+  hospitalSupplyOrderNumber?: string | null;
   hospitalId: number;
   hospitalName: string;
   orderDate: string;
@@ -83,6 +84,7 @@ export interface CreateSupplyOrderRequest {
   hospitalId: number;
   orderDate: string;
   requiredByDate: string;
+  hospitalSupplyOrderNumber?: string | null;
   requestedBy?: string;
   shippingAddress?: string;
   notes?: string;
@@ -115,6 +117,7 @@ export interface UpdateSupplyOrderItemRequest {
  */
 export interface UpdateSupplyOrderRequest {
   requiredByDate: string;
+  hospitalSupplyOrderNumber?: string | null;
   requestedBy?: string;
   shippingAddress?: string;
   notes?: string;

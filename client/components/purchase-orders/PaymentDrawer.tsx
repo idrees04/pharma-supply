@@ -90,6 +90,8 @@ export function PaymentDrawer({
     defaultValues: {
       accountId: 0,
       amount: 0,
+      adjustmentAmount: 0,
+      adjustmentReason: '',
       paymentDate: null,
       paymentMode: 1,
       referenceNumber: '',
@@ -107,6 +109,8 @@ export function PaymentDrawer({
   }, [suggested, form]);
 
   const amount = form.watch('amount');
+  const adjustmentAmount = form.watch('adjustmentAmount');
+  const adjustmentReason = form.watch('adjustmentReason');
   const paymentMode = form.watch('paymentMode');
   const accountId = form.watch('accountId');
 
@@ -114,19 +118,36 @@ export function PaymentDrawer({
     return accountsList?.find(a => a.id === accountId);
   }, [accountId, accountsList]);
 
-  /** Matches server max payable (PO outstanding balance; advance payment allowed). */
+  const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+  const existingOutstanding = Number(suggested?.totalOutstanding ?? 0);
+  const currentAdj =
+    typeof adjustmentAmount === 'number' && Number.isFinite(adjustmentAmount) ? adjustmentAmount : 0;
+  /** Cash max after this payment's adjustment (mirrors server AdjustedOutstandingBeforeCash). */
+  const maxPayableNow = round2(Math.max(0, existingOutstanding + currentAdj));
+
+  /** Matches server max payable after this payment's adjustment (advance payment allowed). */
   const validationErrors = useMemo(() => {
     const errors: string[] = [];
     if (!suggested) return errors;
 
-    const maxPayable = Number(suggested.suggestedPayableAmount ?? suggested.totalOutstanding ?? 0);
     const amt = typeof amount === 'number' && Number.isFinite(amount) ? amount : NaN;
+    const adj =
+      typeof adjustmentAmount === 'number' && Number.isFinite(adjustmentAmount) ? adjustmentAmount : 0;
+    const adjustedBeforeCash = round2(existingOutstanding + adj);
+
+    if (adj !== 0 && !String(adjustmentReason ?? '').trim()) {
+      errors.push('Enter a reason when adjustment amount is not zero.');
+    }
+
+    if (adjustedBeforeCash < -1e-6) {
+      errors.push('Adjustment would create a negative payable balance. Reduce the negative adjustment.');
+    }
 
     if (!amt || amt <= 0) {
       errors.push('Enter a payment amount greater than zero.');
-    } else if (amt > maxPayable + 1e-6) {
+    } else if (amt > maxPayableNow + 1e-6) {
       errors.push(
-        `Amount cannot exceed ${formatCurrency(maxPayable)} (remaining PO outstanding balance).`
+        `Amount cannot exceed ${formatCurrency(maxPayableNow)} (payable after this adjustment).`
       );
     }
 
@@ -145,7 +166,17 @@ export function PaymentDrawer({
     }
 
     return errors;
-  }, [amount, paymentMode, accountId, suggested, selectedAccount]);
+  }, [
+    amount,
+    adjustmentAmount,
+    adjustmentReason,
+    paymentMode,
+    accountId,
+    suggested,
+    selectedAccount,
+    existingOutstanding,
+    maxPayableNow,
+  ]);
 
   const canSubmit = validationErrors.length === 0 && !isProcessing;
 
@@ -155,8 +186,11 @@ export function PaymentDrawer({
       return;
     }
 
+    const adj = Number(data.adjustmentAmount) || 0;
     const payload = {
       ...data,
+      adjustmentAmount: adj,
+      adjustmentReason: adj !== 0 ? (data.adjustmentReason?.trim() || null) : null,
       paymentDate: data.paymentDate?.trim() ? data.paymentDate : null,
     };
 
@@ -227,20 +261,35 @@ export function PaymentDrawer({
             {suggested && (
               <div className="space-y-5">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Pay the supplier in advance or against received goods. Amount cannot exceed the PO outstanding balance.
-                </p>
+                  Pay the supplier in advance or against received goods. Optional adjustments reconcile short/over charges without changing the original PO total. Cash must be greater than zero.</p>
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
                   <SummaryTile label="Agreed order total (PKR)" value={suggested.agreedOrderTotal || 0} />
                   <SummaryTile label="Goods received value (PKR)" value={suggested.goodsReceivedValue || 0} emphasize="emerald" />
                   <SummaryTile label="Previously paid (PKR)" value={suggested.previouslyPaidAmount || 0} emphasize="blue" />
                   <SummaryTile label="Outstanding (PKR)" value={suggested.totalOutstanding || 0} emphasize="amber" />
+                  {Number(suggested.totalAdjustmentAmount || 0) !== 0 && (
+                    <SummaryTile
+                      label="Existing adjustments (PKR)"
+                      value={Number(suggested.totalAdjustmentAmount || 0)}
+                      emphasize="blue"
+                    />
+                  )}
+                  {Number(suggested.totalAdjustmentAmount || 0) !== 0 && (
+                    <SummaryTile
+                      label="Effective total (PKR)"
+                      value={Number(
+                        suggested.effectiveTotal ??
+                          ((suggested.agreedOrderTotal || 0) + Number(suggested.totalAdjustmentAmount || 0))
+                      )}
+                    />
+                  )}
                 </div>
 
                 <div className="rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-md">
                   <p className="text-sm font-medium opacity-90">Maximum you can pay now (PKR)</p>
                   <p className="text-3xl font-bold tracking-tight mt-1 tabular-nums">
-                    {formatCurrency(suggested.suggestedPayableAmount || 0)}
+                    {formatCurrency(maxPayableNow)}
                   </p>
                   <p className="text-xs opacity-90 mt-2">
                     Advance payment is allowed before goods are received, up to the outstanding PO total.
@@ -333,7 +382,7 @@ export function PaymentDrawer({
                                 </div>
                               </FormControl>
                               <FormDescription className="text-xs">
-                                Max {formatCurrency(suggested.suggestedPayableAmount || 0)}
+                                Max {formatCurrency(maxPayableNow)}
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -404,7 +453,55 @@ export function PaymentDrawer({
                         />
                       </div>
 
-                      <FormField
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="adjustmentAmount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Adjustment (PKR)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  inputMode="decimal"
+                                  step="0.01"
+                                  {...field}
+                                  value={field.value === undefined || field.value === null ? '' : field.value}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    field.onChange(v === '' ? 0 : parseFloat(v));
+                                  }}
+                                  className="h-11 text-base font-medium tabular-nums"
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs">
+                                Optional. Positive increases payable; negative decreases. Cash must still be &gt; 0.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="adjustmentReason"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Adjustment reason</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Required when adjustment is not zero"
+                                  {...field}
+                                  className="h-11 text-base"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+<FormField
                         control={form.control}
                         name="notes"
                         render={({ field }) => (

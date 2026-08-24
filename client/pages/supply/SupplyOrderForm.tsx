@@ -341,6 +341,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
       hospitalId: 0,
       orderDate: todayInputValue(),
       requiredByDate: addDaysInputValue(7),
+      hospitalSupplyOrderNumber: '',
       requestedBy: '',
       shippingAddress: '',
       notes: '',
@@ -360,6 +361,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
         hospitalId: existingSO.hospitalId,
         orderDate: existingSO.orderDate.split('T')[0],
         requiredByDate: existingSO.requiredByDate?.split('T')[0] ?? '',
+        hospitalSupplyOrderNumber: existingSO.hospitalSupplyOrderNumber ?? '',
         requestedBy: existingSO.requestedBy ?? '',
         shippingAddress: existingSO.shippingAddress ?? '',
         notes: existingSO.notes ?? '',
@@ -406,9 +408,15 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
       return new Date(dateStr).toISOString();
     };
 
+    const optionalReference = (value?: string | null) => {
+      const trimmed = value?.trim();
+      return trimmed ? trimmed : null;
+    };
+
     if (isEditMode && supplyOrderId) {
       const updateData: UpdateSupplyOrderRequest = {
         requiredByDate: formatToISO(data.requiredByDate),
+        hospitalSupplyOrderNumber: optionalReference(data.hospitalSupplyOrderNumber),
         requestedBy: data.requestedBy?.trim() || '',
         shippingAddress: data.shippingAddress?.trim() || '',
         notes: data.notes?.trim() || '',
@@ -445,6 +453,7 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
         hospitalId: data.hospitalId,
         orderDate: formatToISO(data.orderDate),
         requiredByDate: formatToISO(data.requiredByDate),
+        hospitalSupplyOrderNumber: optionalReference(data.hospitalSupplyOrderNumber),
         requestedBy: data.requestedBy?.trim() || '',
         shippingAddress: data.shippingAddress?.trim() || '',
         notes: data.notes?.trim() || '',
@@ -600,6 +609,28 @@ export default function SupplyOrderForm({ supplyOrderId: propSupplyOrderId, onSu
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="hospitalSupplyOrderNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                        Hospital supply order no{' '}
+                        <span className="font-normal normal-case text-muted-foreground/80">(optional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. MS/Ideal/Dist/01 Dated 06 July 2026"
+                          {...field}
+                          value={field.value ?? ''}
+                          className="h-11 border-muted-foreground/20 focus-visible:ring-primary"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField

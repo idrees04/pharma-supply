@@ -175,15 +175,17 @@ export default function PurchaseOrderView() {
 
     const totals = po.items.reduce((acc, item) => {
       const subtotal = item.orderedQuantity * item.unitPrice;
+      const discount = subtotal * (item.discountPercentage / 100);
+      const tax = (subtotal - discount) * (item.taxPercentage / 100);
       acc.subtotal += subtotal;
-      acc.tax += subtotal * (item.taxPercentage / 100);
-      acc.discount += subtotal * (item.discountPercentage / 100);
+      acc.discount += discount;
+      acc.tax += tax;
       return acc;
     }, { subtotal: 0, tax: 0, discount: 0 });
 
     return {
       ...totals,
-      total: totals.subtotal + totals.tax - totals.discount
+      total: totals.subtotal - totals.discount + totals.tax
     };
   }, [po]);
 
@@ -477,9 +479,9 @@ export default function PurchaseOrderView() {
                     <TableBody>
                       {(po.items || []).map((item, index) => {
                         const lineSubtotal = item.orderedQuantity * item.unitPrice;
-                        const lineTax = lineSubtotal * (item.taxPercentage / 100);
                         const lineDiscount = lineSubtotal * (item.discountPercentage / 100);
-                        const lineTotal = lineSubtotal + lineTax - lineDiscount;
+                        const lineTax = (lineSubtotal - lineDiscount) * (item.taxPercentage / 100);
+                        const lineTotal = lineSubtotal - lineDiscount + lineTax;
 
                         return (
                           <TableRow key={item.id} className="hover:bg-slate-50/30 transition-colors group border-b border-slate-100">
@@ -569,6 +571,42 @@ export default function PurchaseOrderView() {
                         {calculations.subtotal > 0 ? ((calculations.discount / calculations.subtotal) * 100).toFixed(1) : 0}%
                       </span>
                     </div>
+                    {(Number(po.totalAdjustmentAmount) !== 0 || Number(po.paidAmount) > 0 || totalOutstanding > 0) && (
+                      <div className="border-t border-primary/10 pt-4 space-y-3">
+                        {Number(po.totalAdjustmentAmount) !== 0 && (
+                          <>
+                            <SummaryRow
+                              label="Original PO total"
+                              value={Number(po.totalAmount) || calculations.total}
+                              color="text-slate-700"
+                            />
+                            <SummaryRow
+                              label="Payment adjustments"
+                              value={Number(po.totalAdjustmentAmount) || 0}
+                              color="text-violet-700"
+                            />
+                            <SummaryRow
+                              label="Effective total"
+                              value={
+                                (Number(po.totalAmount) || calculations.total) +
+                                (Number(po.totalAdjustmentAmount) || 0)
+                              }
+                              color="text-slate-900"
+                            />
+                          </>
+                        )}
+                        <SummaryRow
+                          label="Paid"
+                          value={Number(po.paidAmount) || 0}
+                          color="text-emerald-700"
+                        />
+                        <SummaryRow
+                          label="Outstanding"
+                          value={totalOutstanding}
+                          color="text-amber-700"
+                        />
+                      </div>
+                    )}
                   </div>
                 </CardContent>
                 <div className="h-1.5 bg-gradient-to-r from-primary via-violet-500 to-purple-500" />

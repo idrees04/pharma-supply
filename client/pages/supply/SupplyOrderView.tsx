@@ -333,6 +333,14 @@ export default function SupplyOrderView() {
                   <div className="space-y-6">
                     <div className="space-y-1.5 overflow-hidden">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Hospital supply order no
+                      </p>
+                      <p className="text-sm font-bold text-slate-800 font-mono">
+                        {so.hospitalSupplyOrderNumber?.trim() || '—'}
+                      </p>
+                    </div>
+                    <div className="space-y-1.5 overflow-hidden">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         Delivery address
                       </p>
                       <div className="flex items-start gap-3">
@@ -571,6 +579,14 @@ export default function SupplyOrderView() {
                   <div className="space-y-1">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Requested by</p>
                     <p className="text-sm font-bold text-slate-800">{so.requestedBy || 'N/A'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                      Hospital supply order no
+                    </p>
+                    <p className="text-sm font-bold text-slate-800 font-mono">
+                      {so.hospitalSupplyOrderNumber?.trim() || '—'}
+                    </p>
                   </div>
                   {so.attachmentPath ? (
                     <div className="space-y-1">

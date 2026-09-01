@@ -1,0 +1,226 @@
+# Deploy admin SPA by branch:
+#   main    → https://admin.idealdistributor.com.pk  (API: api.idealdistributor.com.pk)
+#   develop → https://mds.vtoxi.com                 (API: mds.vtoxi.com)
+#
+# Required GitHub Actions secrets:
+#   FTP_PASSWORD         — FTP password for Ideal Distributor (main)
+#   FTP_PASSWORD_DEVELOP — FTP password for mds.vtoxi.com (develop)
+# Optional (main / Ideal Distributor):
+#   FTP_HOST / FTP_USER / FTP_REMOTE_ADMIN
+# Optional (develop / vtoxi):
+#   FTP_HOST_DEVELOP / FTP_USER_DEVELOP / FTP_REMOTE_ADMIN_DEVELOP
+#
+# See DEPLOY.md in the repo root.
+
+name: Deploy Admin
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "client/**"
+      - "deploy/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "vite.config.ts"
+      - "tsconfig.json"
+      - "tailwind.config.ts"
+      - "postcss.config.js"
+      - "index.html"
+      - ".github/workflows/deploy-admin-idealdistributor.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deploy target (leave empty to use current branch)"
+        required: false
+        type: choice
+        options:
+          - ""
+          - production
+          - staging
+
+concurrency:
+  group: deploy-admin-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve deploy target
+        id: target
+        shell: pwsh
+        run: |
+          $branch = "${{ github.ref_name }}"
+          $input = "${{ github.event.inputs.environment }}"
+          $envName = if ($input) { $input } elseif ($branch -eq "main") { "production" } else { "staging" }
+
+          if ($envName -eq "production") {
+            $adminUrl = "https://admin.idealdistributor.com.pk"
+            $apiUrl = "https://api.idealdistributor.com.pk"
+            $ftpHost = "ftp.idealdistributor.com.pk"
+            $ftpUser = "arsal"
+            $ftpRemote = "/admin.idealdistributor.com.pk"
+          } else {
+            $adminUrl = "https://mds.vtoxi.com"
+            $apiUrl = "https://mds.vtoxi.com"
+            $ftpHost = "ftp.vtoxi.com"
+            $ftpUser = "vtoxico3"
+            $ftpRemote = "/public_html"
+          }
+
+          function Set-Output([string]$Name, [string]$Value) {
+            $delim = "EOF_$([guid]::NewGuid().ToString('N'))"
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "$Name<<$delim"
+            Add-Content -Path $env:GITHUB_OUTPUT -Value $Value
+            Add-Content -Path $env:GITHUB_OUTPUT -Value $delim
+          }
+
+          Set-Output "name" $envName
+          Set-Output "admin_url" $adminUrl
+          Set-Output "api_url" $apiUrl
+          Set-Output "ftp_host_default" $ftpHost
+          Set-Output "ftp_user_default" $ftpUser
+          Set-Output "ftp_remote_default" $ftpRemote
+
+          Write-Host "Deploy target: $envName (branch=$branch) -> $adminUrl (API=$apiUrl)"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        shell: pwsh
+        env:
+          VITE_API_BASE_URL: ${{ steps.target.outputs.api_url }}
+        run: |
+          Write-Host "Building with VITE_API_BASE_URL=$env:VITE_API_BASE_URL"
+          pnpm build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $dist = Join-Path $PWD "dist"
+          $webConfig = Join-Path $PWD "deploy\web.config"
+          if (-not (Test-Path $dist)) { throw "dist folder missing after build." }
+          if (-not (Test-Path $webConfig)) { throw "deploy\web.config missing." }
+          Copy-Item $webConfig (Join-Path $dist "web.config") -Force
+          Write-Host "Build ready: $dist"
+          Get-ChildItem $dist | Select-Object -First 20 Name
+
+      - name: Deploy via FTP
+        shell: pwsh
+        env:
+          DEPLOY_ENV: ${{ steps.target.outputs.name }}
+          FTP_HOST_DEFAULT: ${{ steps.target.outputs.ftp_host_default }}
+          FTP_USER_DEFAULT: ${{ steps.target.outputs.ftp_user_default }}
+          FTP_REMOTE_DEFAULT: ${{ steps.target.outputs.ftp_remote_default }}
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_REMOTE_ADMIN: ${{ secrets.FTP_REMOTE_ADMIN }}
+          FTP_HOST_DEVELOP: ${{ secrets.FTP_HOST_DEVELOP }}
+          FTP_USER_DEVELOP: ${{ secrets.FTP_USER_DEVELOP }}
+          FTP_PASSWORD_DEVELOP: ${{ secrets.FTP_PASSWORD_DEVELOP }}
+          FTP_REMOTE_ADMIN_DEVELOP: ${{ secrets.FTP_REMOTE_ADMIN_DEVELOP }}
+        run: |
+          $isProd = $env:DEPLOY_ENV -eq "production"
+
+          if ($isProd) {
+            $pass = $env:FTP_PASSWORD
+            $ftpHost = if ($env:FTP_HOST) { $env:FTP_HOST } else { $env:FTP_HOST_DEFAULT }
+            $user = if ($env:FTP_USER) { $env:FTP_USER } else { $env:FTP_USER_DEFAULT }
+            $remote = if ($env:FTP_REMOTE_ADMIN) { $env:FTP_REMOTE_ADMIN.TrimEnd('/') } else { $env:FTP_REMOTE_DEFAULT }
+            $secretName = "FTP_PASSWORD"
+          } else {
+            $pass = $env:FTP_PASSWORD_DEVELOP
+            $ftpHost = if ($env:FTP_HOST_DEVELOP) { $env:FTP_HOST_DEVELOP } else { $env:FTP_HOST_DEFAULT }
+            $user = if ($env:FTP_USER_DEVELOP) { $env:FTP_USER_DEVELOP } else { $env:FTP_USER_DEFAULT }
+            $remote = if ($env:FTP_REMOTE_ADMIN_DEVELOP) { $env:FTP_REMOTE_ADMIN_DEVELOP.TrimEnd('/') } else { $env:FTP_REMOTE_DEFAULT }
+            $secretName = "FTP_PASSWORD_DEVELOP"
+          }
+
+          if (-not $pass) {
+            throw "Missing secret $secretName. Add it under repo Settings → Secrets."
+          }
+
+          $localDir = (Join-Path $PWD "dist").TrimEnd('\')
+          if (-not (Test-Path $localDir)) { throw "dist folder not found at $localDir" }
+
+          function Ensure-FtpDirectory([string]$RemoteDir) {
+            $path = ($RemoteDir -replace '\\', '/').TrimEnd('/')
+            if (-not $path -or $path -eq '/') { return }
+            $segments = $path.TrimStart('/').Split('/')
+            $built = ''
+            foreach ($segment in $segments) {
+              if (-not $segment) { continue }
+              $built += "/$segment"
+              try {
+                $uri = [Uri]("ftp://$ftpHost$built")
+                $req = [System.Net.FtpWebRequest]::Create($uri)
+                $req.Method = [System.Net.WebRequestMethods+Ftp]::MakeDirectory
+                $req.Credentials = New-Object System.Net.NetworkCredential($user, $pass)
+                $req.UsePassive = $true
+                $req.GetResponse().Close()
+              } catch { }
+            }
+          }
+
+          function Upload-FtpFile([string]$LocalFile, [string]$RemoteFile) {
+            $remoteDir = Split-Path $RemoteFile -Parent
+            if ($remoteDir) { Ensure-FtpDirectory $remoteDir }
+            $uri = [Uri]("ftp://$ftpHost$RemoteFile")
+            $req = [System.Net.FtpWebRequest]::Create($uri)
+            $req.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
+            $req.Credentials = New-Object System.Net.NetworkCredential($user, $pass)
+            $req.UseBinary = $true
+            $req.UsePassive = $true
+            $bytes = [System.IO.File]::ReadAllBytes($LocalFile)
+            $req.ContentLength = $bytes.Length
+            $stream = $req.GetRequestStream()
+            $stream.Write($bytes, 0, $bytes.Length)
+            $stream.Close()
+            $req.GetResponse().Close()
+          }
+
+          Write-Host "FTP upload -> ftp://$ftpHost$remote (env=$($env:DEPLOY_ENV))"
+          $files = Get-ChildItem $localDir -Recurse -File
+          foreach ($item in $files) {
+            $relative = $item.FullName.Substring($localDir.Length).TrimStart('\')
+            $remoteItem = ($remote + '/' + $relative) -replace '\\', '/'
+            Upload-FtpFile -LocalFile $item.FullName -RemoteFile $remoteItem
+            Write-Host "  uploaded $relative"
+          }
+          Write-Host "FTP deploy completed."
+
+      - name: Smoke check
+        shell: pwsh
+        env:
+          ADMIN_URL: ${{ steps.target.outputs.admin_url }}
+        run: |
+          Start-Sleep -Seconds 5
+          $url = $env:ADMIN_URL
+          try {
+            $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 60
+            Write-Host "GET $url -> $($r.StatusCode)"
+            if ($r.StatusCode -ne 200) { throw "Unexpected status $($r.StatusCode)" }
+            if ($r.Content -notmatch 'index|Ideal|root|vite') {
+              Write-Warning "Response body may not be the SPA shell; verify $url manually."
+            }
+          } catch {
+            Write-Warning "Smoke check failed: $($_.Exception.Message)"
+            Write-Warning "Site may still be warming up; verify $url"
+            exit 1
+          }

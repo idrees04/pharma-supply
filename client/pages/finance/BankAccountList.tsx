@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, AlertCircle, CheckCircle, CreditCard, Building2, Wallet, Search } from 'lucide-react';
+import { Plus, AlertCircle, CheckCircle, CreditCard, Building2, Wallet, Search, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import BankAccountForm from './BankAccountForm';
 import { DataTable, Column } from '@/components/common/DataTable';
@@ -137,6 +137,8 @@ export default function BankAccountList() {
             <Wallet className="w-3.5 h-3.5 text-orange-500 dark:text-orange-400" />
           ) : account.accountType === AccountType.CreditCard ? (
             <CreditCard className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
+          ) : account.accountType === AccountType.Portal ? (
+            <Globe className="w-3.5 h-3.5 text-teal-500 dark:text-teal-400" />
           ) : (
             <Building2 className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
           )}

@@ -6,6 +6,7 @@ export type AnalyticsReportId =
   | 'pipeline'
   | 'by-hospital'
   | 'fulfillment-sla'
+  | 'by-product'
   | 'stock-position'
   | 'batch-expiry'
   | 'payables'
@@ -33,6 +34,7 @@ export interface AnalyticsReportQueryParams {
   accountId?: number;
   asOfDate?: string;
   view?: 'payment' | 'product';
+  supplyOrderStatus?: number;
 }
 
 // Supply order
@@ -76,6 +78,44 @@ export interface SupplyOrderFulfillmentSlaRowDto {
 
 export interface SupplyOrderFulfillmentSlaReportDto {
   rows: SupplyOrderFulfillmentSlaRowDto[];
+}
+
+export interface SupplyOrdersByProductRowDto {
+  productId: number;
+  productCode: string;
+  productName: string;
+  supplyOrderCount: number;
+  totalOrderedQuantity: number;
+  totalLineAmount: number;
+}
+
+export interface SupplyOrdersByProductReportDto {
+  rows: SupplyOrdersByProductRowDto[];
+  totalProductCount: number;
+  grandSupplyOrderCount: number;
+  grandOrderedQuantity: number;
+  grandLineAmount: number;
+}
+
+export interface SupplyOrderByProductDetailRowDto {
+  supplyOrderId: number;
+  supplyOrderNumber: string;
+  hospitalId: number;
+  hospitalName: string;
+  orderDate: string;
+  status: number;
+  statusName: string;
+  orderedQuantity: number;
+  lineAmount: number;
+  requiredByDate: string | null;
+}
+
+export interface SupplyOrderByProductDetailReportDto {
+  productId: number;
+  productCode: string;
+  productName: string;
+  rows: SupplyOrderByProductDetailRowDto[];
+  totalSupplyOrderCount: number;
 }
 
 // Inventory
@@ -283,6 +323,8 @@ export interface OutstandingBalanceByHospitalReportDto {
 export type SupplyOrderPipelineResponse = ApiResponse<SupplyOrderPipelineReportDto>;
 export type SupplyOrdersByHospitalResponse = ApiResponse<SupplyOrdersByHospitalReportDto>;
 export type SupplyOrderFulfillmentSlaResponse = ApiResponse<SupplyOrderFulfillmentSlaReportDto>;
+export type SupplyOrdersByProductResponse = ApiResponse<SupplyOrdersByProductReportDto>;
+export type SupplyOrderByProductDetailResponse = ApiResponse<SupplyOrderByProductDetailReportDto>;
 export type InventoryStockPositionResponse = ApiResponse<InventoryStockPositionReportDto>;
 export type InventoryBatchExpiryResponse = ApiResponse<InventoryBatchExpiryReportDto>;
 export type PurchasePayablesResponse = ApiResponse<PurchaseOrderPayablesReportDto>;

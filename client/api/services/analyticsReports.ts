@@ -15,6 +15,8 @@ import type {
   SupplyOrderFulfillmentSlaReportDto,
   SupplyOrderPipelineReportDto,
   SupplyOrdersByHospitalReportDto,
+  SupplyOrdersByProductReportDto,
+  SupplyOrderByProductDetailReportDto,
   CashCollectionsResponse,
   ExpensesSummaryResponse,
   HospitalArResponse,
@@ -29,6 +31,8 @@ import type {
   SupplyOrderFulfillmentSlaResponse,
   SupplyOrderPipelineResponse,
   SupplyOrdersByHospitalResponse,
+  SupplyOrdersByProductResponse,
+  SupplyOrderByProductDetailResponse,
   ProfitReportDto,
   ProfitReportResponse,
   LedgerReportDto,
@@ -49,6 +53,7 @@ function appendReportParams(qs: URLSearchParams, p?: AnalyticsReportQueryParams)
   if (p.accountId != null) qs.append('accountId', String(p.accountId));
   if (p.asOfDate) qs.append('asOfDate', p.asOfDate);
   if (p.view) qs.append('view', p.view);
+  if (p.supplyOrderStatus != null) qs.append('status', String(p.supplyOrderStatus));
 }
 
 export const analyticsReportService = {
@@ -82,6 +87,29 @@ export const analyticsReportService = {
     appendReportParams(qs, params);
     const url = `/api/reports/supply-order/fulfillment-sla${qs.toString() ? `?${qs}` : ''}`;
     const res = await get<SupplyOrderFulfillmentSlaResponse>(url, config);
+    return res.data;
+  },
+
+  getSupplyOrdersByProduct: async (
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<SupplyOrdersByProductReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const url = `/api/reports/supply-order/by-product${qs.toString() ? `?${qs}` : ''}`;
+    const res = await get<SupplyOrdersByProductResponse>(url, config);
+    return res.data;
+  },
+
+  getSupplyOrdersByProductDetail: async (
+    productId: number,
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<SupplyOrderByProductDetailReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const url = `/api/reports/supply-order/by-product/${productId}/orders${qs.toString() ? `?${qs}` : ''}`;
+    const res = await get<SupplyOrderByProductDetailResponse>(url, config);
     return res.data;
   },
 

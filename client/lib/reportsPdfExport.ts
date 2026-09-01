@@ -20,6 +20,8 @@ import type {
   SupplyOrderFulfillmentSlaReportDto,
   SupplyOrderPipelineReportDto,
   SupplyOrdersByHospitalReportDto,
+  SupplyOrdersByProductReportDto,
+  SupplyOrderByProductDetailReportDto,
   ProfitReportDto,
   LedgerReportDto,
   PaymentsByAccountReportDto,
@@ -37,6 +39,8 @@ export type AnalyticsReportPdfMeta = {
   hospitalLabel: string;
   supplierLabel: string;
   productLabel: string;
+  supplyOrderStatusLabel?: string;
+  detailProductId?: number | null;
   data: unknown;
 };
 
@@ -60,7 +64,8 @@ function asStrings(row: (string | number)[]): string[] {
   return row.map((c) => (c === null || c === undefined ? '—' : String(c)));
 }
 
-function buildSpec(reportId: AnalyticsReportId, data: unknown): TableSpec {
+function buildSpec(meta: AnalyticsReportPdfMeta): TableSpec {
+  const { reportId, data, detailProductId } = meta;
   switch (reportId) {
     case 'pipeline': {
       const d = data as SupplyOrderPipelineReportDto;
@@ -111,6 +116,56 @@ function buildSpec(reportId: AnalyticsReportId, data: unknown): TableSpec {
                   fmtDisplayDate(r.fulfilledDate),
                   fmtDisplayDate(r.firstDispatchDate),
                   r.daysVarianceVsRequired == null ? '—' : r.daysVarianceVsRequired,
+                ]),
+              )
+            : [],
+      };
+    }
+    case 'by-product': {
+      if (detailProductId != null) {
+        const d = data as SupplyOrderByProductDetailReportDto;
+        return {
+          orientation: 'landscape',
+          summaries: [
+            { label: 'Product', value: `${d.productCode} — ${d.productName}` },
+            { label: 'Supply orders', value: String(d.totalSupplyOrderCount) },
+          ],
+          headers: ['SO #', 'Hospital', 'Order date', 'Status', 'Ordered qty', 'Line amount (PKR)', 'Required by'],
+          rows:
+            d.rows.length > 0
+              ? d.rows.map((r) =>
+                  asStrings([
+                    r.supplyOrderNumber,
+                    r.hospitalName,
+                    fmtDisplayDate(r.orderDate),
+                    r.statusName,
+                    r.orderedQuantity,
+                    formatCurrency(r.lineAmount),
+                    fmtDisplayDate(r.requiredByDate),
+                  ]),
+                )
+              : [],
+        };
+      }
+      const d = data as SupplyOrdersByProductReportDto;
+      return {
+        orientation: 'landscape',
+        summaries: [
+          { label: 'Products', value: String(d.totalProductCount) },
+          { label: 'Supply orders', value: String(d.grandSupplyOrderCount) },
+          { label: 'Ordered qty', value: String(d.grandOrderedQuantity) },
+          { label: 'Line amount (PKR)', value: formatCurrency(d.grandLineAmount) },
+        ],
+        headers: ['Code', 'Product', 'Supply orders', 'Ordered qty', 'Line amount (PKR)'],
+        rows:
+          d.rows.length > 0
+            ? d.rows.map((r) =>
+                asStrings([
+                  r.productCode,
+                  r.productName,
+                  r.supplyOrderCount,
+                  r.totalOrderedQuantity,
+                  formatCurrency(r.totalLineAmount),
                 ]),
               )
             : [],
@@ -551,6 +606,7 @@ function drawHeaderBlock(
     `Hospital: ${meta.hospitalLabel}`,
     `Supplier: ${meta.supplierLabel}`,
     `Product: ${meta.productLabel}`,
+    ...(meta.supplyOrderStatusLabel ? [`Supply order status: ${meta.supplyOrderStatusLabel}`] : []),
   ];
   filterLines.forEach((line) => {
     doc.text(line, margin, y, { maxWidth: pageW - 2 * margin });
@@ -596,7 +652,7 @@ function addFooters(doc: jsPDF, reportTitle: string, companyName: string): void 
 export async function downloadAnalyticsReportPdf(meta: AnalyticsReportPdfMeta): Promise<void> {
   const branding = getResolvedFederationBranding();
   const logoDataUrl = await loadLogoDataUrl(branding.logoSrc);
-  const spec = buildSpec(meta.reportId, meta.data);
+  const spec = buildSpec(meta);
   const doc = new jsPDF({ orientation: spec.orientation, unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 12;

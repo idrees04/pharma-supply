@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, FileDown, Loader2, RefreshCw } from 'lucide-react';
+import { BarChart3, FileDown, Loader2, RefreshCw, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/common/DataTable';
+import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
 import { formatAppDate, toDateInputValue, todayInputValue } from '@/lib/dates';
 import { analyticsReportService } from '@/api/services/analyticsReports';
@@ -29,6 +30,11 @@ import { useProductList } from '@/api/services/products';
 import { useAccountList } from '@/api/services/accounts';
 import { ApiError } from '@/api/errors';
 import { downloadAnalyticsReportPdf } from '@/lib/reportsPdfExport';
+import { useSupplyOrderStatusOptions } from '@/hooks/dropdown';
+import {
+  getSupplyOrderStatusClassName,
+  getSupplyOrderStatusLabel,
+} from '@/lib/supplyOrderStatusDisplay';
 
 const MODULE_OPTIONS: { id: ReportModuleId; label: string }[] = [
   { id: 'supply-order', label: 'Supply orders' },
@@ -43,6 +49,7 @@ const REPORTS_BY_MODULE: Record<ReportModuleId, { id: AnalyticsReportId; label: 
     { id: 'pipeline', label: 'Pipeline by status' },
     { id: 'by-hospital', label: 'Orders by hospital' },
     { id: 'fulfillment-sla', label: 'Fulfillment / SLA' },
+    { id: 'by-product', label: 'Product-wise supply orders' },
   ],
   inventory: [
     { id: 'stock-position', label: 'Stock position & value' },
@@ -109,6 +116,11 @@ export default function Reports() {
 
   const module: ReportModuleId = isModule(moduleParam) ? moduleParam : 'supply-order';
   const reportId = parseReport(module, reportParam);
+  const detailProductIdParam = searchParams.get('detailProductId');
+  const detailProductId =
+    reportId === 'by-product' && detailProductIdParam && Number(detailProductIdParam) > 0
+      ? Number(detailProductIdParam)
+      : null;
 
   const { from: defaultFrom, to: defaultTo } = defaultDateRange();
   const [dateFrom, setDateFrom] = useState(defaultFrom);
@@ -116,12 +128,14 @@ export default function Reports() {
   const [hospitalId, setHospitalId] = useState<string>('');
   const [supplierId, setSupplierId] = useState<string>('');
   const [productId, setProductId] = useState<string>('');
+  const [supplyOrderStatus, setSupplyOrderStatus] = useState<string>('');
   const [asOfDate, setAsOfDate] = useState(() => todayInputValue());
 
   const { data: hospitalsData } = useGetHospitals({ pageNumber: 1, pageSize: 500 });
   const { data: suppliersData } = useSupplierList({ pageNumber: 1, pageSize: 500 });
   const { data: productsData } = useProductList({ pageNumber: 1, pageSize: 500 });
   const { data: accountsData } = useAccountList();
+  const { data: supplyOrderStatuses } = useSupplyOrderStatusOptions(reportId === 'by-product');
 
   const hospitals = hospitalsData?.data?.items ?? [];
   const suppliers = suppliersData?.items ?? [];
@@ -173,6 +187,31 @@ export default function Reports() {
     [setSearchParams],
   );
 
+  const openProductDetail = useCallback(
+    (pid: number) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('detailProductId', String(pid));
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const closeProductDetail = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('detailProductId');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
+
   // Sync URL with module/report
   useMemo(() => {
     if (!isModule(moduleParam)) {
@@ -199,8 +238,10 @@ export default function Reports() {
     const aid = effectiveAccountId ? Number(effectiveAccountId) : undefined;
     if (aid && aid > 0) p.accountId = aid;
     if (reportId === 'balance-sheet') p.asOfDate = asOfDate;
+    const sos = supplyOrderStatus ? Number(supplyOrderStatus) : undefined;
+    if (sos && sos > 0) p.supplyOrderStatus = sos;
     return p;
-  }, [dateFrom, dateTo, hospitalId, supplierId, productId, effectiveAccountId, asOfDate, reportId]);
+  }, [dateFrom, dateTo, hospitalId, supplierId, productId, effectiveAccountId, asOfDate, reportId, supplyOrderStatus]);
 
   const queryFn = useCallback(async () => {
     switch (reportId) {
@@ -210,6 +251,10 @@ export default function Reports() {
         return analyticsReportService.getSupplyOrdersByHospital(apiParams);
       case 'fulfillment-sla':
         return analyticsReportService.getSupplyOrderFulfillmentSla(apiParams);
+      case 'by-product':
+        return detailProductId
+          ? analyticsReportService.getSupplyOrdersByProductDetail(detailProductId, apiParams)
+          : analyticsReportService.getSupplyOrdersByProduct(apiParams);
       case 'stock-position':
         return analyticsReportService.getInventoryStockPosition(apiParams);
       case 'batch-expiry':
@@ -246,12 +291,12 @@ export default function Reports() {
       default:
         throw new Error('Unknown report');
     }
-  }, [reportId, apiParams]);
+  }, [reportId, apiParams, detailProductId]);
 
   const isLedgerRedirect = reportId === 'vendor-ledger' || reportId === 'hospital-ledger';
 
   const { data, isPending, error, refetch, isFetching } = useQuery({
-    queryKey: ['analytics-report', reportId, apiParams],
+    queryKey: ['analytics-report', reportId, apiParams, detailProductId],
     queryFn,
     enabled: !isLedgerRedirect,
     staleTime: 60 * 1000,
@@ -267,6 +312,7 @@ export default function Reports() {
     reportId === 'pipeline' ||
     reportId === 'by-hospital' ||
     reportId === 'fulfillment-sla' ||
+    reportId === 'by-product' ||
     reportId === 'hospital-ar' ||
     reportId === 'cash-collections' ||
     reportId === 'invoice-tax-lines' ||
@@ -286,6 +332,7 @@ export default function Reports() {
     reportId === 'profit-by-product';
   const showAccount = reportId === 'payments-by-account';
   const showAsOfDate = reportId === 'balance-sheet';
+  const showSupplyOrderStatus = reportId === 'by-product';
 
   const reportLabel = REPORTS_BY_MODULE[module].find((x) => x.id === reportId)?.label ?? reportId;
 
@@ -307,6 +354,12 @@ export default function Reports() {
     return p ? `${p.productCode} — ${p.productName}` : `Product ID ${productId}`;
   }, [productId, products]);
 
+  const supplyOrderStatusFilterLabel = useMemo(() => {
+    if (!supplyOrderStatus) return 'All statuses';
+    const s = supplyOrderStatuses?.find((x) => String(x.value) === supplyOrderStatus);
+    return s?.name ?? `Status ${supplyOrderStatus}`;
+  }, [supplyOrderStatus, supplyOrderStatuses]);
+
   const moduleLabel = useMemo(
     () => `${MODULE_OPTIONS.find((o) => o.id === module)?.label ?? module} — analytics reports`,
     [module],
@@ -326,6 +379,8 @@ export default function Reports() {
         hospitalLabel: hospitalFilterLabel,
         supplierLabel: supplierFilterLabel,
         productLabel: productFilterLabel,
+        supplyOrderStatusLabel: supplyOrderStatusFilterLabel,
+        detailProductId,
         data,
       });
       toast.success('PDF downloaded');
@@ -343,6 +398,8 @@ export default function Reports() {
     hospitalFilterLabel,
     supplierFilterLabel,
     productFilterLabel,
+    supplyOrderStatusFilterLabel,
+    detailProductId,
   ]);
 
   return (
@@ -510,6 +567,28 @@ export default function Reports() {
               />
             </div>
           ) : null}
+
+          {showSupplyOrderStatus ? (
+            <div className="space-y-2">
+              <Label>Supply order status</Label>
+              <Select
+                value={supplyOrderStatus || '__all'}
+                onValueChange={(v) => setSupplyOrderStatus(v === '__all' ? '' : v)}
+              >
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">All statuses</SelectItem>
+                  {(supplyOrderStatuses ?? []).map((s) => (
+                    <SelectItem key={s.value} value={String(s.value)}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -549,7 +628,16 @@ export default function Reports() {
           </Button>
         </Card>
       ) : (
-        <ReportResults reportId={reportId} data={data} isPending={isPending} error={error} />
+        <ReportResults
+          reportId={reportId}
+          data={data}
+          isPending={isPending}
+          error={error}
+          detailProductId={detailProductId}
+          onProductClick={openProductDetail}
+          onBackFromDetail={closeProductDetail}
+          supplyOrderStatuses={supplyOrderStatuses}
+        />
       )}
     </div>
   );
@@ -560,11 +648,19 @@ function ReportResults({
   data,
   isPending,
   error,
+  detailProductId,
+  onProductClick,
+  onBackFromDetail,
+  supplyOrderStatuses,
 }: {
   reportId: AnalyticsReportId;
   data: unknown;
   isPending: boolean;
   error: Error | null;
+  detailProductId?: number | null;
+  onProductClick?: (productId: number) => void;
+  onBackFromDetail?: () => void;
+  supplyOrderStatuses?: import('@/types/api/supplyOrders').SupplyOrderStatusOption[];
 }) {
   if (isPending && !data) {
     return (
@@ -640,6 +736,104 @@ function ReportResults({
             r.daysVarianceVsRequired == null ? '—' : String(r.daysVarianceVsRequired),
           ])}
         />
+      );
+    }
+    case 'by-product': {
+      if (detailProductId != null) {
+        const d = data as import('@/types/api/analyticsReports').SupplyOrderByProductDetailReportDto;
+        const detailColumns: Column<
+          import('@/types/api/analyticsReports').SupplyOrderByProductDetailRowDto
+        >[] = [
+          {
+            header: 'SO #',
+            accessor: (row) => (
+              <a
+                href={`/supply-orders/view/${row.supplyOrderId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {row.supplyOrderNumber}
+              </a>
+            ),
+            minWidth: '120px',
+          },
+          { header: 'Hospital', accessor: (row) => row.hospitalName },
+          { header: 'Order date', accessor: (row) => fmtDate(row.orderDate) },
+          {
+            header: 'Status',
+            accessor: (row) => (
+              <Badge variant="outline" className={getSupplyOrderStatusClassName(row.status)}>
+                {getSupplyOrderStatusLabel(row.status, supplyOrderStatuses)}
+              </Badge>
+            ),
+          },
+          { header: 'Ordered qty', accessor: (row) => String(row.orderedQuantity), align: 'right' },
+          {
+            header: 'Line amount (PKR)',
+            accessor: (row) => formatCurrency(row.lineAmount),
+            align: 'right',
+          },
+          { header: 'Required by', accessor: (row) => fmtDate(row.requiredByDate) },
+        ];
+
+        return (
+          <div className="space-y-4">
+            <Button type="button" variant="ghost" size="sm" className="gap-2 -ml-2" onClick={onBackFromDetail}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to product summary
+            </Button>
+            <p className="text-sm font-medium">
+              {d.productCode} — {d.productName}
+            </p>
+            <SummaryStrip items={[{ label: 'Supply orders', value: String(d.totalSupplyOrderCount) }]} />
+            <Card className="overflow-hidden shadow-sm p-4">
+              <DataTable
+                columns={detailColumns}
+                data={d.rows}
+                itemsPerPage={20}
+                emptyMessage="No supply orders for this product and filters."
+              />
+            </Card>
+          </div>
+        );
+      }
+
+      const d = data as import('@/types/api/analyticsReports').SupplyOrdersByProductReportDto;
+      const productColumns: Column<import('@/types/api/analyticsReports').SupplyOrdersByProductRowDto>[] = [
+        { header: 'Code', accessor: (row) => row.productCode, minWidth: '100px' },
+        { header: 'Product', accessor: (row) => row.productName, minWidth: '180px' },
+        { header: 'Supply orders', accessor: (row) => String(row.supplyOrderCount), align: 'right' },
+        { header: 'Ordered qty', accessor: (row) => String(row.totalOrderedQuantity), align: 'right' },
+        {
+          header: 'Line amount (PKR)',
+          accessor: (row) => formatCurrency(row.totalLineAmount),
+          align: 'right',
+        },
+      ];
+
+      return (
+        <div className="space-y-4">
+          <SummaryStrip
+            items={[
+              { label: 'Products', value: String(d.totalProductCount) },
+              { label: 'Supply orders', value: String(d.grandSupplyOrderCount) },
+              { label: 'Ordered qty', value: String(d.grandOrderedQuantity) },
+              { label: 'Line amount (PKR)', value: formatCurrency(d.grandLineAmount) },
+            ]}
+          />
+          <Card className="overflow-hidden shadow-sm p-4">
+            <DataTable
+              columns={productColumns}
+              data={d.rows}
+              itemsPerPage={20}
+              emptyMessage="No products with supply orders for the selected filters."
+              onRowClick={(row) => onProductClick?.(row.productId)}
+            />
+          </Card>
+          <p className="text-xs text-muted-foreground">Click a product row to view its supply orders.</p>
+        </div>
       );
     }
     case 'stock-position': {

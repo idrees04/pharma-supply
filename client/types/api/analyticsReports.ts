@@ -7,6 +7,7 @@ export type AnalyticsReportId =
   | 'by-hospital'
   | 'fulfillment-sla'
   | 'by-product'
+  | 'delivery-challans'
   | 'stock-position'
   | 'batch-expiry'
   | 'payables'
@@ -35,6 +36,7 @@ export interface AnalyticsReportQueryParams {
   asOfDate?: string;
   view?: 'payment' | 'product';
   supplyOrderStatus?: number;
+  deliveryChallanStatus?: number;
 }
 
 // Supply order
@@ -116,6 +118,52 @@ export interface SupplyOrderByProductDetailReportDto {
   productName: string;
   rows: SupplyOrderByProductDetailRowDto[];
   totalSupplyOrderCount: number;
+}
+
+export interface DeliveryChallansReportRowDto {
+  deliveryChallanId: number;
+  challanNumber: string;
+  supplyOrderId: number;
+  supplyOrderNumber: string;
+  hospitalId: number;
+  hospitalName: string;
+  dispatchDate: string;
+  status: number;
+  statusName: string;
+  lineCount: number;
+  totalQuantityDispatched: number;
+  isInvoiced: boolean;
+}
+
+export interface DeliveryChallansReportDto {
+  rows: DeliveryChallansReportRowDto[];
+  totalChallanCount: number;
+  grandLineCount: number;
+  grandQuantityDispatched: number;
+}
+
+export interface DeliveryChallanDetailRowDto {
+  productId: number;
+  productCode: string;
+  productName: string;
+  batchNumber: string;
+  batchExpiryDate: string | null;
+  quantityDispatched: number;
+}
+
+export interface DeliveryChallanDetailReportDto {
+  deliveryChallanId: number;
+  challanNumber: string;
+  supplyOrderId: number;
+  supplyOrderNumber: string;
+  hospitalId: number;
+  hospitalName: string;
+  dispatchDate: string;
+  status: number;
+  statusName: string;
+  rows: DeliveryChallanDetailRowDto[];
+  totalLineCount: number;
+  totalQuantityDispatched: number;
 }
 
 // Inventory
@@ -325,6 +373,8 @@ export type SupplyOrdersByHospitalResponse = ApiResponse<SupplyOrdersByHospitalR
 export type SupplyOrderFulfillmentSlaResponse = ApiResponse<SupplyOrderFulfillmentSlaReportDto>;
 export type SupplyOrdersByProductResponse = ApiResponse<SupplyOrdersByProductReportDto>;
 export type SupplyOrderByProductDetailResponse = ApiResponse<SupplyOrderByProductDetailReportDto>;
+export type DeliveryChallansResponse = ApiResponse<DeliveryChallansReportDto>;
+export type DeliveryChallanDetailResponse = ApiResponse<DeliveryChallanDetailReportDto>;
 export type InventoryStockPositionResponse = ApiResponse<InventoryStockPositionReportDto>;
 export type InventoryBatchExpiryResponse = ApiResponse<InventoryBatchExpiryReportDto>;
 export type PurchasePayablesResponse = ApiResponse<PurchaseOrderPayablesReportDto>;

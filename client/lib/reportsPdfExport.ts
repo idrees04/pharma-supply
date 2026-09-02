@@ -22,6 +22,8 @@ import type {
   SupplyOrdersByHospitalReportDto,
   SupplyOrdersByProductReportDto,
   SupplyOrderByProductDetailReportDto,
+  DeliveryChallansReportDto,
+  DeliveryChallanDetailReportDto,
   ProfitReportDto,
   LedgerReportDto,
   PaymentsByAccountReportDto,
@@ -40,7 +42,9 @@ export type AnalyticsReportPdfMeta = {
   supplierLabel: string;
   productLabel: string;
   supplyOrderStatusLabel?: string;
+  deliveryChallanStatusLabel?: string;
   detailProductId?: number | null;
+  detailChallanId?: number | null;
   data: unknown;
 };
 
@@ -65,7 +69,7 @@ function asStrings(row: (string | number)[]): string[] {
 }
 
 function buildSpec(meta: AnalyticsReportPdfMeta): TableSpec {
-  const { reportId, data, detailProductId } = meta;
+  const { reportId, data, detailProductId, detailChallanId } = meta;
   switch (reportId) {
     case 'pipeline': {
       const d = data as SupplyOrderPipelineReportDto;
@@ -166,6 +170,58 @@ function buildSpec(meta: AnalyticsReportPdfMeta): TableSpec {
                   r.supplyOrderCount,
                   r.totalOrderedQuantity,
                   formatCurrency(r.totalLineAmount),
+                ]),
+              )
+            : [],
+      };
+    }
+    case 'delivery-challans': {
+      if (detailChallanId != null) {
+        const d = data as DeliveryChallanDetailReportDto;
+        return {
+          orientation: 'landscape',
+          summaries: [
+            { label: 'DC', value: `${d.challanNumber} — ${d.hospitalName}` },
+            { label: 'Dispatch date', value: fmtDisplayDate(d.dispatchDate) },
+            { label: 'Lines', value: String(d.totalLineCount) },
+            { label: 'Total qty', value: String(d.totalQuantityDispatched) },
+          ],
+          headers: ['Code', 'Product', 'Batch', 'Expiry', 'Qty dispatched'],
+          rows:
+            d.rows.length > 0
+              ? d.rows.map((r) =>
+                  asStrings([
+                    r.productCode,
+                    r.productName,
+                    r.batchNumber || '—',
+                    fmtDisplayDate(r.batchExpiryDate),
+                    r.quantityDispatched,
+                  ]),
+                )
+              : [],
+        };
+      }
+      const d = data as DeliveryChallansReportDto;
+      return {
+        orientation: 'landscape',
+        summaries: [
+          { label: 'Delivery challans', value: String(d.totalChallanCount) },
+          { label: 'Lines', value: String(d.grandLineCount) },
+          { label: 'Total qty', value: String(d.grandQuantityDispatched) },
+        ],
+        headers: ['DC #', 'SO #', 'Hospital', 'Dispatch date', 'Status', 'Lines', 'Total qty', 'Invoiced'],
+        rows:
+          d.rows.length > 0
+            ? d.rows.map((r) =>
+                asStrings([
+                  r.challanNumber,
+                  r.supplyOrderNumber,
+                  r.hospitalName,
+                  fmtDisplayDate(r.dispatchDate),
+                  r.statusName,
+                  r.lineCount,
+                  r.totalQuantityDispatched,
+                  r.isInvoiced ? 'Yes' : 'No',
                 ]),
               )
             : [],
@@ -607,6 +663,7 @@ function drawHeaderBlock(
     `Supplier: ${meta.supplierLabel}`,
     `Product: ${meta.productLabel}`,
     ...(meta.supplyOrderStatusLabel ? [`Supply order status: ${meta.supplyOrderStatusLabel}`] : []),
+    ...(meta.deliveryChallanStatusLabel ? [`DC status: ${meta.deliveryChallanStatusLabel}`] : []),
   ];
   filterLines.forEach((line) => {
     doc.text(line, margin, y, { maxWidth: pageW - 2 * margin });

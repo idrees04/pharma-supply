@@ -17,6 +17,8 @@ import type {
   SupplyOrdersByHospitalReportDto,
   SupplyOrdersByProductReportDto,
   SupplyOrderByProductDetailReportDto,
+  DeliveryChallansReportDto,
+  DeliveryChallanDetailReportDto,
   CashCollectionsResponse,
   ExpensesSummaryResponse,
   HospitalArResponse,
@@ -33,6 +35,8 @@ import type {
   SupplyOrdersByHospitalResponse,
   SupplyOrdersByProductResponse,
   SupplyOrderByProductDetailResponse,
+  DeliveryChallansResponse,
+  DeliveryChallanDetailResponse,
   ProfitReportDto,
   ProfitReportResponse,
   LedgerReportDto,
@@ -54,6 +58,7 @@ function appendReportParams(qs: URLSearchParams, p?: AnalyticsReportQueryParams)
   if (p.asOfDate) qs.append('asOfDate', p.asOfDate);
   if (p.view) qs.append('view', p.view);
   if (p.supplyOrderStatus != null) qs.append('status', String(p.supplyOrderStatus));
+  if (p.deliveryChallanStatus != null) qs.append('status', String(p.deliveryChallanStatus));
 }
 
 export const analyticsReportService = {
@@ -110,6 +115,29 @@ export const analyticsReportService = {
     appendReportParams(qs, params);
     const url = `/api/reports/supply-order/by-product/${productId}/orders${qs.toString() ? `?${qs}` : ''}`;
     const res = await get<SupplyOrderByProductDetailResponse>(url, config);
+    return res.data;
+  },
+
+  getDeliveryChallansReport: async (
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<DeliveryChallansReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const url = `/api/reports/supply-order/delivery-challans${qs.toString() ? `?${qs}` : ''}`;
+    const res = await get<DeliveryChallansResponse>(url, config);
+    return res.data;
+  },
+
+  getDeliveryChallanDetailReport: async (
+    challanId: number,
+    params?: AnalyticsReportQueryParams,
+    config?: RequestConfig
+  ): Promise<DeliveryChallanDetailReportDto> => {
+    const qs = new URLSearchParams();
+    appendReportParams(qs, params);
+    const url = `/api/reports/supply-order/delivery-challans/${challanId}/items${qs.toString() ? `?${qs}` : ''}`;
+    const res = await get<DeliveryChallanDetailResponse>(url, config);
     return res.data;
   },
 

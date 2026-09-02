@@ -30,7 +30,8 @@ import { useProductList } from '@/api/services/products';
 import { useAccountList } from '@/api/services/accounts';
 import { ApiError } from '@/api/errors';
 import { downloadAnalyticsReportPdf } from '@/lib/reportsPdfExport';
-import { useSupplyOrderStatusOptions } from '@/hooks/dropdown';
+import { useSupplyOrderStatusOptions, useDeliveryChallanStatusOptions } from '@/hooks/dropdown';
+import { DeliveryChallanPreviewDialog } from '@/components/delivery/DeliveryChallanPreviewDialog';
 import {
   getSupplyOrderStatusClassName,
   getSupplyOrderStatusLabel,
@@ -50,6 +51,7 @@ const REPORTS_BY_MODULE: Record<ReportModuleId, { id: AnalyticsReportId; label: 
     { id: 'by-hospital', label: 'Orders by hospital' },
     { id: 'fulfillment-sla', label: 'Fulfillment / SLA' },
     { id: 'by-product', label: 'Product-wise supply orders' },
+    { id: 'delivery-challans', label: 'Delivery challans' },
   ],
   inventory: [
     { id: 'stock-position', label: 'Stock position & value' },
@@ -121,6 +123,11 @@ export default function Reports() {
     reportId === 'by-product' && detailProductIdParam && Number(detailProductIdParam) > 0
       ? Number(detailProductIdParam)
       : null;
+  const detailChallanIdParam = searchParams.get('detailChallanId');
+  const detailChallanId =
+    reportId === 'delivery-challans' && detailChallanIdParam && Number(detailChallanIdParam) > 0
+      ? Number(detailChallanIdParam)
+      : null;
 
   const { from: defaultFrom, to: defaultTo } = defaultDateRange();
   const [dateFrom, setDateFrom] = useState(defaultFrom);
@@ -129,13 +136,18 @@ export default function Reports() {
   const [supplierId, setSupplierId] = useState<string>('');
   const [productId, setProductId] = useState<string>('');
   const [supplyOrderStatus, setSupplyOrderStatus] = useState<string>('');
+  const [deliveryChallanStatus, setDeliveryChallanStatus] = useState<string>('');
   const [asOfDate, setAsOfDate] = useState(() => todayInputValue());
+  const [dcPreviewId, setDcPreviewId] = useState<number | null>(null);
 
   const { data: hospitalsData } = useGetHospitals({ pageNumber: 1, pageSize: 500 });
   const { data: suppliersData } = useSupplierList({ pageNumber: 1, pageSize: 500 });
   const { data: productsData } = useProductList({ pageNumber: 1, pageSize: 500 });
   const { data: accountsData } = useAccountList();
   const { data: supplyOrderStatuses } = useSupplyOrderStatusOptions(reportId === 'by-product');
+  const { data: deliveryChallanStatuses } = useDeliveryChallanStatusOptions(
+    reportId === 'delivery-challans',
+  );
 
   const hospitals = hospitalsData?.data?.items ?? [];
   const suppliers = suppliersData?.items ?? [];
@@ -212,6 +224,31 @@ export default function Reports() {
     );
   }, [setSearchParams]);
 
+  const openChallanDetail = useCallback(
+    (challanId: number) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('detailChallanId', String(challanId));
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const closeChallanDetail = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('detailChallanId');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
+
   // Sync URL with module/report
   useMemo(() => {
     if (!isModule(moduleParam)) {
@@ -240,8 +277,10 @@ export default function Reports() {
     if (reportId === 'balance-sheet') p.asOfDate = asOfDate;
     const sos = supplyOrderStatus ? Number(supplyOrderStatus) : undefined;
     if (sos && sos > 0) p.supplyOrderStatus = sos;
+    const dcs = deliveryChallanStatus ? Number(deliveryChallanStatus) : undefined;
+    if (dcs && dcs > 0) p.deliveryChallanStatus = dcs;
     return p;
-  }, [dateFrom, dateTo, hospitalId, supplierId, productId, effectiveAccountId, asOfDate, reportId, supplyOrderStatus]);
+  }, [dateFrom, dateTo, hospitalId, supplierId, productId, effectiveAccountId, asOfDate, reportId, supplyOrderStatus, deliveryChallanStatus]);
 
   const queryFn = useCallback(async () => {
     switch (reportId) {
@@ -255,6 +294,10 @@ export default function Reports() {
         return detailProductId
           ? analyticsReportService.getSupplyOrdersByProductDetail(detailProductId, apiParams)
           : analyticsReportService.getSupplyOrdersByProduct(apiParams);
+      case 'delivery-challans':
+        return detailChallanId
+          ? analyticsReportService.getDeliveryChallanDetailReport(detailChallanId, apiParams)
+          : analyticsReportService.getDeliveryChallansReport(apiParams);
       case 'stock-position':
         return analyticsReportService.getInventoryStockPosition(apiParams);
       case 'batch-expiry':
@@ -291,12 +334,12 @@ export default function Reports() {
       default:
         throw new Error('Unknown report');
     }
-  }, [reportId, apiParams, detailProductId]);
+  }, [reportId, apiParams, detailProductId, detailChallanId]);
 
   const isLedgerRedirect = reportId === 'vendor-ledger' || reportId === 'hospital-ledger';
 
   const { data, isPending, error, refetch, isFetching } = useQuery({
-    queryKey: ['analytics-report', reportId, apiParams, detailProductId],
+    queryKey: ['analytics-report', reportId, apiParams, detailProductId, detailChallanId],
     queryFn,
     enabled: !isLedgerRedirect,
     staleTime: 60 * 1000,
@@ -313,6 +356,7 @@ export default function Reports() {
     reportId === 'by-hospital' ||
     reportId === 'fulfillment-sla' ||
     reportId === 'by-product' ||
+    reportId === 'delivery-challans' ||
     reportId === 'hospital-ar' ||
     reportId === 'cash-collections' ||
     reportId === 'invoice-tax-lines' ||
@@ -329,10 +373,12 @@ export default function Reports() {
     reportId === 'stock-position' ||
     reportId === 'batch-expiry' ||
     reportId === 'receipt-vs-order' ||
-    reportId === 'profit-by-product';
+    reportId === 'profit-by-product' ||
+    reportId === 'delivery-challans';
   const showAccount = reportId === 'payments-by-account';
   const showAsOfDate = reportId === 'balance-sheet';
   const showSupplyOrderStatus = reportId === 'by-product';
+  const showDeliveryChallanStatus = reportId === 'delivery-challans';
 
   const reportLabel = REPORTS_BY_MODULE[module].find((x) => x.id === reportId)?.label ?? reportId;
 
@@ -360,6 +406,12 @@ export default function Reports() {
     return s?.name ?? `Status ${supplyOrderStatus}`;
   }, [supplyOrderStatus, supplyOrderStatuses]);
 
+  const deliveryChallanStatusFilterLabel = useMemo(() => {
+    if (!deliveryChallanStatus) return 'All statuses';
+    const s = deliveryChallanStatuses?.find((x) => String(x.value) === deliveryChallanStatus);
+    return s?.name ?? `Status ${deliveryChallanStatus}`;
+  }, [deliveryChallanStatus, deliveryChallanStatuses]);
+
   const moduleLabel = useMemo(
     () => `${MODULE_OPTIONS.find((o) => o.id === module)?.label ?? module} — analytics reports`,
     [module],
@@ -380,7 +432,9 @@ export default function Reports() {
         supplierLabel: supplierFilterLabel,
         productLabel: productFilterLabel,
         supplyOrderStatusLabel: supplyOrderStatusFilterLabel,
+        deliveryChallanStatusLabel: deliveryChallanStatusFilterLabel,
         detailProductId,
+        detailChallanId,
         data,
       });
       toast.success('PDF downloaded');
@@ -399,7 +453,9 @@ export default function Reports() {
     supplierFilterLabel,
     productFilterLabel,
     supplyOrderStatusFilterLabel,
+    deliveryChallanStatusFilterLabel,
     detailProductId,
+    detailChallanId,
   ]);
 
   return (
@@ -589,6 +645,28 @@ export default function Reports() {
               </Select>
             </div>
           ) : null}
+
+          {showDeliveryChallanStatus ? (
+            <div className="space-y-2">
+              <Label>DC status</Label>
+              <Select
+                value={deliveryChallanStatus || '__all'}
+                onValueChange={(v) => setDeliveryChallanStatus(v === '__all' ? '' : v)}
+              >
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">All statuses</SelectItem>
+                  {(deliveryChallanStatuses ?? []).map((s) => (
+                    <SelectItem key={s.value} value={String(s.value)}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -634,11 +712,17 @@ export default function Reports() {
           isPending={isPending}
           error={error}
           detailProductId={detailProductId}
+          detailChallanId={detailChallanId}
           onProductClick={openProductDetail}
+          onChallanClick={openChallanDetail}
           onBackFromDetail={closeProductDetail}
+          onBackFromChallanDetail={closeChallanDetail}
+          onPreviewChallan={setDcPreviewId}
           supplyOrderStatuses={supplyOrderStatuses}
+          deliveryChallanStatuses={deliveryChallanStatuses}
         />
       )}
+      <DeliveryChallanPreviewDialog challanId={dcPreviewId} onClose={() => setDcPreviewId(null)} />
     </div>
   );
 }
@@ -649,18 +733,28 @@ function ReportResults({
   isPending,
   error,
   detailProductId,
+  detailChallanId,
   onProductClick,
+  onChallanClick,
   onBackFromDetail,
+  onBackFromChallanDetail,
+  onPreviewChallan,
   supplyOrderStatuses,
+  deliveryChallanStatuses,
 }: {
   reportId: AnalyticsReportId;
   data: unknown;
   isPending: boolean;
   error: Error | null;
   detailProductId?: number | null;
+  detailChallanId?: number | null;
   onProductClick?: (productId: number) => void;
+  onChallanClick?: (challanId: number) => void;
   onBackFromDetail?: () => void;
+  onBackFromChallanDetail?: () => void;
+  onPreviewChallan?: (challanId: number) => void;
   supplyOrderStatuses?: import('@/types/api/supplyOrders').SupplyOrderStatusOption[];
+  deliveryChallanStatuses?: import('@/types/api/dropdown').EnumOption[];
 }) {
   if (isPending && !data) {
     return (
@@ -833,6 +927,123 @@ function ReportResults({
             />
           </Card>
           <p className="text-xs text-muted-foreground">Click a product row to view its supply orders.</p>
+        </div>
+      );
+    }
+    case 'delivery-challans': {
+      const getDcStatusLabel = (status: number, fallback: string) => {
+        const match = deliveryChallanStatuses?.find((x) => x.value === status);
+        return match?.name ?? fallback;
+      };
+
+      if (detailChallanId != null) {
+        const d = data as import('@/types/api/analyticsReports').DeliveryChallanDetailReportDto;
+        const detailColumns: Column<
+          import('@/types/api/analyticsReports').DeliveryChallanDetailRowDto
+        >[] = [
+          { header: 'Code', accessor: (row) => row.productCode, minWidth: '100px' },
+          { header: 'Product', accessor: (row) => row.productName, minWidth: '180px' },
+          { header: 'Batch', accessor: (row) => row.batchNumber || '—' },
+          { header: 'Expiry', accessor: (row) => fmtDate(row.batchExpiryDate) },
+          {
+            header: 'Qty dispatched',
+            accessor: (row) => String(row.quantityDispatched),
+            align: 'right',
+          },
+        ];
+
+        return (
+          <div className="space-y-4">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="gap-2 -ml-2"
+              onClick={onBackFromChallanDetail}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to DC summary
+            </Button>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm font-medium">
+                {d.challanNumber} — {d.hospitalName}
+              </p>
+              <Badge variant="outline">{getDcStatusLabel(d.status, d.statusName)}</Badge>
+              {onPreviewChallan && d.deliveryChallanId > 0 ? (
+                <Button type="button" variant="outline" size="sm" onClick={() => onPreviewChallan(d.deliveryChallanId)}>
+                  View challan
+                </Button>
+              ) : null}
+            </div>
+            <SummaryStrip
+              items={[
+                { label: 'Dispatch date', value: fmtDate(d.dispatchDate) },
+                { label: 'Lines', value: String(d.totalLineCount) },
+                { label: 'Total qty', value: String(d.totalQuantityDispatched) },
+              ]}
+            />
+            <Card className="overflow-hidden shadow-sm p-4">
+              <DataTable
+                columns={detailColumns}
+                data={d.rows}
+                itemsPerPage={20}
+                emptyMessage="No line items for this delivery challan and filters."
+              />
+            </Card>
+          </div>
+        );
+      }
+
+      const d = data as import('@/types/api/analyticsReports').DeliveryChallansReportDto;
+      const challanColumns: Column<import('@/types/api/analyticsReports').DeliveryChallansReportRowDto>[] = [
+        { header: 'DC #', accessor: (row) => row.challanNumber, minWidth: '120px' },
+        {
+          header: 'SO #',
+          accessor: (row) => (
+            <a
+              href={`/supply-orders/view/${row.supplyOrderId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-primary hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {row.supplyOrderNumber}
+            </a>
+          ),
+          minWidth: '120px',
+        },
+        { header: 'Hospital', accessor: (row) => row.hospitalName, minWidth: '160px' },
+        { header: 'Dispatch date', accessor: (row) => fmtDate(row.dispatchDate) },
+        {
+          header: 'Status',
+          accessor: (row) => (
+            <Badge variant="outline">{getDcStatusLabel(row.status, row.statusName)}</Badge>
+          ),
+        },
+        { header: 'Lines', accessor: (row) => String(row.lineCount), align: 'right' },
+        { header: 'Total qty', accessor: (row) => String(row.totalQuantityDispatched), align: 'right' },
+        { header: 'Invoiced', accessor: (row) => (row.isInvoiced ? 'Yes' : 'No'), align: 'center' },
+      ];
+
+      return (
+        <div className="space-y-4">
+          <SummaryStrip
+            items={[
+              { label: 'Delivery challans', value: String(d.totalChallanCount) },
+              { label: 'Lines', value: String(d.grandLineCount) },
+              { label: 'Total qty', value: String(d.grandQuantityDispatched) },
+            ]}
+          />
+          <Card className="overflow-hidden shadow-sm p-4">
+            <DataTable
+              columns={challanColumns}
+              data={d.rows}
+              itemsPerPage={20}
+              emptyMessage="No delivery challans for the selected filters."
+              onRowClick={(row) => onChallanClick?.(row.deliveryChallanId)}
+            />
+          </Card>
+          <p className="text-xs text-muted-foreground">Click a row to view dispatched line items.</p>
         </div>
       );
     }
